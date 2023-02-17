@@ -1,0 +1,17 @@
+.vscode
+build
+lexer.cpp
+parser.cpp
+parser.h
+*.ast
+*.toks
+*.ll
+*.res
+*.log
+*.bin
+*.s
+*.dot
+debug.*
+Debug.sy
+Makefile
+MakeDebug
