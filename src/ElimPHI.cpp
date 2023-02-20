@@ -67,10 +67,10 @@ void ElimPHI::pass()
             auto &restInsts = kv.second;
             std::vector<Instruction *> seq;
             auto insts = restInsts;
-            for(auto inst : insts) // delete inst like a <- a
+            for (auto inst : insts) // delete inst like a <- a
             {
-                if(inst->getDef()[0] == inst->getUses()[0])
-                     restInsts.erase(std::find(restInsts.begin(), restInsts.end(), inst));
+                if (inst->getDef()[0] == inst->getUses()[0])
+                    restInsts.erase(std::find(restInsts.begin(), restInsts.end(), inst));
             }
             while (restInsts.size())
             {
@@ -99,7 +99,7 @@ void ElimPHI::pass()
             for (auto inst : seq)
                 block->insertBefore(inst, block->rbegin()); // 跳过branch指令
         }
-        // for(auto i :freeList)
-        //     delete i;
     }
+    // for(auto i :freeList)
+    //     delete i;
 }

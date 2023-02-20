@@ -111,7 +111,7 @@ void IdentifierSymbolEntry::decl_code()
     {
         fprintf(yyout, "@%s = dso_local global ", this->toStr().c_str());
         fprintf(stderr, "@%s = dso_local global ", this->toStr().c_str());
-        if (((IdentifierSymbolEntry *)this)->getArrVals().empty())
+        if (this->isAllZero())
         {
             fprintf(yyout, "%s zeroinitializer", type->toStr().c_str());
             fprintf(stderr, "%s zeroinitializer", type->toStr().c_str());

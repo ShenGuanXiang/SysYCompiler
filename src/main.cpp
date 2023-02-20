@@ -88,32 +88,32 @@ int main(int argc, char *argv[])
         unit.output();
         fprintf(stderr, "ir output ok\n");
     }
-    // if (optimize)
+    if (optimize)
+    {
+        SimplifyCFG sc(&unit);
+        sc.pass();
+        Mem2Reg m2r(&unit);
+        m2r.pass();
+        // sc.pass();
+        fprintf(stderr, "opt ir generated\n");
+        if (dump_ir)
+        {
+            unit.output();
+            fprintf(stderr, "opt ir output ok\n");
+        }
+        ElimPHI ep(&unit);
+        ep.pass();
+        sc.pass();
+    }
+    // unit.genMachineCode(&mUnit);
+    // LinearScan linearScan(&mUnit);
+    // linearScan.allocateRegisters();
+    // fprintf(stderr, "asm generated\n");
+    // if (dump_asm)
     // {
-    //     SimplifyCFG sc(&unit);
-    //     sc.pass();
-    //     Mem2Reg m2r(&unit);
-    //     m2r.pass();
-    //     // sc.pass();
-    //     ElimPHI ep(&unit);
-    //     ep.pass();
-    //     sc.pass();
-    //     fprintf(stderr, "opt ir generated\n");
+    //     mUnit.output();
+    //     fprintf(stderr, "asm output ok\n");
     // }
-    if (dump_ir && optimize)
-    {
-        unit.output();
-        fprintf(stderr, "opt ir output ok\n");
-    }
-    unit.genMachineCode(&mUnit);
-    LinearScan linearScan(&mUnit);
-    linearScan.allocateRegisters();
-    fprintf(stderr, "asm generated\n");
-    if (dump_asm)
-    {
-        mUnit.output();
-        fprintf(stderr, "asm output ok\n");
-    }
     clearSymbolEntries();
     clearTypes();
     clearMachineOperands();

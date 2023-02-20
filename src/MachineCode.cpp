@@ -884,7 +884,7 @@ void MachineUnit::printGlobalDecl()
     {
         if (var->getType()->isARRAY())
         {
-            if (var->getArrVals().empty())
+            if (var->isAllZero())
                 fprintf(yyout, "\t.comm\t%s, %d, 4\n", var->toStr().c_str(), var->getType()->getSize());
             else
             {

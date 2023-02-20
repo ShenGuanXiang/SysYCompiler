@@ -68,11 +68,6 @@ void BasicBlock::output() const
     fprintf(stderr, "\n");
     for (auto i = head->getNext(); i != head; i = i->getNext())
         i->output();
-    if (head->getNext() == head)
-    {
-        fprintf(yyout, "  ret void\n");
-        fprintf(stderr, "  ret void\n");
-    }
 }
 
 void BasicBlock::addSucc(BasicBlock *bb)
@@ -112,8 +107,6 @@ void BasicBlock::genMachineCode(AsmBuilder *builder)
 BasicBlock::BasicBlock(Function *f)
 {
     this->no = SymbolTable::getLabel();
-    // if (this->no == 109)
-    //     assert(0);
     f->insertBlock(this);
     parent = f;
     head = new DummyInstruction();

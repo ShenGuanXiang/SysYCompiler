@@ -1369,11 +1369,17 @@ void FuncDefNode::genCode()
             falseBB->addPred(*bb);
         }
         // 对于无条件的跳转指令，只需要对其目标基本块设置控制流关系即可
-        if (last->isUncond())
+        else if (last->isUncond())
         {
             BasicBlock *dstBB = dynamic_cast<UncondBrInstruction *>(last)->getBranch();
             (*bb)->addSucc(dstBB);
             dstBB->addPred(*bb);
+        }
+        // 填充ret void
+        else
+        {
+            if (!last->isRet() /*&& dynamic_cast<FunctionType *>(se->getType())->getRetType()->isVoid()*/)
+                new RetInstruction(nullptr, *bb);
         }
     }
 }

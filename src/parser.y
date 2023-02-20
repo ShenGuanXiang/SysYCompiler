@@ -727,15 +727,10 @@ FuncDef
     }
     RPAREN BlockStmt{
         // 类型检查6：缺少return，比较粗略，某个分支没有return但其它分支有return的情况检查不出来
-        if(needRet)
+        if(needRet && !$1->isVoid())
         {
-            if($1->isVoid())
-                ((SeqStmt*)(((CompoundStmt*)$8)->getStmt()))->addChild(new ReturnStmt(nullptr));
-            else
-            {
-                fprintf(stderr, "missing return stmt\n");
-                assert(!needRet);
-            }
+            fprintf(stderr, "missing return stmt\n");
+            assert(!needRet);
         }
         SymbolEntry *se =  ($5 != nullptr) ? identifiers->lookup($2, true, ((FuncDefParamsNode*)$5)->getParamsType()):identifiers->lookup($2, true, {});
         assert(se != nullptr);

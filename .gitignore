@@ -12,6 +12,4 @@ parser.h
 *.s
 *.dot
 debug.*
-Debug.sy
 Makefile
-MakeDebug

@@ -39,11 +39,18 @@ public:
     void setValue(double val) { value = val; };
     std::vector<double> getArrVals() { return arrVals; };
     void setArrVals(std::vector<double> arrVals) { this->arrVals = arrVals; };
+    bool isAllZero()
+    {
+        assert(type->isARRAY());
+        for (auto val : arrVals)
+            if (val)
+                return false;
+        return true;
+    };
     int getKind() { return kind; };
     virtual std::string toStr() = 0;
     // You can add any function you need here.
 };
-
 
 // symbol table managing identifier symbol entries
 class SymbolTable
@@ -180,7 +187,6 @@ public:
     int getOffset() { return this->stack_offset; };
     // You can add any function you need here.
 };
-
 
 extern SymbolTable *identifiers;
 extern SymbolTable *globals;
