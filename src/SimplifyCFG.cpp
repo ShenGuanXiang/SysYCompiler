@@ -1,8 +1,9 @@
 #include "SimplifyCFG.h"
 #include "Type.h"
 #include <queue>
+#include <set>
 
-std::set<BasicBlock *> freeList;
+std::set<BasicBlock *> freeBBs;
 std::set<Instruction *> freeInsts;
 
 void SimplifyCFG::pass()
@@ -48,7 +49,7 @@ void SimplifyCFG::pass()
                     pred->removeSucc(bb);
                 }
                 func->remove(bb);
-                freeList.insert(bb);
+                freeBBs.insert(bb);
             }
             // 消除仅包含无条件分支的基本块。
             else if (bb->begin()->getNext() == bb->end() && bb->begin()->isUncond())
@@ -78,8 +79,8 @@ void SimplifyCFG::pass()
                     else
                     {
                         assert(lastInst->isUncond());
-                        freeInsts.insert(lastInst);
                         pred->remove(lastInst);
+                        freeInsts.insert(lastInst);
                         new UncondBrInstruction(succs[0], pred);
                     }
                     pred->addSucc(succs[0]);
@@ -89,7 +90,7 @@ void SimplifyCFG::pass()
                 if (bb == func->getEntry())
                     func->setEntry(succs[0]);
                 func->remove(bb);
-                freeList.insert(bb);
+                freeBBs.insert(bb);
             }
             // 如果仅有一个前驱且该前驱仅有一个后继，将基本块与前驱合并
             else if (bb->getNumOfPred() == 1 && (*(bb->pred_begin()))->getNumOfSucc() == 1 && bb != func->getEntry())
@@ -98,8 +99,8 @@ void SimplifyCFG::pass()
                 pred->removeSucc(bb);
                 auto lastInst = pred->rbegin();
                 assert(lastInst->isUncond() || (lastInst->isCond() && ((CondBrInstruction *)(lastInst))->getTrueBranch() == ((CondBrInstruction *)(lastInst))->getFalseBranch()));
-                freeInsts.insert(lastInst);
                 pred->remove(lastInst);
+                freeInsts.insert(lastInst);
                 for (auto succ : succs)
                     pred->addSucc(succ);
                 auto insts = std::vector<Instruction *>();
@@ -108,6 +109,7 @@ void SimplifyCFG::pass()
                 for (auto inst : insts)
                 {
                     bb->remove(inst);
+                    freeInsts.erase(inst);
                     pred->insertBefore(inst, pred->end());
                 }
                 for (auto succ : succs)
@@ -116,7 +118,7 @@ void SimplifyCFG::pass()
                     succ->addPred(pred);
                 }
                 func->remove(bb);
-                freeList.insert(bb);
+                freeBBs.insert(bb);
             }
         Next:
             q.pop();
@@ -141,11 +143,13 @@ void SimplifyCFG::pass()
                     pred->removeSucc(bb);
                 for (auto succ : succs)
                     succ->removePred(bb);
-                freeList.insert(bb);
+                freeBBs.insert(bb);
             }
     }
-    // for(auto bb : freeList)
-    //     delete bb;
-    // for(auto inst :freeInsts)
-    //     delete inst;
+    for (auto inst : freeInsts)
+        delete inst;
+    freeInsts.clear();
+    for (auto bb : freeBBs)
+        delete bb;
+    freeBBs.clear();
 }

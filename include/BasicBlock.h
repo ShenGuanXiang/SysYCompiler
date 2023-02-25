@@ -38,6 +38,7 @@ public:
     void removePred(BasicBlock *);
     int getNo() { return no; };
     Function *getParent() { return parent; };
+    void setParent(Function *func) { parent = func; };
     Instruction *begin() { return head->getNext(); };
     Instruction *end() { return head; };
     Instruction *rbegin() { return head->getPrev(); };

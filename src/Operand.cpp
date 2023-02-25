@@ -24,13 +24,6 @@ std::string Operand::toStr() const
         return se->toStr();
 }
 
-void Operand::removeUse(Instruction *inst)
-{
-    auto i = std::find(uses.begin(), uses.end(), inst);
-    if (i != uses.end())
-        uses.erase(i);
-}
-
 bool Operand::operator==(const Operand &a) const
 {
     return this->se == a.se;

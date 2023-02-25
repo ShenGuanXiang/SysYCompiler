@@ -30,6 +30,7 @@ public:
     void insertBlock(BasicBlock *bb) { block_list.push_back(bb); };
     BasicBlock *getEntry() { return entry; };
     void setEntry(BasicBlock *bb) { entry = bb; };
+    void setParent(Unit *unit) { parent = unit; };
     void remove(BasicBlock *bb);
     void output() const;
     std::vector<BasicBlock *> &getBlockList() { return block_list; };

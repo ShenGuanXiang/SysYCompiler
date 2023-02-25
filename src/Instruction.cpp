@@ -19,21 +19,30 @@ Instruction::Instruction(unsigned instType, BasicBlock *insert_bb)
 
 Instruction::~Instruction()
 {
-    parent->remove(this);
-    // for (auto def : def_list)
-    // {
-    //     if (def != nullptr)
-    //     {
-    //         def->setDef(nullptr);
-    //         if (def->usersNum() == 0)
-    //             delete def;
-    //     }
-    // }
-    // for (auto use : use_list)
-    // {
-    //     if (use != nullptr)
-    //         use->removeUse(this);
-    // }
+    if (parent != nullptr)
+        parent->remove(this);
+    std::set<Operand *> freeOps;
+    for (auto def : def_list) // size of def_list = 1
+    {
+        if (def != nullptr)
+        {
+            def->removeDef(this);
+            if (def->defsNum() == 0 && def->usersNum() == 0)
+                freeOps.insert(def);
+        }
+    }
+    for (auto use : use_list)
+    {
+        if (use != nullptr)
+        {
+            use->removeUse(this);
+            if (use->defsNum() == 0 && use->usersNum() == 0)
+                freeOps.insert(use);
+        }
+    }
+    for (auto op : freeOps)
+        if (op != nullptr)
+            delete op;
 }
 
 BasicBlock *Instruction::getParent()
@@ -66,11 +75,10 @@ Instruction *Instruction::getPrev()
     return prev;
 }
 
-std::vector<Operand *> Instruction::replaceAllUsesWith(Operand *replVal)
+void Instruction::replaceAllUsesWith(Operand *replVal)
 {
     if (def_list.empty())
-        return std::vector<Operand *>();
-    std::vector<Operand *> freeList;
+        return;
     for (auto userInst : def_list[0]->getUses())
     {
         auto &uses = userInst->getUses();
@@ -86,13 +94,11 @@ std::vector<Operand *> Instruction::replaceAllUsesWith(Operand *replVal)
                             src.second = replVal;
                     }
                 }
-                freeList.push_back(uses[i]);
                 uses[i]->removeUse(userInst);
                 uses[i] = replVal;
                 replVal->addUse(userInst);
             }
     }
-    return freeList;
 }
 
 AllocaInstruction::AllocaInstruction(Operand *dst, SymbolEntry *se, BasicBlock *insert_bb) : Instruction(ALLOCA, insert_bb)
@@ -140,7 +146,6 @@ StoreInstruction::StoreInstruction(Operand *dst_addr, Operand *src, BasicBlock *
 
 void StoreInstruction::output() const
 {
-    // TODO : Array
     std::string dst = use_list[0]->toStr();
     std::string src = use_list[1]->toStr();
     std::string dst_type = use_list[0]->getType()->toStr();
@@ -156,7 +161,7 @@ BinaryInstruction::BinaryInstruction(unsigned opcode, Operand *dst, Operand *src
     def_list.push_back(dst);
     use_list.push_back(src1);
     use_list.push_back(src2);
-    dst->setDef(this);
+    dst->addDef(this);
     src1->addUse(this);
     src2->addUse(this);
 }
@@ -483,16 +488,6 @@ PhiInstruction::PhiInstruction(Operand *dst, BasicBlock *insert_bb) : Instructio
     addr = dst;
 }
 
-PhiInstruction::~PhiInstruction()
-{
-    if (addr != nullptr)
-    {
-        // addr->setDef(nullptr);
-        if (addr->usersNum() == 0)
-            delete addr;
-    }
-}
-
 void PhiInstruction::output() const
 {
     fprintf(yyout, "  %s = phi %s ", def_list[0]->toStr().c_str(), def_list[0]->getType()->toStr().c_str());
@@ -659,7 +654,6 @@ void AllocaInstruction::genMachineCode(AsmBuilder *builder)
 
 void LoadInstruction::genMachineCode(AsmBuilder *builder)
 {
-    // TODO：Array
     auto cur_block = builder->getBlock();
     MachineInstruction *cur_inst = nullptr;
     // Load global operand
@@ -705,7 +699,6 @@ void LoadInstruction::genMachineCode(AsmBuilder *builder)
 
 void StoreInstruction::genMachineCode(AsmBuilder *builder)
 {
-    // TODO : Array
     auto cur_block = builder->getBlock();
     MachineInstruction *cur_inst = nullptr;
     MachineOperand *src = genMachineOperand(use_list[1]);
@@ -769,20 +762,7 @@ void BinaryInstruction::genMachineCode(AsmBuilder *builder)
      * However, it's not allowed in assembly code.
      * So you need to insert LOAD/MOV instruction to load immediate num into register.
      * As to other instructions, such as MUL, CMP, you need to deal with this situation, too.*/
-    if (opcode == ADD)
-    {
-        if (src1->isImm() && src1->getVal() == 0)
-        {
-            cur_block->insertInst(new MovMInstruction(cur_block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src2));
-            return;
-        }
-        else if (src2->isImm() && src2->getVal() == 0)
-        {
-            cur_block->insertInst(new MovMInstruction(cur_block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src1));
-            return;
-        }
-    }
-    // toDo : a = a + 0, a = b - 0, a = b*0, a=b*1, a = c/1; 把这部分工作额外用一次强度削弱的遍历来完成
+
     MachineInstruction *cur_inst = nullptr;
     if (opcode == MUL || opcode == DIV || opcode == MOD)
     {
@@ -865,12 +845,12 @@ void CmpInstruction::genMachineCode(AsmBuilder *builder)
         MachineOperand *dst = genMachineOperand(def_list[0]);
         MachineOperand *trueOperand = genMachineImm(1, TypeSystem::boolType);
         MachineOperand *falseOperand = genMachineImm(0, TypeSystem::boolType);
-        cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, trueOperand, opcode);
+        cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, trueOperand, nullptr, opcode);
         cur_block->insertInst(cur_inst);
         if (opcode == CmpInstruction::E || opcode == CmpInstruction::NE)
-            cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, falseOperand, 1 - opcode);
+            cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, falseOperand, nullptr, 1 - opcode);
         else
-            cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, falseOperand, 7 - opcode);
+            cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, falseOperand, nullptr, 7 - opcode);
         cur_block->insertInst(cur_inst);
     }
 }
@@ -1094,8 +1074,8 @@ void GepInstruction::genMachineCode(AsmBuilder *builder)
             auto idx = genMachineOperand(use_list[i]);
             if (idx->isImm())
                 idx = cur_block->insertLoadImm(idx);
-            auto size = cur_block->insertLoadImm(genMachineImm(cur_size));
             auto extra_offset = genMachineVReg();
+            auto size = cur_block->insertLoadImm(genMachineImm(cur_size));
             cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::MUL, extra_offset, idx, size);
             cur_block->insertInst(cur_inst);
             cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, dst, internal_reg, new MachineOperand(*extra_offset));

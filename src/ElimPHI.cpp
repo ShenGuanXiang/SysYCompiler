@@ -100,6 +100,7 @@ void ElimPHI::pass()
                 block->insertBefore(inst, block->rbegin()); // 跳过branch指令
         }
     }
-    // for(auto i :freeList)
-    //     delete i;
+    for (auto i : freeList)
+        delete i;
+    freeList.clear();
 }

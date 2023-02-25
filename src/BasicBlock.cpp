@@ -33,6 +33,7 @@ void BasicBlock::remove(Instruction *inst)
 {
     inst->getPrev()->setNext(inst->getNext());
     inst->getNext()->setPrev(inst->getPrev());
+    inst->setParent(nullptr);
 }
 
 void BasicBlock::output() const
@@ -43,8 +44,8 @@ void BasicBlock::output() const
     if (!pred.empty())
     {
         auto i = pred.begin();
-        fprintf(yyout, "%*c; predecessors = %%B%d", 32, '\t', (*i)->getNo());
-        fprintf(stderr, "%*c; predecessors = %%B%d", 32, '\t', (*i)->getNo());
+        fprintf(yyout, "%*c; preds = %%B%d", 32, '\t', (*i)->getNo());
+        fprintf(stderr, "%*c; preds = %%B%d", 32, '\t', (*i)->getNo());
         i++;
         for (; i != pred.end(); i++)
         {
@@ -55,8 +56,8 @@ void BasicBlock::output() const
     if (!succ.empty())
     {
         auto i = succ.begin();
-        fprintf(yyout, "%*c; successors = %%B%d", 32, '\t', (*i)->getNo());
-        fprintf(stderr, "%*c; successors = %%B%d", 32, '\t', (*i)->getNo());
+        fprintf(yyout, "%*c; succs = %%B%d", 32, '\t', (*i)->getNo());
+        fprintf(stderr, "%*c; succs = %%B%d", 32, '\t', (*i)->getNo());
         i++;
         for (; i != succ.end(); ++i)
         {
@@ -115,18 +116,18 @@ BasicBlock::BasicBlock(Function *f)
 
 BasicBlock::~BasicBlock()
 {
-    Instruction *inst;
-    inst = head->getNext();
+    Instruction *inst = head->getNext();
     while (inst != head)
     {
-        Instruction *t;
-        t = inst;
+        Instruction *t = inst;
         inst = inst->getNext();
         delete t;
     }
+    delete head;
     for (auto &bb : pred)
         bb->removeSucc(this);
     for (auto &bb : succ)
         bb->removePred(this);
-    parent->remove(this);
+    if (parent != nullptr)
+        parent->remove(this);
 }

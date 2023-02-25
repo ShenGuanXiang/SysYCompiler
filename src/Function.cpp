@@ -18,7 +18,8 @@ Function::~Function()
     auto delete_list = block_list;
     for (auto &i : delete_list)
         delete i;
-    parent->removeFunc(this);
+    if (parent != nullptr)
+        parent->removeFunc(this);
 }
 
 // remove the basicblock bb from its block_list.
@@ -27,6 +28,7 @@ void Function::remove(BasicBlock *bb)
     auto it = std::find(block_list.begin(), block_list.end(), bb);
     if (it != block_list.end())
         block_list.erase(it);
+    bb->setParent(nullptr);
 }
 
 void Function::output() const

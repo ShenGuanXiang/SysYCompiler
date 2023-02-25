@@ -386,6 +386,7 @@ void StoreMInstruction::output()
 
 MovMInstruction::MovMInstruction(MachineBlock *p, int op,
                                  MachineOperand *dst, MachineOperand *src,
+                                 MachineOperand *shifter,
                                  int cond)
 {
     // assert(!src->isImm());
@@ -397,6 +398,12 @@ MovMInstruction::MovMInstruction(MachineBlock *p, int op,
     this->use_list.push_back(src);
     dst->setParent(this);
     src->setParent(this);
+    if (shifter != nullptr)
+    {
+        // assert(op == MOVASR || op == MOVLSL || op == MOVLSR);
+        this->use_list.push_back(shifter);
+        shifter->setParent(this);
+    }
 }
 
 void MovMInstruction::output()
@@ -406,6 +413,9 @@ void MovMInstruction::output()
     switch (this->op)
     {
     case MovMInstruction::MOV:
+    case MovMInstruction::MOVLSL:
+        // case MovMInstruction::MOVLSR:
+        // case MovMInstruction::MOVASR:
         if (use_list[0]->getValType()->isBool())
             fprintf(yyout, "\tmovw"); // move byte指令呢?
         else
@@ -688,13 +698,13 @@ void MachineBlock::output()
     fprintf(yyout, ".L%d:", this->no);
     if (!pred.empty())
     {
-        fprintf(yyout, "%*c@ predecessors = .L%d", 32, '\t', pred[0]->getNo());
+        fprintf(yyout, "%*c@ preds = .L%d", 32, '\t', pred[0]->getNo());
         for (auto i = pred.begin() + 1; i != pred.end(); i++)
             fprintf(yyout, ", .L%d", (*i)->getNo());
     }
     if (!succ.empty())
     {
-        fprintf(yyout, "%*c@ successors = .L%d", 32, '\t', succ[0]->getNo());
+        fprintf(yyout, "%*c@ succs = .L%d", 32, '\t', succ[0]->getNo());
         for (auto i = succ.begin() + 1; i != succ.end(); ++i)
             fprintf(yyout, ", .L%d", (*i)->getNo());
     }

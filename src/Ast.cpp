@@ -1001,7 +1001,7 @@ void DeclStmt::genCode()
         Function *func = builder->getInsertBB()->getParent();
         BasicBlock *entry = func->getEntry();
         addr = new Operand(new TemporarySymbolEntry(new PointerType(se->getType()), SymbolTable::getLabel()));
-        Instruction *alloca = new AllocaInstruction(addr, se); // allocate space for local id in function stack. TODO：Alloc指令考虑数组
+        Instruction *alloca = new AllocaInstruction(addr, se); // allocate space for local id in function stack.
         entry->insertFront(alloca);                            // allocate instructions should be inserted into the begin of the entry block.
         se->setAddr(addr);                                     // set the addr operand in symbol entry so that we can use it in subsequent code generation.
         Operand *temp = nullptr;
@@ -1337,7 +1337,7 @@ void FuncDefNode::genCode()
         params->genCode();
     stmt->genCode();
     /**
-     * Construct control flow graph. You need do set successors and predecessors for each basic block.
+     * Construct control flow graph. You need do set succs and preds for each basic block.
      */
     for (auto bb = func->begin(); bb != func->end(); bb++)
     {

@@ -5,7 +5,7 @@
 static std::map<BasicBlock *, std::set<BasicBlock *>> SDoms;
 static std::map<Instruction *, unsigned> InstNumbers;
 static std::vector<PhiInstruction *> newPHIs;
-static std::set<Instruction *> freeList;
+static std::set<Instruction *> freeInsts;
 
 static std::map<Operand *, std::set<PhiInstruction *>> defs;
 struct AllocaInfo
@@ -271,7 +271,7 @@ static bool rewriteSingleStoreAlloca(AllocaInstruction *alloca, AllocaInfo &Info
         UserInst->replaceAllUsesWith(ReplVal); // 替换掉load的所有user
         InstNumbers.erase(UserInst);
         UserInst->getParent()->remove(UserInst);
-        freeList.insert(UserInst); // 删除load指令
+        freeInsts.insert(UserInst); // 删除load指令
     }
 
     // 有 alloca 支配不到的 User
@@ -281,9 +281,9 @@ static bool rewriteSingleStoreAlloca(AllocaInstruction *alloca, AllocaInfo &Info
     // 移除处理好的store和alloca
     InstNumbers.erase(Info.OnlyStore);
     Info.OnlyStore->getParent()->remove(Info.OnlyStore);
-    freeList.insert(Info.OnlyStore);
+    freeInsts.insert(Info.OnlyStore);
     alloca->getParent()->remove(alloca);
-    freeList.insert(alloca);
+    freeInsts.insert(alloca);
     return true;
 }
 
@@ -335,17 +335,17 @@ static bool promoteSingleBlockAlloca(AllocaInstruction *alloca)
         // 删除load指令
         InstNumbers.erase(LoadInst);
         LoadInst->getParent()->remove(LoadInst);
-        freeList.insert(LoadInst);
+        freeInsts.insert(LoadInst);
     }
 
     // 删除alloca和所有的store指令
     alloca->getParent()->remove(alloca);
-    freeList.insert(alloca);
+    freeInsts.insert(alloca);
     for (auto kv : StoresByIndex)
     {
         InstNumbers.erase(kv.second);
         kv.second->getParent()->remove(kv.second);
-        freeList.insert(kv.second);
+        freeInsts.insert(kv.second);
     }
     return true;
 }
@@ -417,7 +417,7 @@ void Mem2Reg::InsertPhi(Function *func)
         if (alloca->getDef()[0]->getUses().size() == 0)
         {
             alloca->getParent()->remove(alloca);
-            freeList.insert(alloca);
+            freeInsts.insert(alloca);
             continue;
         }
 
@@ -486,7 +486,7 @@ static void SimplifyInstruction()
         {
             phi->replaceAllUsesWith(last_src);
             phi->getParent()->remove(phi);
-            freeList.insert(phi);
+            freeInsts.insert(phi);
         }
     }
 }
@@ -520,7 +520,7 @@ void Mem2Reg::Rename(Function *func)
             if (inst->isAlloca() && isAllocaPromotable(dynamic_cast<AllocaInstruction *>(inst)))
             {
                 inst->getParent()->remove(inst);
-                freeList.insert(inst);
+                freeInsts.insert(inst);
             }
             else if (inst->isLoad())
             {
@@ -529,7 +529,7 @@ void Mem2Reg::Rename(Function *func)
                 {
                     inst->replaceAllUsesWith(IncomingVals[inst->getUses()[0]]);
                     inst->getParent()->remove(inst);
-                    freeList.insert(inst);
+                    freeInsts.insert(inst);
                 }
             }
             else if (inst->isStore())
@@ -539,7 +539,7 @@ void Mem2Reg::Rename(Function *func)
                 {
                     IncomingVals[inst->getUses()[0]] = inst->getUses()[1];
                     inst->getParent()->remove(inst);
-                    freeList.insert(inst);
+                    freeInsts.insert(inst);
                 }
             }
             else if (inst->isPHI())
@@ -570,7 +570,7 @@ void Mem2Reg::Rename(Function *func)
         }
     }
     SimplifyInstruction();
-    // bug
-    // for (auto inst : freeList)
-    //     delete inst;
+    for (auto inst : freeInsts)
+        delete inst;
+    freeInsts.clear();
 }

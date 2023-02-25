@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
         sc.pass();
         Mem2Reg m2r(&unit);
         m2r.pass();
-        // sc.pass();
+        // todo:其它优化
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
@@ -103,17 +103,18 @@ int main(int argc, char *argv[])
         }
         ElimPHI ep(&unit);
         ep.pass();
+        // todo:强度削弱
         sc.pass();
     }
-    // unit.genMachineCode(&mUnit);
-    // LinearScan linearScan(&mUnit);
-    // linearScan.allocateRegisters();
-    // fprintf(stderr, "asm generated\n");
-    // if (dump_asm)
-    // {
-    //     mUnit.output();
-    //     fprintf(stderr, "asm output ok\n");
-    // }
+    if (dump_asm)
+    {
+        unit.genMachineCode(&mUnit);
+        LinearScan linearScan(&mUnit);
+        linearScan.allocateRegisters();
+        fprintf(stderr, "asm generated\n");
+        mUnit.output();
+        fprintf(stderr, "asm output ok\n");
+    }
     clearSymbolEntries();
     clearTypes();
     clearMachineOperands();

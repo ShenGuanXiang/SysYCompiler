@@ -13,6 +13,7 @@ void Unit::insertDecl(IdentifierSymbolEntry *se)
 void Unit::removeFunc(Function *func)
 {
     func_list.erase(std::find(func_list.begin(), func_list.end(), func));
+    func->setParent(nullptr);
 }
 
 void Unit::output() const

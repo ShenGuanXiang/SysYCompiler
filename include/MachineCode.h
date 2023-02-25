@@ -161,11 +161,15 @@ public:
         MOV,
         // MVN,
         // MOVT,
+        MOVLSL,
+        // MOVLSR,
+        // MOVASR,
         VMOV,
         // VMOVF32
     };
     MovMInstruction(MachineBlock *p, int op,
                     MachineOperand *dst, MachineOperand *src,
+                    MachineOperand *shifter = nullptr,
                     int cond = MachineInstruction::NONE);
     void output();
 };
