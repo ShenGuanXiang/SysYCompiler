@@ -29,7 +29,7 @@ class MachineOperand
 {
 private:
     MachineInstruction *parent;
-    int type;
+    int type;          // {IMM, VREG, REG, LABEL}
     double val;        // value of immediate number
     int reg_no;        // register no
     std::string label; // address label

@@ -92,9 +92,9 @@ int main(int argc, char *argv[])
     {
         SimplifyCFG sc(&unit);
         sc.pass();
-        Mem2Reg m2r(&unit);
-        m2r.pass();
-        // todo:其它优化
+        // Mem2Reg m2r(&unit);
+        // m2r.pass();
+        // todo:其它中间代码优化
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
@@ -103,13 +103,21 @@ int main(int argc, char *argv[])
         }
         ElimPHI ep(&unit);
         ep.pass();
-        // todo:强度削弱
+        // todo:强度削弱等
         sc.pass();
     }
     if (dump_asm)
     {
         unit.genMachineCode(&mUnit);
+        if (optimize)
+        {
+            // todo: 汇编代码优化
+        }
         LinearScan linearScan(&mUnit);
+        if (optimize)
+        {
+            // todo: 汇编代码优化
+        }
         linearScan.allocateRegisters();
         fprintf(stderr, "asm generated\n");
         mUnit.output();

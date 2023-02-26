@@ -49,8 +49,7 @@ void LiveVariableAnalysis::computeLiveInOut(Function *func)
 {
     for (auto block = func->begin(); block != func->end(); block++)
         (*block)->getLiveIn().clear();
-    bool change;
-    change = true;
+    bool change = true;
     while (change)
     {
         change = false;
@@ -123,8 +122,7 @@ void MLiveVariableAnalysis::computeLiveInOut(MachineFunction *func)
 {
     for (auto &block : func->getBlocks())
         block->getLiveIn().clear();
-    bool change;
-    change = true;
+    bool change = true;
     while (change)
     {
         change = false;

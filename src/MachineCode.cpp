@@ -25,6 +25,7 @@ MachineOperand::MachineOperand(int tp, double val, Type *valType)
     // this->valType = valType->isARRAY() ? dynamic_cast<ArrayType *>(valType)->getElemType() : valType;
     // assert(!valType->isARRAY()); // TODO：数组的情况传int型还是元素类型？
     this->valType = valType;
+    this->parent = nullptr;
     newMachineOperands.push_back(this);
 }
 

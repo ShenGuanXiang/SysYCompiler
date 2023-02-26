@@ -18,8 +18,7 @@ void LinearScan::allocateRegisters()
     {
         func = f;
         bool success;
-        success = false;
-        while (!success) // repeat until all vregs can be mapped
+        do // repeat until all vregs can be mapped
         {
             computeLiveIntervals();
             success = linearScanRegisterAllocation();
@@ -27,7 +26,7 @@ void LinearScan::allocateRegisters()
                 modifyCode();
             else // spill vregs that can't be mapped to real regs
                 genSpillCode();
-        }
+        } while (!success);
     }
 }
 
@@ -133,8 +132,7 @@ void LinearScan::computeLiveIntervals()
         interval->start = begin;
         interval->end = end;
     }
-    bool change;
-    change = true;
+    bool change = true;
     while (change)
     {
         change = false;
@@ -180,7 +178,7 @@ bool LinearScan::linearScanRegisterAllocation()
         rregs.push_back(i);
     for (int i = 5; i < 32; i++)
         sregs.push_back(i);
-    bool flag = true;
+    bool success = true;
     for (auto &interval : intervals)
     {
         expireOldIntervals(interval);
@@ -194,7 +192,7 @@ bool LinearScan::linearScanRegisterAllocation()
             if (!sregs.size())
             {
                 spillAtInterval(interval);
-                flag = false;
+                success = false;
             }
             else
             {
@@ -211,7 +209,7 @@ bool LinearScan::linearScanRegisterAllocation()
             if (!rregs.size())
             {
                 spillAtInterval(interval);
-                flag = false;
+                success = false;
             }
             else
             {
@@ -224,7 +222,7 @@ bool LinearScan::linearScanRegisterAllocation()
             }
         }
     }
-    return flag;
+    return success;
 }
 
 void LinearScan::modifyCode()
