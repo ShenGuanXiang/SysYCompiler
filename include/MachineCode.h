@@ -24,6 +24,8 @@ class MachineInstruction;
 class MachineOperand;
 
 bool isShifterOperandVal(unsigned bin_val);
+bool isSignedShifterOperandVal(signed val);
+bool isFloatShifterOperandVal(float val);
 
 class MachineOperand
 {
@@ -324,6 +326,7 @@ public:
     SymbolEntry *getSymPtr() { return sym_ptr; };
     void addAdditionalArgsOffset(MachineOperand *param) { additional_args_offset.push_back(param); };
     // std::vector<MachineOperand *> getAdditionalArgsOffset() { return additional_args_offset; };
+    void AnalyzeLiveVariable();
     void output();
     ~MachineFunction();
 };

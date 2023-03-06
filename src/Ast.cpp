@@ -1307,7 +1307,7 @@ void FuncDefParamsNode::genCode()
         }
         else
             type = new PointerType(it->getSymPtr()->getType());
-        func->insertParams(it->getOperand());
+        func->insertParams(it->getOperand()->getEntry());
         SymbolEntry *addr_se;
         if (it->getIndices() != nullptr)
             addr_se = new TemporarySymbolEntry(new PointerType(type), SymbolTable::getLabel());

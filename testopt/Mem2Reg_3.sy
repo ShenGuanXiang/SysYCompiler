@@ -2,7 +2,7 @@
 int buf[2][100];
 
 // sort [l, r)
-void merge_sort(int l, int r, int buf[][100])
+void merge_sort(int l, int r)
 {
     if (l + 1 >= r)
         return;
@@ -42,7 +42,7 @@ void merge_sort(int l, int r, int buf[][100])
 int main()
 {
     int n = getarray(buf[0]);
-    merge_sort(0, n, buf);
+    merge_sort(0, n);
     putarray(n, buf[0]);
     return 0;
 }

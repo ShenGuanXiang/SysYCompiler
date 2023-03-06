@@ -16,7 +16,7 @@ class MachineFunction;
 
 class LinearScan
 {
-private:
+public:
     struct Interval
     {
         int start;
@@ -28,13 +28,14 @@ private:
         std::set<MachineOperand *> defs;
         std::set<MachineOperand *> uses;
     };
+    
+private:
     MachineUnit *unit;
     MachineFunction *func;
     std::vector<int> rregs;
     std::vector<int> sregs; // 浮点可分配寄存器号
     std::map<MachineOperand *, std::set<MachineOperand *>> du_chains;
     std::vector<Interval *> intervals, active;
-    static bool compareStart(Interval *a, Interval *b);
     void expireOldIntervals(Interval *interval);
     void spillAtInterval(Interval *interval);
     void makeDuChains();
@@ -45,7 +46,7 @@ private:
 
 public:
     LinearScan(MachineUnit *unit);
-    void allocateRegisters();
+    void pass();
 };
 
 #endif

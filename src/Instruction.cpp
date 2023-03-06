@@ -75,32 +75,6 @@ Instruction *Instruction::getPrev()
     return prev;
 }
 
-void Instruction::replaceAllUsesWith(Operand *replVal)
-{
-    if (def_list.empty())
-        return;
-    for (auto userInst : def_list[0]->getUses())
-    {
-        auto &uses = userInst->getUses();
-        for (size_t i = 0; i != userInst->getUses().size(); i++)
-            if (uses[i]->getEntry() == def_list[0]->getEntry())
-            {
-                if (userInst->isPHI())
-                {
-                    auto &srcs = ((PhiInstruction *)userInst)->getSrcs();
-                    for (auto &src : srcs)
-                    {
-                        if (src.second == uses[i])
-                            src.second = replVal;
-                    }
-                }
-                uses[i]->removeUse(userInst);
-                uses[i] = replVal;
-                replVal->addUse(userInst);
-            }
-    }
-}
-
 AllocaInstruction::AllocaInstruction(Operand *dst, SymbolEntry *se, BasicBlock *insert_bb) : Instruction(ALLOCA, insert_bb)
 {
     assert(dst->getType()->isPTR());
@@ -763,6 +737,21 @@ void BinaryInstruction::genMachineCode(AsmBuilder *builder)
      * So you need to insert LOAD/MOV instruction to load immediate num into register.
      * As to other instructions, such as MUL, CMP, you need to deal with this situation, too.*/
 
+    // 与0相加的强度削弱，todo：单独一次pass，替换所有使用
+    if (opcode == ADD)
+    {
+        if (src1->isImm() && src1->getVal() == 0)
+        {
+            cur_block->insertInst(new MovMInstruction(cur_block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src2));
+            return;
+        }
+        else if (src2->isImm() && src2->getVal() == 0)
+        {
+            cur_block->insertInst(new MovMInstruction(cur_block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src1));
+            return;
+        }
+    }
+
     MachineInstruction *cur_inst = nullptr;
     if (opcode == MUL || opcode == DIV || opcode == MOD)
     {
@@ -935,7 +924,7 @@ void IntFloatCastInstruction::genMachineCode(AsmBuilder *builder)
     }
     case S2F:
     {
-        auto internal_reg1 = dst;
+        auto internal_reg1 = new MachineOperand(*dst);
         cur_inst = new MovMInstruction(cur_block, MovMInstruction::VMOV, internal_reg1, src);
         cur_block->insertInst(cur_inst);
         auto internal_reg2 = new MachineOperand(*internal_reg1);

@@ -8,10 +8,23 @@ bool isShifterOperandVal(unsigned bin_val)
 {
     for (int i = 0; i < 32; i += 2)
     {
-        signed shift_val = ((bin_val) >> i) | ((bin_val) << (32 - i)); // 循环右移i位
+        unsigned shift_val = ((bin_val) >> i) | ((bin_val) << (32 - i)); // 循环右移i位
         if ((shift_val & 0xFFFFFF00) == 0x00000000)
             return true;
     }
+    return false;
+}
+
+// TODO
+bool isSignedShifterOperandVal(signed signed_val)
+{
+    unsigned bin_val = reinterpret_cast<unsigned &>(signed_val);
+    return signed_val >= 0 ? isShifterOperandVal(bin_val) : signed_val >= -255;
+}
+
+// TODO
+bool isFloatShifterOperandVal(float float_val)
+{
     return false;
 }
 
@@ -44,7 +57,7 @@ bool MachineOperand::operator==(const MachineOperand &a) const
     if (this->type == IMM)
         return this->val == a.val;
     if (this->type == LABEL)
-        return true;
+        return this->label == a.label;
     return this->reg_no == a.reg_no && ((this->valType->isFloat() && a.valType->isFloat()) || (this->valType->isInt() && a.valType->isInt()));
 }
 
@@ -54,9 +67,9 @@ bool MachineOperand::operator<(const MachineOperand &a) const
     {
         if (this->type == IMM)
             return this->val < a.val;
-        // assert(this->type == VREG || this->type == REG);
         if (this->type == LABEL)
-            return false; // 不太理解比较label的意义
+            return this->label < a.label; // 不太理解比较label的意义
+        assert(this->type == VREG || this->type == REG);
         if (this->valType->isInt() && a.valType->isFloat())
             return true;
         if (this->valType->isFloat() && a.valType->isInt())
@@ -72,9 +85,9 @@ void MachineOperand::printReg()
     {
         switch (reg_no)
         {
-        case 32:
-            fprintf(yyout, "FPSCR");
-            break;
+        // case 32:
+        //     fprintf(yyout, "FPSCR");
+        //     break;
         default:
             fprintf(yyout, "s%d", reg_no);
             break;
@@ -113,6 +126,7 @@ void MachineOperand::output()
     switch (this->type)
     {
     case IMM:
+    {
         if (valType->isFloat())
         {
             float float_val = (float)(this->val);
@@ -121,19 +135,28 @@ void MachineOperand::output()
         else
             fprintf(yyout, "#%d", (int)this->val);
         break;
+    }
     case VREG:
-        fprintf(yyout, "v%d", this->reg_no); // 不用区分浮点？
+    {
+        std::string str = valType->isFloat() ? "vs" : "vr";
+        fprintf(yyout, "%s%d", str.c_str(), this->reg_no);
         break;
+    }
     case REG:
+    {
         printReg();
         break;
+    }
     case LABEL:
+    {
         if (this->label.substr(0, 2) == ".L")
             fprintf(yyout, "%s", this->label.c_str());
         else if (this->label.substr(0, 1) == "@")
             fprintf(yyout, "%s", this->label.c_str() + 1);
         else
             fprintf(yyout, "addr_%d_%s", parent->getParent()->getParent()->getParent()->getLtorgNo(), /*this->label.substr(0, 1) == "@" ? this->label.c_str() + 1 : */ this->label.c_str());
+        break;
+    }
     default:
         break;
     }
@@ -142,14 +165,10 @@ void MachineOperand::output()
 bool MachineOperand::isIllegalShifterOperand()
 {
     assert(this->isImm());
-    unsigned bin_val;
-    if (valType->isFloat()) // TODO
-        // bin_val = reinterpret_cast<unsigned &>(this->val);
-        return true;
+    if (valType->isFloat())
+        return !isFloatShifterOperandVal((float)(this->getVal()));
     assert(valType->isInt());
-    signed signed_val = (int)(this->val);
-    bin_val = reinterpret_cast<unsigned &>(signed_val);
-    return this->val >= 0 ? !isShifterOperandVal(bin_val) : signed_val < -255;
+    return !isSignedShifterOperandVal((int)(this->val));
 }
 
 void MachineInstruction::printCond()
@@ -282,7 +301,7 @@ void LoadMInstruction::output()
     //     this->use_list[1] = this->def_list[0];
     // }
 
-    // 小的立即数用MOV优化一下，arm汇编器会自动做?
+    // 强度削弱：小的立即数用MOV/MVN优化一下，arm汇编器会自动做?
     if ((this->use_list.size() == 1) && this->use_list[0]->isImm() && !this->use_list[0]->isIllegalShifterOperand())
     {
         if (this->def_list[0]->getValType()->isFloat())
@@ -294,6 +313,18 @@ void LoadMInstruction::output()
         this->def_list[0]->output();
         fprintf(yyout, ", ");
         this->use_list[0]->output();
+        fprintf(yyout, "\n");
+        return;
+    }
+    if ((this->use_list.size() == 1) && this->use_list[0]->isImm() && this->use_list[0]->getValType()->isInt() && isSignedShifterOperandVal(~((int)this->use_list[0]->getVal())))
+    {
+        fprintf(yyout, "\tmvn");
+        printCond();
+        fprintf(yyout, " ");
+        this->def_list[0]->output();
+        fprintf(yyout, ", ");
+        auto negative_imm = new MachineOperand(MachineOperand::IMM, ~((int)this->use_list[0]->getVal()), this->use_list[0]->getValType());
+        negative_imm->output();
         fprintf(yyout, "\n");
         return;
     }
@@ -737,7 +768,6 @@ void MachineFunction::addSavedRegs(int regno, bool is_sreg)
 {
     if (is_sreg)
     {
-        // saved_sregs.insert(regno);
         auto insertPos = std::lower_bound(saved_sregs.begin(), saved_sregs.end(), regno);
         saved_sregs.insert(insertPos, regno);
     }

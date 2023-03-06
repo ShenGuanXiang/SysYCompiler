@@ -1,13 +1,12 @@
 #include "Mem2Reg.h"
+#include "SimplifyCFG.h"
 #include "Type.h"
 #include <queue>
 
-static std::map<BasicBlock *, std::set<BasicBlock *>> SDoms;
 static std::map<Instruction *, unsigned> InstNumbers;
 static std::vector<PhiInstruction *> newPHIs;
 static std::set<Instruction *> freeInsts;
 
-static std::map<Operand *, std::set<PhiInstruction *>> defs;
 struct AllocaInfo
 {
 
@@ -32,7 +31,7 @@ struct AllocaInfo
     {
         clear();
         // 获得store指令和load指令所在的基本块，并判断它们是否在同一块中
-        for (auto user : alloca->getDef()[0]->getUses())
+        for (auto user : alloca->getDef()->getUses())
         {
             if (user->isStore())
             {
@@ -60,33 +59,35 @@ void Mem2Reg::pass()
 {
     for (auto func = unit->begin(); func != unit->end(); func++)
     {
-        ComputeDom(*func);
-        ComputeDomFrontier(*func);
+        (*func)->ComputeDom();
+        (*func)->ComputeDomFrontier();
         InsertPhi(*func);
         Rename(*func);
     }
 }
 
 // SDoms & IDom
-void Mem2Reg::ComputeDom(Function *func)
+void Function::ComputeDom()
 {
-    // Vertex-removal Algorithm, TODO：采用更高效的算法
-    SDoms.clear();
-    for (auto bb : func->getBlockList())
-        SDoms[bb] = std::set<BasicBlock *>();
-    std::set<BasicBlock *> all_bbs(func->getBlockList().begin(), func->getBlockList().end());
-    for (auto removed_bb : func->getBlockList())
+    // 删除不可达的基本块。
+    SimplifyCFG sc(this->getParent());
+    sc.pass(this);
+    // Vertex-removal Algorithm, O(n^2)
+    for (auto bb : getBlockList())
+        bb->getSDoms() = std::set<BasicBlock *>();
+    std::set<BasicBlock *> all_bbs(getBlockList().begin(), getBlockList().end());
+    for (auto removed_bb : getBlockList())
     {
         std::set<BasicBlock *> visited;
         std::queue<BasicBlock *> q;
         std::map<BasicBlock *, bool> is_visited;
-        for (auto bb : func->getBlockList())
+        for (auto bb : getBlockList())
             is_visited[bb] = false;
-        if (func->getEntry() != removed_bb)
+        if (getEntry() != removed_bb)
         {
-            visited.insert(func->getEntry());
-            is_visited[func->getEntry()] = true;
-            q.push(func->getEntry());
+            visited.insert(getEntry());
+            is_visited[getEntry()] = true;
+            q.push(getEntry());
             while (!q.empty())
             {
                 BasicBlock *cur = q.front();
@@ -105,43 +106,40 @@ void Mem2Reg::ComputeDom(Function *func)
         for (auto bb : not_visited)
         {
             if (bb != removed_bb)
-                SDoms[bb].insert(removed_bb); // strictly dominators
+                bb->getSDoms().insert(removed_bb); // strictly dominators
         }
     }
     // immediate dominator ：严格支配 bb，且不严格支配任何严格支配 bb 的节点的节点
-    IDom.clear();
-    for (auto bb : func->getBlockList())
+    std::set<BasicBlock *> temp_IDoms;
+    for (auto bb : getBlockList())
     {
-        IDom[bb] = SDoms[bb];
-        for (auto sdom : SDoms[bb])
+        temp_IDoms = bb->getSDoms();
+        for (auto sdom : bb->getSDoms())
         {
-            std::set<BasicBlock *> temp;
-            set_difference(IDom[bb].begin(), IDom[bb].end(), SDoms[sdom].begin(), SDoms[sdom].end(), inserter(temp, temp.end()));
-            IDom[bb] = temp;
+            std::set<BasicBlock *> diff_set;
+            set_difference(temp_IDoms.begin(), temp_IDoms.end(), sdom->getSDoms().begin(), sdom->getSDoms().end(), inserter(diff_set, diff_set.end()));
+            temp_IDoms = diff_set;
         }
-        assert(IDom[bb].size() == 1 || (bb == func->getEntry() && IDom[bb].size() == 0));
+        assert(temp_IDoms.size() == 1 || (bb == getEntry() && temp_IDoms.size() == 0));
+        if (bb != getEntry())
+            bb->getIDom() = *temp_IDoms.begin();
     }
-    // for (auto kv : IDom)
-    // {
-    //     fprintf(stderr, "IDom[B%d] = {", kv.first->getNo());
-    //     for (auto bb : kv.second)
-    //         fprintf(stderr, "B%d, ", bb->getNo());
-    //     fprintf(stderr, "}\n");
-    // }
+    // for (auto bb : getBlockList())
+    //     if (bb != getEntry())
+    //         fprintf(stderr, "IDom[B%d] = B%d\n", bb->getNo(), bb->getIDom()->getNo());
 }
 
 // ref : Static Single Assignment Book
-void Mem2Reg::ComputeDomFrontier(Function *func)
+void Function::ComputeDomFrontier()
 {
-    DF.clear();
-    for (auto bb : func->getBlockList())
-        DF[bb] = std::set<BasicBlock *>();
+    for (auto bb : getBlockList())
+        bb->getDomFrontiers() = std::set<BasicBlock *>();
     std::map<BasicBlock *, bool> is_visited;
-    for (auto bb : func->getBlockList())
+    for (auto bb : getBlockList())
         is_visited[bb] = false;
     std::queue<BasicBlock *> q;
-    q.push(func->getEntry());
-    is_visited[func->getEntry()] = true;
+    q.push(getEntry());
+    is_visited[getEntry()] = true;
     while (!q.empty())
     {
         auto a = q.front();
@@ -150,11 +148,11 @@ void Mem2Reg::ComputeDomFrontier(Function *func)
         for (auto b : succs)
         {
             auto x = a;
-            while (!SDoms[b].count(x))
+            while (!b->getSDoms().count(x))
             {
-                assert(x != func->getEntry());
-                DF[x].insert(b);
-                x = *(IDom[x].begin());
+                assert(x != getEntry());
+                x->getDomFrontiers().insert(b);
+                x = x->getIDom();
             }
             if (!is_visited[b])
             {
@@ -163,35 +161,61 @@ void Mem2Reg::ComputeDomFrontier(Function *func)
             }
         }
     }
-    // for (auto kv : DF)
+    // for (auto BB : getBlockList())
     // {
-    //     fprintf(stderr, "DF[B%d] = {", kv.first->getNo());
-    //     for (auto bb : kv.second)
+    //     fprintf(stderr, "DF[B%d] = {", BB->getNo());
+    //     for (auto bb : BB->getDomFrontiers())
     //         fprintf(stderr, "B%d, ", bb->getNo());
     //     fprintf(stderr, "}\n");
     // }
 }
 
+void Instruction::replaceAllUsesWith(Operand *replVal)
+{
+    if (def_list.empty())
+        return;
+    for (auto userInst : def_list[0]->getUses())
+    {
+        auto &uses = userInst->getUses();
+        for (size_t i = 0; i != userInst->getUses().size(); i++)
+            if (uses[i] == def_list[0])
+            {
+                if (userInst->isPHI())
+                {
+                    auto &srcs = ((PhiInstruction *)userInst)->getSrcs();
+                    for (auto &src : srcs)
+                    {
+                        if (src.second == uses[i])
+                            src.second = replVal;
+                    }
+                }
+                uses[i]->removeUse(userInst);
+                uses[i] = replVal;
+                replVal->addUse(userInst);
+            }
+    }
+}
+
 static bool isAllocaPromotable(AllocaInstruction *alloca)
 {
-    if (dynamic_cast<PointerType *>(alloca->getDef()[0]->getEntry()->getType())->isARRAY())
+    if (dynamic_cast<PointerType *>(alloca->getDef()->getEntry()->getType())->isARRAY())
         return false; // toDo ：数组拟采用sroa、向量化优化
-    auto users = alloca->getDef()[0]->getUses();
+    auto users = alloca->getDef()->getUses();
     for (auto user : users)
     {
         // store:不允许alloc的结果作为store的左操作数；不允许store dst的类型和alloc dst的类型不符
         if (user->isStore())
         {
-            assert(user->getUses()[1]->getEntry() != alloca->getDef()[0]->getEntry());
-            assert(dynamic_cast<PointerType *>(user->getUses()[0]->getType())->getValType() == dynamic_cast<PointerType *>(alloca->getDef()[0]->getType())->getValType());
+            assert(user->getUses()[1]->getEntry() != alloca->getDef()->getEntry());
+            assert(dynamic_cast<PointerType *>(user->getUses()[0]->getType())->getValType() == dynamic_cast<PointerType *>(alloca->getDef()->getType())->getValType());
             if (user->getUses()[1]->getEntry()->isVariable())
-                if (dynamic_cast<IdentifierSymbolEntry *>(user->getUses()[1]->getEntry())->isParam())
+                if (dynamic_cast<IdentifierSymbolEntry *>(user->getUses()[1]->getEntry())->isParam() /* && dynamic_cast<IdentifierSymbolEntry *>(user->getUses()[1]->getEntry())->getParamNo() <= 3 */)
                     return false; // todo : 函数参数先不提升
         }
         // load: 不允许load src的类型和alloc dst的类型不符
         else if (user->isLoad())
         {
-            assert(dynamic_cast<PointerType *>(user->getUses()[0]->getType())->getValType() == dynamic_cast<PointerType *>(alloca->getDef()[0]->getType())->getValType());
+            assert(dynamic_cast<PointerType *>(user->getUses()[0]->getType())->getValType() == dynamic_cast<PointerType *>(alloca->getDef()->getType())->getValType());
         }
         // else if (user->isGep())
         else
@@ -238,7 +262,7 @@ static bool rewriteSingleStoreAlloca(AllocaInstruction *alloca, AllocaInfo &Info
 
     Info.UsingBlocks.clear();
 
-    auto AllocaUsers = alloca->getDef()[0]->getUses();
+    auto AllocaUsers = alloca->getDef()->getUses();
     for (auto UserInst : AllocaUsers)
     {
         if (UserInst == OnlyStore)
@@ -260,7 +284,7 @@ static bool rewriteSingleStoreAlloca(AllocaInstruction *alloca, AllocaInfo &Info
                 }
             }
             // 如果二者在不同基本块，则需要保证 load 指令能被 store 支配
-            else if (!SDoms[UserInst->getParent()].count(StoreBB))
+            else if (!(UserInst->getParent()->getSDoms()).count(StoreBB))
             {
                 Info.UsingBlocks.push_back(UserInst->getParent());
                 continue;
@@ -296,7 +320,7 @@ static bool promoteSingleBlockAlloca(AllocaInstruction *alloca)
     using LoadsByIndexTy = std::vector<std::pair<unsigned, LoadInstruction *>>;
     LoadsByIndexTy LoadsByIndex;
 
-    auto AllocaUsers = alloca->getDef()[0]->getUses();
+    auto AllocaUsers = alloca->getDef()->getUses();
     for (auto UserInst : AllocaUsers)
     {
         if (UserInst->isStore())
@@ -353,9 +377,9 @@ static bool promoteSingleBlockAlloca(AllocaInstruction *alloca)
 static bool StoreBeforeLoad(BasicBlock *BB, AllocaInstruction *alloca)
 {
     for (auto I = BB->begin(); I != BB->end(); I = I->getNext())
-        if (I->isLoad() && I->getUses()[0]->getEntry() == alloca->getDef()[0]->getEntry())
+        if (I->isLoad() && I->getUses()[0] == alloca->getDef())
             return false;
-        else if (I->isStore() && I->getUses()[0]->getEntry() == alloca->getDef()[0]->getEntry())
+        else if (I->isStore() && I->getUses()[0] == alloca->getDef())
             return true;
     return false;
 }
@@ -383,8 +407,6 @@ static std::set<BasicBlock *> ComputeLiveInBlocks(AllocaInstruction *alloca, All
         workList.push(bb);
         is_visited[bb] = true;
     }
-    // for (auto bb : DefBlocks) // 到def not use的基本块， live in的迭代终止
-    //     is_visited[bb] = true;
     while (!workList.empty())
     {
         auto bb = workList.front();
@@ -411,10 +433,10 @@ void Mem2Reg::InsertPhi(Function *func)
         auto alloca = dynamic_cast<AllocaInstruction *>(inst);
         if (!isAllocaPromotable(alloca))
             continue;
-        assert(alloca->getDef()[0]->getType()->isPTR());
+        assert(alloca->getDef()->getType()->isPTR());
 
         // 筛1：如果alloca出的空间从未被使用，直接删除
-        if (alloca->getDef()[0]->getUses().size() == 0)
+        if (alloca->getDef()->getUses().size() == 0)
         {
             alloca->getParent()->remove(alloca);
             freeInsts.insert(alloca);
@@ -449,13 +471,13 @@ void Mem2Reg::InsertPhi(Function *func)
         {
             auto bb = workList.front();
             workList.pop();
-            for (auto df : DF[bb])
+            for (auto df : bb->getDomFrontiers())
                 if (!is_visited[df])
                 {
                     is_visited[df] = true;
                     if (LiveInBlocks.find(df) != LiveInBlocks.end())
                     {
-                        auto phi = new PhiInstruction(alloca->getDef()[0]); // 现在PHI的dst是PTR
+                        auto phi = new PhiInstruction(alloca->getDef()); // 现在PHI的dst是PTR
                         df->insertFront(phi);
                         newPHIs.push_back(phi);
                     }
@@ -476,7 +498,7 @@ static void SimplifyInstruction()
         bool Elim = true;
         for (auto src : srcs)
         {
-            if (src != last_src)
+            if (src != last_src && !(src->getType()->isConst() && last_src->getType()->isConst() && src->getEntry()->getValue() == last_src->getEntry()->getValue()))
             {
                 Elim = false;
                 break;
@@ -489,6 +511,7 @@ static void SimplifyInstruction()
             freeInsts.insert(phi);
         }
     }
+    newPHIs.clear();
 }
 
 // https://roife.github.io/2022/02/07/mem2reg/
@@ -522,16 +545,6 @@ void Mem2Reg::Rename(Function *func)
                 inst->getParent()->remove(inst);
                 freeInsts.insert(inst);
             }
-            else if (inst->isLoad())
-            {
-                if (inst->getUses()[0]->getDef() && inst->getUses()[0]->getDef()->isAlloca() &&
-                    isAllocaPromotable(dynamic_cast<AllocaInstruction *>(inst->getUses()[0]->getDef())))
-                {
-                    inst->replaceAllUsesWith(IncomingVals[inst->getUses()[0]]);
-                    inst->getParent()->remove(inst);
-                    freeInsts.insert(inst);
-                }
-            }
             else if (inst->isStore())
             {
                 if (inst->getUses()[0]->getDef() && inst->getUses()[0]->getDef()->isAlloca() &&
@@ -542,13 +555,23 @@ void Mem2Reg::Rename(Function *func)
                     freeInsts.insert(inst);
                 }
             }
+            else if (inst->isLoad())
+            {
+                if (inst->getUses()[0]->getDef() && inst->getUses()[0]->getDef()->isAlloca() &&
+                    isAllocaPromotable(dynamic_cast<AllocaInstruction *>(inst->getUses()[0]->getDef())))
+                {
+                    inst->replaceAllUsesWith(IncomingVals[inst->getUses()[0]]);
+                    inst->getParent()->remove(inst);
+                    freeInsts.insert(inst);
+                }
+            }
             else if (inst->isPHI())
             {
-                assert(inst->getDef()[0]->getEntry()->getType()->isPTR());
-                auto new_dst = new Operand(new TemporarySymbolEntry(dynamic_cast<PointerType *>(inst->getDef()[0]->getType())->getValType(),
-                                                                    /*dynamic_cast<TemporarySymbolEntry *>(inst->getDef()[0]->getEntry())->getLabel()*/
+                assert(inst->getDef()->getEntry()->getType()->isPTR());
+                auto new_dst = new Operand(new TemporarySymbolEntry(dynamic_cast<PointerType *>(inst->getDef()->getType())->getValType(),
+                                                                    /*dynamic_cast<TemporarySymbolEntry *>(inst->getDef()->getEntry())->getLabel()*/
                                                                     SymbolTable::getLabel()));
-                IncomingVals[inst->getDef()[0]] = new_dst;
+                IncomingVals[inst->getDef()] = new_dst;
                 dynamic_cast<PhiInstruction *>(inst)->updateDst(new_dst); // i32*->i32
             }
         }
@@ -573,4 +596,6 @@ void Mem2Reg::Rename(Function *func)
     for (auto inst : freeInsts)
         delete inst;
     freeInsts.clear();
+    SimplifyCFG sc(func->getParent());
+    sc.pass(func);
 }

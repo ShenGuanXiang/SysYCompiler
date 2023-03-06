@@ -6,13 +6,22 @@
 LinearScan::LinearScan(MachineUnit *unit)
 {
     this->unit = unit;
-    for (int i = 4; i < 11; i++)
+    for (int i = 10; i >= 4; i--)
         rregs.push_back(i);
-    for (int i = 5; i < 32; i++)
+    for (int i = 31; i >= 5; i--)
         sregs.push_back(i);
 }
 
-void LinearScan::allocateRegisters()
+static auto compareEnd = [](LinearScan::Interval *a, LinearScan::Interval *b) -> bool
+{
+    return a->end < b->end;
+};
+static auto compareStart = [](LinearScan::Interval *a, LinearScan::Interval *b) -> bool
+{
+    return a->start < b->start;
+};
+
+void LinearScan::pass()
 {
     for (auto &f : unit->getFuncs())
     {
@@ -32,8 +41,20 @@ void LinearScan::allocateRegisters()
 
 void LinearScan::makeDuChains()
 {
-    MLiveVariableAnalysis lva;
-    lva.pass(func);
+    func->AnalyzeLiveVariable();
+    std::map<MachineOperand, std::set<MachineOperand *>> all_uses;
+    for (auto &block : func->getBlocks())
+    {
+        for (auto &inst : block->getInsts())
+        {
+            auto uses = inst->getUse();
+            for (auto &use : uses)
+            {
+                if (!use->isLabel())
+                    all_uses[*use].insert(use);
+            }
+        }
+    }
     du_chains.clear();
     int i = 0;
     std::map<MachineOperand, std::set<MachineOperand *>> liveVar;
@@ -53,7 +74,7 @@ void LinearScan::makeDuChains()
                 {
                     auto &uses = liveVar[*def];
                     du_chains[def].insert(uses.begin(), uses.end());
-                    auto &kill = lva.getAllUses()[*def];
+                    auto &kill = all_uses[*def];
                     std::set<MachineOperand *> res;
                     set_difference(uses.begin(), uses.end(), kill.begin(), kill.end(), inserter(res, res.end()));
                     liveVar[*def] = res;
@@ -183,10 +204,6 @@ bool LinearScan::linearScanRegisterAllocation()
     {
         expireOldIntervals(interval);
 
-        auto comp = [&](Interval *a, Interval *b) -> bool
-        {
-            return a->end < b->end;
-        };
         if (interval->valType->isFloat())
         {
             if (!sregs.size())
@@ -198,9 +215,7 @@ bool LinearScan::linearScanRegisterAllocation()
             {
                 interval->real_reg = (*sregs.rbegin());
                 sregs.pop_back();
-                // active.push_back(interval);
-                // sort(active.begin(), active.end(), comp);
-                auto insertPos = std::lower_bound(active.begin(), active.end(), interval, comp);
+                auto insertPos = std::lower_bound(active.begin(), active.end(), interval, compareEnd);
                 active.insert(insertPos, interval);
             }
         }
@@ -215,9 +230,7 @@ bool LinearScan::linearScanRegisterAllocation()
             {
                 interval->real_reg = (*rregs.rbegin());
                 rregs.pop_back();
-                // active.push_back(interval);
-                // sort(active.begin(), active.end(), comp);
-                auto insertPos = std::lower_bound(active.begin(), active.end(), interval, comp);
+                auto insertPos = std::lower_bound(active.begin(), active.end(), interval, compareEnd);
                 active.insert(insertPos, interval);
             }
         }
@@ -292,15 +305,11 @@ void LinearScan::expireOldIntervals(Interval *interval)
         {
             auto insertPos = std::lower_bound(sregs.begin(), sregs.end(), (*inter)->real_reg);
             sregs.insert(insertPos, (*inter)->real_reg);
-            // sregs.push_back((*inter)->real_reg);
-            // sort(sregs.begin(), sregs.end());
         }
         else
         {
             auto insertPos = std::lower_bound(rregs.begin(), rregs.end(), (*inter)->real_reg);
             rregs.insert(insertPos, (*inter)->real_reg);
-            // regs.push_back((*inter)->real_reg);
-            // sort(regs.begin(), regs.end());
         }
     }
 }
@@ -312,22 +321,11 @@ void LinearScan::spillAtInterval(Interval *interval)
         (*active.rbegin())->spill = true;
         interval->real_reg = (*active.rbegin())->real_reg;
         active.pop_back();
-        auto comp = [&](Interval *a, Interval *b) -> bool
-        {
-            return a->end < b->end;
-        };
-        auto insertPos = std::lower_bound(active.begin(), active.end(), interval, comp);
+        auto insertPos = std::lower_bound(active.begin(), active.end(), interval, compareEnd);
         active.insert(insertPos, interval);
-        // active.push_back(interval);
-        // sort(active.begin(), active.end(), comp);
     }
     else
     {
         interval->spill = true;
     }
-}
-
-bool LinearScan::compareStart(Interval *a, Interval *b)
-{
-    return a->start < b->start;
 }

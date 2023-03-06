@@ -16,6 +16,7 @@ private:
 
 public:
     SimplifyCFG(Unit *unit) : unit(unit){};
+    void pass(Function* func);
     void pass();
 };
 

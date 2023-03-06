@@ -1,4 +1,5 @@
 #include "ElimPHI.h"
+#include "SimplifyCFG.h"
 
 static std::set<Instruction *> freeList; // ALL PHIs
 
@@ -37,7 +38,7 @@ void ElimPHI::pass()
                     bb->removePred(pred);
                     for (auto i = bb->begin(); i != bb->end() && i->isPHI(); i = i->getNext())
                     {
-                        auto def = i->getDef()[0];
+                        auto def = i->getDef();
                         auto src = dynamic_cast<PhiInstruction *>(i)->getSrcs()[pred];
                         src->removeUse(i);
                         pcopy[splitBlock].push_back(new BinaryInstruction(BinaryInstruction::ADD, def, src, new Operand(new ConstantSymbolEntry(Var2Const(def->getType()), 0))));
@@ -49,7 +50,7 @@ void ElimPHI::pass()
                 {
                     for (auto i = bb->begin(); i != bb->end() && i->isPHI(); i = i->getNext())
                     {
-                        auto def = i->getDef()[0];
+                        auto def = i->getDef();
                         auto src = dynamic_cast<PhiInstruction *>(i)->getSrcs()[pred];
                         src->removeUse(i);
                         pcopy[pred].push_back(new BinaryInstruction(BinaryInstruction::ADD, def, src, new Operand(new ConstantSymbolEntry(Var2Const(def->getType()), 0))));
@@ -69,7 +70,7 @@ void ElimPHI::pass()
             auto insts = restInsts;
             for (auto inst : insts) // delete inst like a <- a
             {
-                if (inst->getDef()[0] == inst->getUses()[0])
+                if (inst->getDef() == inst->getUses()[0])
                     restInsts.erase(std::find(restInsts.begin(), restInsts.end(), inst));
             }
             while (restInsts.size())
@@ -81,7 +82,7 @@ void ElimPHI::pass()
                 auto Insts = restInsts;
                 for (auto inst : Insts)
                 {
-                    if (uses.count(inst->getDef()[0]) == 0) // inst is not live-in of pcopy
+                    if (uses.count(inst->getDef()) == 0) // inst is not live-in of pcopy
                     {
                         seq.push_back(inst);
                         restInsts.erase(std::find(restInsts.begin(), restInsts.end(), inst));
@@ -103,4 +104,6 @@ void ElimPHI::pass()
     for (auto i : freeList)
         delete i;
     freeList.clear();
+    SimplifyCFG sc(unit);
+    sc.pass();
 }

@@ -8,6 +8,7 @@
 #include "SimplifyCFG.h"
 #include "Mem2Reg.h"
 #include "ElimPHI.h"
+#include "LiveVariableAnalysis.h"
 using namespace std;
 
 Ast ast;
@@ -90,11 +91,12 @@ int main(int argc, char *argv[])
     }
     if (optimize)
     {
-        SimplifyCFG sc(&unit);
-        sc.pass();
-        // Mem2Reg m2r(&unit);
-        // m2r.pass();
+        Mem2Reg m2r(&unit);
+        m2r.pass();
         // todo:其它中间代码优化
+        // 自动内联
+        // 常量传播
+        // 强度削弱
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
@@ -103,8 +105,6 @@ int main(int argc, char *argv[])
         }
         ElimPHI ep(&unit);
         ep.pass();
-        // todo:强度削弱等
-        sc.pass();
     }
     if (dump_asm)
     {
@@ -114,11 +114,11 @@ int main(int argc, char *argv[])
             // todo: 汇编代码优化
         }
         LinearScan linearScan(&mUnit);
+        linearScan.pass();
         if (optimize)
         {
             // todo: 汇编代码优化
         }
-        linearScan.allocateRegisters();
         fprintf(stderr, "asm generated\n");
         mUnit.output();
         fprintf(stderr, "asm output ok\n");

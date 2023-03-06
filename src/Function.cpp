@@ -44,8 +44,8 @@ void Function::output() const
             fprintf(yyout, ", ");
             fprintf(stderr, ", ");
         }
-        fprintf(yyout, "%s %s", (*it)->getType()->toStr().c_str(), (*it)->getEntry()->toStr().c_str());
-        fprintf(stderr, "%s %s", (*it)->getType()->toStr().c_str(), (*it)->getEntry()->toStr().c_str());
+        fprintf(yyout, "%s %s", (*it)->getType()->toStr().c_str(), (*it)->toStr().c_str());
+        fprintf(stderr, "%s %s", (*it)->getType()->toStr().c_str(), (*it)->toStr().c_str());
     }
     fprintf(yyout, ") #0{\n");
     fprintf(stderr, ") #0{\n");

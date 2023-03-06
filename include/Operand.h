@@ -26,8 +26,8 @@ public:
     void removeUse(Instruction *inst) { uses.erase(inst); };
     int usersNum() const { return uses.size(); };
     int defsNum() const { return defs.size(); };
-    bool operator==(const Operand &) const;
-    bool operator<(const Operand &) const;
+    // bool operator==(const Operand &) const;
+    // bool operator<(const Operand &) const;
 
     use_iterator use_begin() { return uses.begin(); };
     use_iterator use_end() { return uses.end(); };

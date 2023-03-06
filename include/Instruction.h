@@ -36,7 +36,11 @@ public:
     MachineOperand *genMachineImm(double val, Type *valType = TypeSystem::intType);
     MachineOperand *genMachineLabel(int block_no);
     virtual void genMachineCode(AsmBuilder *) = 0;
-    virtual std::vector<Operand *> &getDef() { return def_list; };
+    virtual Operand *&getDef()
+    {
+        assert(!def_list.empty());
+        return def_list[0];
+    };
     virtual std::vector<Operand *> &getUses() { return use_list; };
     void replaceAllUsesWith(Operand *); // Mem2Reg
 

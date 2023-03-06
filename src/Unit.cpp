@@ -33,7 +33,7 @@ void Unit::genMachineCode(MachineUnit *munit)
     AsmBuilder *builder = new AsmBuilder();
     builder->setUnit(munit);
     for (auto decl : decl_list)
-        if ((!decl->isLibFunc() && !decl->getType()->isConst()) || decl->getType()->isARRAY()) // TODO：如果数组实现了常量折叠就不用加了
+        if ((!decl->isLibFunc() && !decl->getType()->isConst()) || decl->getType()->isARRAY())
             munit->insertGlobalVar(decl);
     for (auto &func : func_list)
         func->genMachineCode(builder);
