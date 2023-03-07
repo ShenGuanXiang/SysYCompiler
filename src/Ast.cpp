@@ -528,6 +528,7 @@ void Id::genCode()
             if (symbolEntry->getType()->isPTR())
             {
                 ArrayType *curr_type;
+                cur_type = (ArrayType*)((PointerType*)(symbolEntry->getType()))->getValType();
                 if (cur_type->isIntArray())
                 {
                     if (cur_type->isConst())

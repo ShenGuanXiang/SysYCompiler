@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
+    optimize = false;
     if (optind >= argc)
     {
         fprintf(stderr, "no input file\n");
