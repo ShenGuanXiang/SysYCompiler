@@ -425,16 +425,16 @@ void Id::genCode()
                 currr_dim = ((ArrayType *)getSymPtr()->getType())->fetch(); // if is params, it should be 0
             else
                 currr_dim = ((ArrayType *)((PointerType *)getSymPtr()->getType())->getValType())->fetch();
-            if (currr_dim.size() > 0)
-            {
-                if (currr_dim[0] == -1)
-                {
-                    TemporarySymbolEntry *se = new TemporarySymbolEntry(new PointerType(getType()), SymbolTable::getLabel());
-                    Operand *new_addr = new Operand(se);
-                    new LoadInstruction(new_addr, addr, bb);
-                    tempSrc = new_addr;
-                }
-            }
+            // if (currr_dim.size() > 0)
+            // {
+            //     if (currr_dim[0] == -1)
+            //     {
+            //         TemporarySymbolEntry *se = new TemporarySymbolEntry(new PointerType(getType()), SymbolTable::getLabel());
+            //         Operand *new_addr = new Operand(se);
+            //         new LoadInstruction(new_addr, addr, bb);
+            //         tempSrc = new_addr;
+            //     }
+            // }
             if (currr_dim.size() != indices->getExprList().size() && !isPtr)
                 is_FP = true;
             if (!isPtr)
