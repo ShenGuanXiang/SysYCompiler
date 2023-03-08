@@ -219,7 +219,7 @@ public:
         leaf = leaf1;
         leaves.clear();
     };
-    bool isLeaf() { return leaves.empty(); };
+    bool isLeaf() { return leaves.empty() && leaf != nullptr; };
     void fill(int level, std::vector<int> d, Type *type);
     int getSize(int d_nxt);
     bool isFull();
