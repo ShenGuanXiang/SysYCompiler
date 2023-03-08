@@ -18,7 +18,11 @@ private:
     std::set<Instruction *> uses; // Intructions that use this operand.
     SymbolEntry *se;              // The symbol entry of this operand.
 public:
-    Operand(SymbolEntry *se) : se(se) { defs = std::set<Instruction *>{}; };
+    Operand(SymbolEntry *se) : se(se)
+    {
+        defs = std::set<Instruction *>{};
+        uses = std::set<Instruction *>{};
+    };
     void setDef(Instruction *inst) { defs = std::set<Instruction *>{inst}; };
     void addDef(Instruction *inst) { defs.insert(inst); }; // 特例是消除PHI产生的add ..., ..., 0，会有多个Def
     void removeDef(Instruction *inst) { defs.erase(inst); };

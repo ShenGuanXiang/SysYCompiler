@@ -172,6 +172,17 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
     this->scope = scope;
     addr = nullptr;
     this->is8BytesAligned = type->isFunc() && isLibFunc() && name != "getint" && name != "putint" && name != "getch" && name != "putch" && name != "getarray" && name != "putarray";
+    min_mem2reg_param_no = 0;
+    if (type->isFunc() && isLibFunc()) // todo 库函数到底用了几个寄存器
+    {
+        if (name != "getint" && name != "putint" && name != "getch" && name != "putch" && name != "getarray" && name != "putarray")
+            setMinMem2regParamNo(3);
+        else
+            setMinMem2regParamNo(2);
+    }
+    func_se = nullptr;
+    label = -1;
+    paramOpe = nullptr;
 }
 
 std::string IdentifierSymbolEntry::toStr()

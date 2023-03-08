@@ -4,6 +4,7 @@
 #include <list>
 
 extern FILE *yyout;
+extern bool mem2reg;
 
 Function::Function(Unit *u, SymbolEntry *s)
 {
@@ -79,30 +80,59 @@ void Function::genMachineCode(AsmBuilder *builder)
     builder->setFunction(cur_func);
     std::map<BasicBlock *, MachineBlock *> map;
 
-    // std::set<BasicBlock *> v;
-    // std::list<BasicBlock *> q;
-    // q.push_back(entry);
-    // v.insert(entry);
-    // while (!q.empty())
+    std::map<BasicBlock *, bool> is_visited;
+    std::list<BasicBlock *> q;
+    q.push_back(entry);
+    for (auto block : block_list)
+        is_visited[block] = false;
+    is_visited[entry] = true;
+    while (!q.empty())
+    {
+        auto bb = q.front();
+        q.pop_front();
+        bb->genMachineCode(builder);
+        map[bb] = builder->getBlock();
+        for (auto succ = bb->succ_begin(); succ != bb->succ_end(); succ++)
+        {
+            if (!is_visited[*succ])
+            {
+                is_visited[*succ] = true;
+                q.push_back(*succ);
+            }
+        }
+    }
+    cur_func->setEntry(map[entry]);
+
+    // for (auto block : block_list)
     // {
-    //     auto bb = q.front();
-    //     q.pop_front();
-    //     bb->genMachineCode(builder);
-    //     map[bb] = builder->getBlock();
-    //     for (auto succ = bb->succ_begin(); succ != bb->succ_end(); succ++)
-    //     {
-    //         if (v.find(*succ) == v.end())
-    //         {
-    //             v.insert(*succ);
-    //             q.push_back(*succ);
-    //         }
-    //     }
+    //     block->genMachineCode(builder);
+    //     map[block] = builder->getBlock();
     // }
 
-    for (auto block : block_list)
+    if (mem2reg) // todo：自动内联后所有参数在IR中都不会被用到，所以都会empty跳过。
     {
-        block->genMachineCode(builder);
-        map[block] = builder->getBlock();
+        for (auto param : param_list)
+        {
+            auto id_se = dynamic_cast<IdentifierSymbolEntry *>(param);
+            Type *type = param->getType()->isPTR() ? TypeSystem::intType : param->getType();
+            if (id_se->getParamOpe()->getUses().empty())
+                continue;
+            else if (id_se->getParamNo() < id_se->getFuncSe()->getMinMem2regParamNo())
+            {
+                assert(id_se->getLabel() != -1);
+                auto inst = new MovMInstruction(map[entry], param->getType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, new MachineOperand(MachineOperand::VREG, id_se->getLabel(), type), new MachineOperand(MachineOperand::REG, id_se->getParamNo(), type));
+                map[entry]->insertBefore(*(map[entry]->getInsts().begin()), inst);
+            }
+            else if (id_se->getParamNo() > 3)
+            {
+                int below_dist = 4 * (id_se->getParamNo() - 4);
+                auto offset = new MachineOperand(MachineOperand::IMM, below_dist);
+                // 由于函数栈帧初始化时会将一些寄存器压栈，在FuncDef打印时还需要偏移一个值，这里保存未偏移前的值，方便后续调整
+                cur_func->addAdditionalArgsOffset(offset);
+                auto inst = new LoadMInstruction(map[entry], new MachineOperand(MachineOperand::VREG, id_se->getLabel(), type), new MachineOperand(MachineOperand::REG, 11), offset);
+                map[entry]->insertBefore(*(map[entry]->getInsts().begin()), inst);
+            }
+        }
     }
 
     // Add pred and succ for every block
