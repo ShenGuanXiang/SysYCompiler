@@ -28,11 +28,13 @@ bool dump_ast;
 bool dump_ir;
 bool dump_asm;
 bool optimize;
+//for debug
+bool opt_svn;
 
 int main(int argc, char *argv[])
 {
     int opt;
-    while ((opt = getopt(argc, argv, "Siato:O::")) != -1)
+    while ((opt = getopt(argc, argv, "Siato:O::v")) != -1)
     {
         switch (opt)
         {
@@ -52,6 +54,10 @@ int main(int argc, char *argv[])
             dump_asm = true;
             break;
         case 'O':
+            optimize = true;
+            break;
+        case 'v':
+            opt_svn=true;
             optimize = true;
             break;
         default:
