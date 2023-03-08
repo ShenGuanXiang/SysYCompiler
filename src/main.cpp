@@ -9,6 +9,7 @@
 #include "Mem2Reg.h"
 #include "ElimPHI.h"
 #include "LiveVariableAnalysis.h"
+#include "ValueNumbering.h"
 using namespace std;
 
 Ast ast;
@@ -59,7 +60,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
-    optimize = false;
+    //optimize = false;
     if (optind >= argc)
     {
         fprintf(stderr, "no input file\n");
@@ -98,6 +99,9 @@ int main(int argc, char *argv[])
         // 自动内联
         // 常量传播
         // 强度削弱
+        // 公共子表达式消除（LVN实现）
+        ValueNumbering lvn(&unit);
+        lvn.pass();
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
