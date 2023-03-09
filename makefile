@@ -1,7 +1,7 @@
 SRC_PATH ?= src
 INC_PATH += include
 BUILD_PATH ?= build
-TEST_PATH ?= test/level2-6
+TEST_PATH ?= test/level2-[1-5]
 OBJ_PATH ?= $(BUILD_PATH)/obj
 BINARY ?= $(BUILD_PATH)/compiler
 SYSLIB_PATH ?= sysyruntimelibrary
@@ -49,13 +49,32 @@ $(BINARY):$(OBJ)
 
 app:$(LEXER) $(PARSER) $(BINARY)
 
-run:app
+#old version
+oldll:app
 		@$(BINARY) -o debug.ll -i debug.sy -O2
-runlvn:app
-		@$(BINARY) -o debug.ll -i debug.sy -l
-
-llvm:app
-		@$(BINARY) -o debug.ll -i debug.sy  2> /dev/null
+oldasm:app
+		@$(BINARY) -o debug.s -S debug.sy -O2
+# the following line is for debug new optimization
+diffll:app
+		@$(BINARY) -o old.ll -i debug.sy -O2
+		@$(BINARY) -o new.ll -i debug.sy  -M
+diffasm:app
+		@$(BINARY) -o old.s -S debug.sy -O2
+		@$(BINARY) -o new.s -S debug.sy -M
+newll:app
+		@$(BINARY) -o debug.ll -i debug.sy -M 
+newasm:app
+		@$(BINARY) -o debug.s -S debug.sy -M 
+runll:app
+		clang -o debug.bin debug.ll sysyruntimelibrary/sylib.c
+		./debug.bin
+		echo "\n"$$?
+runasm:app
+		arm-linux-gnueabihf-gcc -mcpu=cortex-a72 -o debug.bin debug.s sysyruntimelibrary/libsysy.a
+		qemu-arm -L /usr/arm-linux-gnueabihf debug.bin
+		echo "\n"$$?
+cleandebug:
+		rm debug.ll debug.s debug.bin 
 
 ast:app
 		@$(BINARY) -o debug.ast -a debug.sy  2> /dev/null
@@ -84,7 +103,7 @@ $(TEST_PATH)/%_std.s:$(TEST_PATH)/%.sy
 
 $(TEST_PATH)/%.s:$(TEST_PATH)/%.sy
 		@timeout 5s $(BINARY) $< -o $@ -S 2>$(addsuffix .log, $(basename $@))
-			@[ $$? != 0 ] && echo "\033[1;31mCOMPILE FAIL:\033[0m $(notdir $<)" || echo "\033[1;32mCOMPILE SUCCESS:\033[0m $(notdir $<)"
+			@[ $$? != 0 ] && echo "COMPILE FAIL: $(notdir $<)" || echo "COMPILE SUCCESS: $(notdir $<)"
 
 llvmir:$(LLVM_IR)
 
@@ -98,7 +117,7 @@ testlab6:app $(OUTPUT_LAB6)
 
 testlab7:app $(OUTPUT_LAB7)
 .ONESHELL:
-test:app
+testllvm:app
 	@success=0
 	@for file in $(sort $(TESTCASE))
 	do
@@ -110,19 +129,20 @@ test:app
 		OUT=$${file%.*}.out
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
-		timeout 5s $(BINARY) $${file} -o $${IR} -i -O2 2>$${LOG}
+		timeout 5s $(BINARY) $${file} -o $${IR} -i -M 2>$${LOG}
+
 		RETURN_VALUE=$$?
 		if [ $$RETURN_VALUE = 124 ]; then
-			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Timeout\033[0m"
+			echo "FAIL: $${FILE}\tCompile Timeout"
 			continue
 		else if [ $$RETURN_VALUE != 0 ]; then
-			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Error\033[0m"
+			echo "FAIL: $${FILE}\tCompile Error"
 			continue
 			fi
 		fi
 		clang -o $${BIN} $${IR} $(SYSLIB_PATH)/sylib.c >>$${LOG} 2>&1
 		if [ $$? != 0 ]; then
-			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mAssemble Error\033[0m"
+			echo "FAIL: $${FILE}\tAssemble Error"
 		else
 			if [ -f "$${IN}" ]; then
 				timeout 2s $${BIN} <$${IN} >$${RES} 2>>$${LOG}
@@ -133,24 +153,80 @@ test:app
 			FINAL=`tail -c 1 $${RES}`
 			[ $${FINAL} ] && echo "\n$${RETURN_VALUE}" >> $${RES} || echo "$${RETURN_VALUE}" >> $${RES}
 			if [ "$${RETURN_VALUE}" = "124" ]; then
-				echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mExecute Timeout\033[0m"
+				echo "FAIL: $${FILE}\tExecute Timeout"
 			else if [ "$${RETURN_VALUE}" = "127" ]; then
-				echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mExecute Error\033[0m"
+				echo "FAIL: $${FILE}\tExecute Error"
 				else
 					diff -Z $${RES} $${OUT} >/dev/null 2>&1
 					if [ $$? != 0 ]; then
-						echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mWrong Answer\033[0m"
+						echo "FAIL: $${FILE}\tWrong Answer"
 					else
 						success=$$((success + 1))
-						echo "\033[1;32mPASS:\033[0m $${FILE}"
+						echo "PASS: $${FILE}"
 					fi
 				fi
 			fi
 		fi
 	done
-	echo "\033[1;33mTotal: $(TESTCASE_NUM)\t\033[1;32mAccept: $${success}\t\033[1;31mFail: $$(($(TESTCASE_NUM) - $${success}))\033[0m"
-	[ $(TESTCASE_NUM) = $${success} ] && echo "\033[5;32mAll Accepted. Congratulations!\033[0m"
+	echo "Total: $(TESTCASE_NUM)\tAccept: $${success}\tFail: $$(($(TESTCASE_NUM) - $${success}))"
+	[ $(TESTCASE_NUM) = $${success} ] && echo "All Accepted. Congratulations!"
 	:
+
+testasm:app
+	@success=0
+	@for file in $(sort $(TESTCASE))
+	do
+		ASM=$${file%.*}.s
+		LOG=$${file%.*}.log
+		BIN=$${file%.*}.bin
+		RES=$${file%.*}.res
+		IN=$${file%.*}.in
+		OUT=$${file%.*}.out
+		FILE=$${file##*/}
+		FILE=$${FILE%.*}
+		timeout 5s $(BINARY) $${file} -o $${ASM} -S -M 2>$${LOG}
+		RETURN_VALUE=$$?
+		if [ $$RETURN_VALUE = 124 ]; then
+			echo "FAIL: $${FILE}\tCompile Timeout"
+			continue
+		else if [ $$RETURN_VALUE != 0 ]; then
+			echo "FAIL: $${FILE}\tCompile Error"
+			continue
+			fi
+		fi
+		arm-linux-gnueabihf-gcc -mcpu=cortex-a72 -o $${BIN} $${ASM} $(SYSLIB_PATH)/libsysy.a >>$${LOG} 2>&1
+		if [ $$? != 0 ]; then
+			echo "FAIL: $${FILE}\tAssemble Error"
+		else
+			if [ -f "$${IN}" ]; then
+				timeout 2s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} <$${IN} >$${RES} 2>>$${LOG}
+			else
+				timeout 2s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} >$${RES} 2>>$${LOG}
+			fi
+			RETURN_VALUE=$$?
+			FINAL=`tail -c 1 $${RES}`
+			[ $${FINAL} ] && echo "\n$${RETURN_VALUE}" >> $${RES} || echo "$${RETURN_VALUE}" >> $${RES}
+			if [ "$${RETURN_VALUE}" = "124" ]; then
+				echo "FAIL: $${FILE}\tExecute Timeout"
+			else if [ "$${RETURN_VALUE}" = "127" ]; then
+				echo "FAIL: $${FILE}\tExecute Error"
+				else
+					diff -Z $${RES} $${OUT} >/dev/null 2>&1
+					if [ $$? != 0 ]; then
+						echo "FAIL: $${FILE}\tWrong Answer"
+					else
+						success=$$((success + 1))
+						echo "PASS: $${FILE}"
+					fi
+				fi
+			fi
+		fi
+	done
+	echo "Total: $(TESTCASE_NUM)\tAccept: $${success}\tFail: $$(($(TESTCASE_NUM) - $${success}))"
+	[ $(TESTCASE_NUM) = $${success} ] && echo "All Accepted. Congratulations!"
+	:
+
+
 
 clean-app:
 		@rm -rf $(BUILD_PATH) $(PARSER) $(LEXER) $(PARSERH)

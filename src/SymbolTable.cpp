@@ -161,7 +161,6 @@ std::string ConstantSymbolEntry::toStr()
         return std::to_string((int)value);
     else
     {
-        printf("%s\n",type->toStr().c_str());
         assert(type->isConstFloat());
         // return std::to_string((float)value);
         return Double2HexStr(value);

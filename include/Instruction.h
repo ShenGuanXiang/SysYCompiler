@@ -43,6 +43,16 @@ public:
     };
     virtual std::vector<Operand *> &getUses() { return use_list; };
     void replaceAllUsesWith(Operand *); // Mem2Reg
+
+protected:
+    unsigned instType;
+    unsigned opcode;
+    Instruction *prev;
+    Instruction *next;
+    BasicBlock *parent;
+    std::vector<Operand *> def_list; // size <= 1;
+    std::vector<Operand *> use_list;
+    // std::vector<Operand *> operands;
     enum
     {
         BINARY,
@@ -59,19 +69,6 @@ public:
         PHI,
         GEP
     };
-    //getting opcode/instruction type to construct string key for lvn
-    unsigned getInstType() const { return instType; };
-    unsigned getOpcode() const { return opcode; };
-protected:
-    unsigned instType;
-    unsigned opcode;
-    Instruction *prev;
-    Instruction *next;
-    BasicBlock *parent;
-    std::vector<Operand *> def_list; // size <= 1;
-    std::vector<Operand *> use_list;
-    // std::vector<Operand *> operands;
-    
 };
 
 // meaningless instruction, used as the head node of the instruction list.
