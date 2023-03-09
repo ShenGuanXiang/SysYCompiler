@@ -15,10 +15,17 @@ class ValueNumbering
     unsigned valueNumber;
     std::string getOpString(Instruction *inst);
     unsigned getValueNumber() {return valueNumber++;}
+
+    std::vector<BasicBlock *> worklist;
+
 public:
     ValueNumbering(Unit *unit) : unit(unit){valueNumber=0;};
     void dumpTable();
-    void pass();
+    void lvn(BasicBlock* bb);
+    void svn(BasicBlock* bb);
+    void pass2(Function* func);
+    void pass1();
+    //pass1 is implemented using LVN, i.e. optimize within basic blocks
 };
 
 #endif

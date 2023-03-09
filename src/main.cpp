@@ -9,6 +9,7 @@
 #include "Mem2Reg.h"
 #include "ElimPHI.h"
 #include "LiveVariableAnalysis.h"
+#include "ValueNumbering.h"
 using namespace std;
 
 Ast ast;
@@ -27,11 +28,13 @@ bool dump_ast;
 bool dump_ir;
 bool dump_asm;
 bool optimize;
+//for debug
+bool m_opt;
 
 int main(int argc, char *argv[])
 {
     int opt;
-    while ((opt = getopt(argc, argv, "Siato:O::")) != -1)
+    while ((opt = getopt(argc, argv, "Siato:O::M")) != -1)
     {
         switch (opt)
         {
@@ -53,13 +56,17 @@ int main(int argc, char *argv[])
         case 'O':
             optimize = true;
             break;
+        case 'M':
+            optimize = true;
+            m_opt=true;
+            break;
         default:
             fprintf(stderr, "Usage: %s [-o outfile] infile\n", argv[0]);
             exit(EXIT_FAILURE);
             break;
         }
     }
-    optimize = false;
+    //optimize = false;
     if (optind >= argc)
     {
         fprintf(stderr, "no input file\n");
@@ -98,6 +105,14 @@ int main(int argc, char *argv[])
         // 自动内联
         // 常量传播
         // 强度削弱
+        // 公共子表达式消除（LVN实现）
+        if(m_opt){
+            ValueNumbering lvn(&unit);
+            lvn.pass1();
+            fprintf(stderr, "lvn pass\n");
+            
+        }
+
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
