@@ -421,16 +421,6 @@ void Id::genCode()
                 currr_dim = ((ArrayType *)getSymPtr()->getType())->fetch(); // if is params, it should be 0
             else
                 currr_dim = ((ArrayType *)((PointerType *)getSymPtr()->getType())->getValType())->fetch();
-            if (currr_dim.size() > 0)
-            {
-                if (currr_dim[0] == -1)
-                {
-                    TemporarySymbolEntry *se = new TemporarySymbolEntry(new PointerType(getType()), SymbolTable::getLabel());
-                    Operand *new_addr = new Operand(se);
-                    new LoadInstruction(new_addr, addr, bb);
-                    tempSrc = new_addr;
-                }
-            }
             if (currr_dim.size() != indices->getExprList().size() && !isPtr)
                 is_FP = true;
             if (!isPtr)
@@ -504,8 +494,10 @@ void Id::genCode()
         {
             if (symbolEntry->getType()->isPTR())
             {
+                cur_type = (ArrayType *)((PointerType *)(symbolEntry->getType()))->getValType();
                 ArrayType *curr_type = arrTypeLike(cur_type);
-                curr_type->SetDim(cur_type->fetch());
+                std::vector<int> currdim = cur_type->fetch();
+                curr_type->SetDim(currdim);
                 Operand *dst1 = new Operand(new TemporarySymbolEntry(new PointerType(cur_type), SymbolTable::getLabel()));
                 new LoadInstruction(dst1, addr, bb);
                 // Operand* idx = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0));
