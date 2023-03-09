@@ -37,6 +37,7 @@ void ValueNumbering::pass1(){
     for(auto it_func=unit->begin();it_func!=unit->end();it_func++){
         for(auto it_bb=(*it_func)->begin();it_bb!=(*it_func)->end();it_bb++){
             std::vector<Instruction*>to_remove;
+            std::vector<Instruction*>new_mov;
             for(auto it_inst=(*it_bb)->begin();it_inst!=(*it_bb)->end();it_inst=it_inst->getNext()){
                 
                 std::string instStr=getOpString(it_inst);
@@ -57,6 +58,7 @@ void ValueNumbering::pass1(){
                     Type* type= dst->getType()->isAnyInt() ? TypeSystem::constIntType : TypeSystem::constFloatType;
                     Instruction* mov = new BinaryInstruction(BinaryInstruction::ADD,dst,src,new Operand(new ConstantSymbolEntry(type,0)));
                     to_remove.push_back(it_inst);
+                    new_mov.push_back(mov);
                     (*it_bb)->insertBefore(mov,it_inst);
 
                     std::string operandStr=dst->toStr();
@@ -72,6 +74,15 @@ void ValueNumbering::pass1(){
             for(auto inst : to_remove){
                 (*it_bb)->remove(inst);
                 delete inst;
+            }
+
+            //消除冗余的mov
+            for(auto inst : new_mov){
+                Operand* dst=inst->getDef();
+                if(dst->getUses().size()==0){
+                    (*it_bb)->remove(inst);
+                    delete inst;
+                }
             }
             valueTable.clear();
             value2operand.clear();
