@@ -117,7 +117,7 @@ void Function::genMachineCode(AsmBuilder *builder)
             Type *type = param->getType()->isPTR() ? TypeSystem::intType : param->getType();
             if (id_se->getParamOpe()->getUses().empty())
                 continue;
-            else if (id_se->getParamNo() < id_se->getFuncSe()->getMinMem2regParamNo())
+            else if (!id_se->paramMem2RegAble() && id_se->getParamNo() < 4)
             {
                 assert(id_se->getLabel() != -1);
                 auto inst = new MovMInstruction(map[entry], param->getType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, new MachineOperand(MachineOperand::VREG, id_se->getLabel(), type), new MachineOperand(MachineOperand::REG, id_se->getParamNo(), type));

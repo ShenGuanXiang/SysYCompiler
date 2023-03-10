@@ -194,5 +194,6 @@ Type *calcMax(Type *type1, Type *type2);
 Type *logicMax(Type *type1, Type *type2);
 Type *relMax(Type *type1, Type *type2);
 Type *Var2Const(Type *type);
+Type *Const2Var(Type *type);
 bool convertible(Type *from, Type *to);
 #endif

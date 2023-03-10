@@ -121,12 +121,12 @@ private:
     std::string name;
     int label; // Vreg no for param
     int scope;
-    Operand *addr;                  // The address of the identifier.
-    int paramNo;                    // for param
-    bool is8BytesAligned;           // func sp needs to be 8 bytes aligned for public interface call  https://www.cse.scu.edu/~dlewis/book3/docs/StackAlignment.pdf
-    int min_mem2reg_param_no;       // for func entry, 序号在[min_mem2reg_param_no, 3]的参数可以直接mem2reg，其它参数mem2reg后要更改汇编代码
-    IdentifierSymbolEntry *func_se; // for param
-    Operand *paramOpe;              // for param
+    Operand *addr;                           // The address of the identifier.
+    int paramNo;                             // for param
+    bool is8BytesAligned;                    // func sp needs to be 8 bytes aligned for public interface call  https://www.cse.scu.edu/~dlewis/book3/docs/StackAlignment.pdf
+    std::multimap<int, Type *> occupiedRegs; // for func entry
+    IdentifierSymbolEntry *func_se;          // for param
+    Operand *paramOpe;                       // for param
     // You can add any field you need here.
 
 public:
@@ -149,8 +149,9 @@ public:
     void decl_code();
     bool need8BytesAligned() { return this->is8BytesAligned; };
     void set8BytesAligned() { this->is8BytesAligned = true; };
-    void setMinMem2regParamNo(int no) { min_mem2reg_param_no = no; };
-    int getMinMem2regParamNo() { return min_mem2reg_param_no; };
+    std::multimap<int, Type *> &getOccupiedRegs() { return occupiedRegs; };
+    void addOccupiedReg(int reg_no, Type *type);
+    bool paramMem2RegAble();
     void setFuncSe(IdentifierSymbolEntry *se) { func_se = se; };
     void setParamOpe(Operand *ope) { paramOpe = ope; };
     Operand *getParamOpe() { return paramOpe; };

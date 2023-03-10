@@ -421,7 +421,20 @@ FuncCallInstruction::FuncCallInstruction(Operand *dst, std::vector<Operand *> pa
         it->addUse(this);
     }
     func_se = funcse;
-    dynamic_cast<IdentifierSymbolEntry *>(parent->getParent()->getSymPtr())->setMinMem2regParamNo(std::max(dynamic_cast<IdentifierSymbolEntry *>(parent->getParent()->getSymPtr())->getMinMem2regParamNo(), std::max((std::max(std::min((int)params.size(), 4), 1)), funcse->getMinMem2regParamNo())));
+    auto caller = dynamic_cast<IdentifierSymbolEntry *>(parent->getParent()->getSymPtr());
+    if (func_se->isLibFunc())
+        for (auto kv : func_se->getOccupiedRegs())
+            caller->addOccupiedReg(kv.first, kv.second);
+    else
+    {
+        if (!dynamic_cast<FunctionType *>(funcse->getType())->getRetType()->isVoid())
+            caller->addOccupiedReg(0, Const2Var(dynamic_cast<FunctionType *>(funcse->getType())->getRetType()));
+        auto paramsType = dynamic_cast<FunctionType *>(funcse->getType())->getParamsType();
+        for (int i = 0; i < std::min((int)paramsType.size(), 4); i++)
+            caller->addOccupiedReg(i, paramsType[i]->isARRAY() ? TypeSystem::intType : Const2Var(paramsType[i]));
+        for (auto kv : func_se->getOccupiedRegs())
+            caller->addOccupiedReg(kv.first, kv.second);
+    }
 }
 
 void FuncCallInstruction::output() const
@@ -573,7 +586,7 @@ MachineOperand *Instruction::genMachineOperand(Operand *ope)
             }
             else
             {
-                if (paramNo >= id_se->getFuncSe()->getMinMem2regParamNo() && paramNo <= 3)
+                if (id_se->paramMem2RegAble())
                     mope = new MachineOperand(MachineOperand::REG, paramNo, type);
                 else
                 {

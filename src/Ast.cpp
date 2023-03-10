@@ -468,19 +468,9 @@ void Id::genCode()
                     new_dst = new Operand(new TemporarySymbolEntry(new PointerType(TypeSystem::floatType), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
             }
             if (!isPtr)
-            {
-                if (getType()->isInt())
-                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
-                else
-                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::floatType, SymbolTable::getLabel()));
-            }
+                dst1 = new Operand(new TemporarySymbolEntry(Const2Var(getType()), SymbolTable::getLabel()));
             else
-            {
-                if (curr_type->getElemType()->isInt())
-                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
-                else
-                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::floatType, SymbolTable::getLabel()));
-            }
+                dst1 = new Operand(new TemporarySymbolEntry(Const2Var(curr_type->getElemType()), SymbolTable::getLabel()));
             if (is_FP)
             {
                 dst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));

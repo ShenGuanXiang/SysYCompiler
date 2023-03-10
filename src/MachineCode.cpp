@@ -765,15 +765,9 @@ MachineFunction::MachineFunction(MachineUnit *p, SymbolEntry *sym_ptr)
 void MachineFunction::addSavedRegs(int regno, bool is_sreg)
 {
     if (is_sreg)
-    {
-        auto insertPos = std::lower_bound(saved_sregs.begin(), saved_sregs.end(), regno);
-        saved_sregs.insert(insertPos, regno);
-    }
+        saved_sregs.insert(saved_sregs.lower_bound(regno), regno);
     else
-    {
-        auto insertPos = std::lower_bound(saved_rregs.begin(), saved_rregs.end(), regno);
-        saved_rregs.insert(insertPos, regno);
-    }
+        saved_rregs.insert(saved_rregs.lower_bound(regno), regno);
 }
 
 std::vector<MachineOperand *> MachineFunction::getSavedRRegs()

@@ -157,6 +157,9 @@ testopt:app
 	do
 		$(BINARY) -o $${file%.*}.unopt.ll -i $${file}  2>$${file%.*}.log
 		$(BINARY) -o $${file%.*}.unopt.s -S $${file}  2>$${file%.*}.log
+	done
+	@for file in $(sort $(OPTTESTCASE))
+	do
 		$(BINARY) -o $${file%.*}.opt.ll -i $${file} -O2 2>$${file%.*}.log
 		$(BINARY) -o $${file%.*}.opt.s -S $${file} -O2 2>$${file%.*}.log
 	done
