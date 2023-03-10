@@ -76,7 +76,7 @@ void ValueNumbering::pass1(){
                 delete inst;
             }
 
-            //消除冗余的mov
+            //eliminate redundant `mov`
             for(auto inst : new_mov){
                 Operand* dst=inst->getDef();
                 if(dst->getUses().size()==0){
@@ -90,38 +90,63 @@ void ValueNumbering::pass1(){
     }
 }
 
-void ValueNumbering::lvn(BasicBlock* bb){
-    for(auto it_inst=bb->begin();it_inst!=bb->end();it_inst=it_inst->getNext()){
-        std::string opString = getOpString(it_inst);
-        if(opString=="")
-            continue;
-        std::string key = opString;
-        for(auto use : it_inst->getUses()){
-            std::string opstr=use->toStr();
-            if(valueTable.find(opstr)==valueTable.end()){
-                unsigned num= getValueNumber();
-                valueTable[opstr] = num;
-                value2operand[num] = use;
+void ValueNumbering::lvn(BasicBlock* bb,nrContext ctx){
+    std::unordered_map<std::string,int>& valueTable=ctx.valueTable;
+    std::unordered_map<int,Operand*>& value2operand=ctx.value2operand;
+    for(auto it_func=unit->begin();it_func!=unit->end();it_func++){
+        for(auto it_bb=(*it_func)->begin();it_bb!=(*it_func)->end();it_bb++){
+            std::vector<Instruction*>to_remove;
+            std::vector<Instruction*>new_mov;
+            for(auto it_inst=(*it_bb)->begin();it_inst!=(*it_bb)->end();it_inst=it_inst->getNext()){
+                
+                std::string instStr=getOpString(it_inst);
+                if(instStr=="") continue;
+
+                for(auto use : it_inst->getUses()){
+                    std::string operandStr=use->toStr();
+                    if(!valueTable.count(operandStr))
+                        valueTable[operandStr]=getValueNumber();
+                }
+                for(auto use : it_inst->getUses())
+                    instStr+=std::to_string(valueTable[use->toStr()]);
+                
+                if(valueTable.count(instStr)){
+                    //replace the inst with move
+                    Operand* src=value2operand[valueTable[instStr]];
+                    Operand* dst=it_inst->getDef();
+                    Type* type= dst->getType()->isAnyInt() ? TypeSystem::constIntType : TypeSystem::constFloatType;
+                    Instruction* mov = new BinaryInstruction(BinaryInstruction::ADD,dst,src,new Operand(new ConstantSymbolEntry(type,0)));
+                    to_remove.push_back(it_inst);
+                    new_mov.push_back(mov);
+                    (*it_bb)->insertBefore(mov,it_inst);
+
+                    std::string operandStr=dst->toStr();
+                    valueTable[operandStr]=valueTable[instStr];
+                }
+                else{
+                    int vnum=getValueNumber();
+                    valueTable[instStr]=vnum;
+                    valueTable[it_inst->getDef()->toStr()]=vnum;
+                    value2operand[vnum]=it_inst->getDef();
+                }
             }
-            key += std::to_string(valueTable[opstr]);
+            for(auto inst : to_remove){
+                (*it_bb)->remove(inst);
+                delete inst;
+            }
+
+            //eliminate redundant `mov`
+            for(auto inst : new_mov){
+                Operand* dst=inst->getDef();
+                if(dst->getUses().size()==0){
+                    (*it_bb)->remove(inst);
+                    delete inst;
+                }
+            }
+            valueTable.clear();
+            value2operand.clear();
         }
-        if(valueTable.find(key)!=valueTable.end()){
-            Operand* dst=it_inst->getDef();
-            Type* dst_type= dst->getType()->isAnyInt() ? TypeSystem::constIntType 
-                                    : TypeSystem::constFloatType;
-            unsigned vnum=valueTable[key];
-            Instruction* inst = new BinaryInstruction(BinaryInstruction::ADD,
-                dst,new Operand(new ConstantSymbolEntry(dst_type,0)),
-                new Operand(*value2operand[vnum]));
-            bb->insertBefore(inst,it_inst);
-            inst->setNext(it_inst->getNext());
-            // delete it_inst; 
-            //Didn't delete the instruction, memory leak risk
-        }
-        valueTable[key] = getValueNumber();
-        value2operand[valueTable[key]] = it_inst->getDef();
-        valueTable[it_inst->getDef()->toStr()] = valueTable[key];
-    }       
+    }     
 }
 
 void ValueNumbering::svn(BasicBlock *bb)

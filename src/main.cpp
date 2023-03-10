@@ -106,13 +106,14 @@ int main(int argc, char *argv[])
         // 常量传播
         // 强度削弱
         // 公共子表达式消除（LVN实现）
-        if(m_opt){
-            ValueNumbering lvn(&unit);
-            lvn.pass1();
-            fprintf(stderr, "lvn pass\n");
+        // if(m_opt){
+        //     ValueNumbering lvn(&unit);
+        //     lvn.pass1();
+        //     fprintf(stderr, "lvn pass\n");
             
-        }
-
+        // }
+        ValueNumbering lvn(&unit);
+        lvn.pass1();
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
