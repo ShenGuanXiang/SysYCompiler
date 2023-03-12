@@ -35,8 +35,9 @@ MachineOperand::MachineOperand(int tp, double val, Type *valType)
         this->val = val;
     else
         this->reg_no = (int)val;
-    // this->valType = valType->isARRAY() ? dynamic_cast<ArrayType *>(valType)->getElemType() : valType;
-    // assert(!valType->isARRAY()); // TODO：数组的情况传int型还是元素类型？
+    // 约定MachineOperand的valType是int/float/bool
+    assert(!valType->isARRAY());
+    assert(!valType->isPTR());
     this->valType = valType;
     this->parent = nullptr;
     newMachineOperands.push_back(this);
@@ -95,6 +96,7 @@ void MachineOperand::printReg()
     }
     else
     {
+        assert(valType->isInt());
         switch (reg_no)
         {
         case 11:
@@ -133,11 +135,15 @@ void MachineOperand::output()
             fprintf(yyout, "#%u", reinterpret_cast<unsigned &>(float_val));
         }
         else
+        {
+            assert(valType->isInt());
             fprintf(yyout, "#%d", (int)this->val);
+        }
         break;
     }
     case VREG:
     {
+        assert(valType->isInt() || valType->isFloat());
         std::string str = valType->isFloat() ? "vs" : "vr";
         fprintf(yyout, "%s%d", str.c_str(), this->reg_no);
         break;
@@ -200,7 +206,8 @@ void MachineInstruction::printCond()
 
 MachineInstruction::~MachineInstruction()
 {
-    parent->removeInst(this);
+    if (parent != nullptr)
+        parent->removeInst(this);
 }
 
 BinaryMInstruction::BinaryMInstruction(
@@ -292,15 +299,6 @@ LoadMInstruction::LoadMInstruction(MachineBlock *p,
 
 void LoadMInstruction::output()
 {
-    // // 这段只针对栈中偏移更新前合法但更新后不合法的情况
-    // if (this->use_list.size() > 1 && this->use_list[1]->isImm() && this->use_list[1]->isIllegalShifterOperand())
-    // {
-    //     fprintf(yyout, "\tldr ");
-    //     this->def_list[0]->output();
-    //     fprintf(yyout, ", =%d\n", (int)this->use_list[1]->getVal());
-    //     this->use_list[1] = this->def_list[0];
-    // }
-
     // 强度削弱：小的立即数用MOV/MVN优化一下，arm汇编器会自动做?
     if ((this->use_list.size() == 1) && this->use_list[0]->isImm() && !this->use_list[0]->isIllegalShifterOperand())
     {
@@ -468,6 +466,7 @@ void MovMInstruction::output()
     // case MovMInstruction::VMOVF32:
     //     fprintf(yyout, "\tvmov.f32");
     //     break;
+
     default:
         break;
     }
@@ -476,6 +475,16 @@ void MovMInstruction::output()
     this->def_list[0]->output();
     fprintf(yyout, ", ");
     this->use_list[0]->output();
+    switch (this->op)
+    {
+    case MovMInstruction::MOVLSL:
+        fprintf(yyout, ", LSL#%d", this->mov_num);
+        break;
+    
+    default:
+        break;
+    }
+
     fprintf(yyout, "\n");
 }
 
@@ -767,15 +776,9 @@ MachineFunction::MachineFunction(MachineUnit *p, SymbolEntry *sym_ptr)
 void MachineFunction::addSavedRegs(int regno, bool is_sreg)
 {
     if (is_sreg)
-    {
-        auto insertPos = std::lower_bound(saved_sregs.begin(), saved_sregs.end(), regno);
-        saved_sregs.insert(insertPos, regno);
-    }
+        saved_sregs.insert(saved_sregs.lower_bound(regno), regno);
     else
-    {
-        auto insertPos = std::lower_bound(saved_rregs.begin(), saved_rregs.end(), regno);
-        saved_rregs.insert(insertPos, regno);
-    }
+        saved_rregs.insert(saved_rregs.lower_bound(regno), regno);
 }
 
 std::vector<MachineOperand *> MachineFunction::getSavedRRegs()
@@ -802,11 +805,8 @@ std::vector<MachineOperand *> MachineFunction::getSavedSRegs()
     return sregs;
 }
 
-void MachineFunction::output()
+void MachineFunction::outputStart()
 {
-    fprintf(yyout, "\t.global %s\n", this->sym_ptr->toStr().c_str() + 1);
-    fprintf(yyout, "\t.type %s , %%function\n", this->sym_ptr->toStr().c_str() + 1);
-    fprintf(yyout, "%s:\n", this->sym_ptr->toStr().c_str() + 1);
     // Save callee saved int registers
     fprintf(yyout, "\tpush {");
     std::vector<MachineOperand *> regs = getSavedRRegs();
@@ -832,9 +832,6 @@ void MachineFunction::output()
         }
         fprintf(yyout, "}\n");
     }
-    // 更新additional args的偏移
-    for (auto offset : additional_args_offset)
-        offset->setVal(offset->getVal() + 4 * (regs.size() + sregs.size()));
     // fp = sp
     fprintf(yyout, "\tmov fp, sp\n");
     if (dynamic_cast<IdentifierSymbolEntry *>(sym_ptr)->need8BytesAligned() &&
@@ -847,44 +844,24 @@ void MachineFunction::output()
         {
             auto reg_no = (*saved_rregs.begin());
             assert(reg_no < 11);
-            fprintf(yyout, "\tldr r%d, =%d\n", reg_no, stack_size);
+            auto inst = new LoadMInstruction(nullptr, new MachineOperand(MachineOperand::REG, reg_no), new MachineOperand(MachineOperand::IMM, stack_size));
+            inst->output(); // fprintf(yyout, "\tldr r%d, =%d\n", reg_no, stack_size);
+            delete inst;
             fprintf(yyout, "\tsub sp, sp, r%d\n", reg_no);
         }
         else
             fprintf(yyout, "\tsub sp, sp, #%d\n", stack_size);
     }
-    // Traverse all the block in block_list to print assembly code.
-    int cnt = 0;
-    bool outputEndLabel = false;
-    for (auto iter : block_list)
-    {
-        iter->output();
-        // 生成一条跳转到结尾函数栈帧处理的无条件跳转语句
-        auto lastBlock = *(block_list.end() - 1);
-        if (iter->getInsts().empty() || (!((*(iter->end() - 1))->isBranch()) && iter != lastBlock) || ((*(iter->end() - 1))->isBranch() && (*(iter->end() - 1))->getOpType() == BranchMInstruction::BL))
-        {
-            outputEndLabel = true;
-            std::string endLabel = ".L" + this->sym_ptr->toStr().erase(0, 1) + "_END";
-            fprintf(yyout, "\tb %s\n", endLabel.c_str());
-        }
-        cnt += iter->getInsts().size();
-        if (cnt > 300)
-        {
-            fprintf(yyout, "\tb .LiteralPool%d\n", parent->getLtorgNo());
-            fprintf(yyout, ".LTORG\n");
-            parent->printBridge();
-            fprintf(yyout, ".LiteralPool%d:\n", parent->getLtorgNo() - 1);
-            cnt = 0;
-        }
-    }
-    // output endLabel
-    if (outputEndLabel)
-        fprintf(yyout, ".L%s_END:\n", this->sym_ptr->toStr().erase(0, 1).c_str()); // skip '@'
+}
+
+void MachineFunction::outputEnd()
+{
     // recycle stack space
     if (stack_size)
         fprintf(yyout, "\tmov sp, fp\n");
     // Restore saved registers
-    i = 0;
+    std::vector<MachineOperand *> sregs = getSavedSRegs();
+    size_t i = 0;
     while (i != sregs.size())
     {
         fprintf(yyout, "\tvpop {");
@@ -896,6 +873,7 @@ void MachineFunction::output()
         }
         fprintf(yyout, "}\n");
     }
+    std::vector<MachineOperand *> regs = getSavedRRegs();
     fprintf(yyout, "\tpop {");
     regs[0]->output();
     for (i = 1; i != regs.size(); i++)
@@ -906,6 +884,75 @@ void MachineFunction::output()
     fprintf(yyout, "}\n");
     // Generate bx instruction
     fprintf(yyout, "\tbx lr\n\n");
+}
+
+void MachineFunction::output()
+{
+    fprintf(yyout, "\t.global %s\n", this->sym_ptr->toStr().c_str() + 1);
+    fprintf(yyout, "\t.type %s , %%function\n", this->sym_ptr->toStr().c_str() + 1);
+    fprintf(yyout, "%s:\n", this->sym_ptr->toStr().c_str() + 1);
+    // 栈帧初始化
+    outputStart();
+    // 更新additional args的偏移
+    for (auto offset : additional_args_offset)
+    {
+        offset->setVal(offset->getVal() + 4 * (getSavedSRegs().size() + getSavedRRegs().size()));
+        assert(!offset->isIllegalShifterOperand()); // toDo : 栈中偏移更新后非法怎么办？
+    }
+    // Traverse all the block in block_list to print assembly code.
+    int cnt = 0;
+    std::vector<MachineBlock *> empty_block_list, not_empty_block_list;
+    for (auto iter : block_list)
+        if (iter->getInsts().empty())
+            empty_block_list.push_back(iter);
+        else
+            not_empty_block_list.push_back(iter);
+    MachineBlock *lastBlock = nullptr;
+    for (auto iter : not_empty_block_list)
+    {
+        if (!((*(iter->end() - 1))->isBranch()) || ((*(iter->end() - 1))->isBranch() && (*(iter->end() - 1))->getOpType() == BranchMInstruction::BL))
+        {
+            // 需要跳转到末尾的块最后再打印，这样就直接连起来了
+            if (lastBlock == nullptr)
+                lastBlock = iter;
+            else
+            {
+                iter->output();
+                cnt += iter->getInsts().size();
+                // 回收栈帧
+                outputEnd();
+            }
+        }
+        else
+        {
+            iter->output();
+            cnt += iter->getInsts().size();
+        }
+        if (cnt > 300)
+        {
+            fprintf(yyout, "\tb .LiteralPool%d\n", parent->getLtorgNo());
+            fprintf(yyout, ".LTORG\n");
+            parent->printBridge();
+            fprintf(yyout, ".LiteralPool%d:\n", parent->getLtorgNo() - 1);
+            cnt = 0;
+        }
+    }
+    if (lastBlock != nullptr)
+    {
+        lastBlock->output();
+        cnt += lastBlock->getInsts().size();
+        if (cnt > 300)
+        {
+            fprintf(yyout, "\tb .LiteralPool%d\n", parent->getLtorgNo());
+            fprintf(yyout, ".LTORG\n");
+            parent->printBridge();
+            fprintf(yyout, ".LiteralPool%d:\n", parent->getLtorgNo() - 1);
+            cnt = 0;
+        }
+    }
+    for (auto iter : empty_block_list)
+        iter->output();
+    outputEnd();
 }
 
 MachineFunction::~MachineFunction()

@@ -9,6 +9,7 @@
 #include "Mem2Reg.h"
 #include "ElimPHI.h"
 #include "LiveVariableAnalysis.h"
+#include "MulDivMod2Bit.h"
 using namespace std;
 
 Ast ast;
@@ -59,7 +60,8 @@ int main(int argc, char *argv[])
             break;
         }
     }
-    optimize = false;
+    optimize = 1;
+    
     if (optind >= argc)
     {
         fprintf(stderr, "no input file\n");
@@ -113,6 +115,8 @@ int main(int argc, char *argv[])
         if (optimize)
         {
             // todo: 汇编代码优化
+            MulDivMod2Bit mdm2b(&mUnit);
+            mdm2b.pass();
         }
         LinearScan linearScan(&mUnit);
         linearScan.pass();

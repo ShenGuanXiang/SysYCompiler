@@ -119,11 +119,14 @@ private:
         LOCAL
     };
     std::string name;
-    int label;
+    int label; // Vreg no for param
     int scope;
-    Operand *addr;        // The address of the identifier.
-    int paramNo;          // if is param
-    bool is8BytesAligned; // func sp needs to be 8 bytes aligned for public interface call  https://www.cse.scu.edu/~dlewis/book3/docs/StackAlignment.pdf
+    Operand *addr;                           // The address of the identifier.
+    int paramNo;                             // for param
+    bool is8BytesAligned;                    // func sp needs to be 8 bytes aligned for public interface call  https://www.cse.scu.edu/~dlewis/book3/docs/StackAlignment.pdf
+    std::multimap<int, Type *> occupiedRegs; // for func entry
+    IdentifierSymbolEntry *func_se;          // for param
+    Operand *paramOpe;                       // for param
     // You can add any field you need here.
 
 public:
@@ -140,11 +143,23 @@ public:
     void setParamNo(int paramNo) { this->paramNo = paramNo; };
     int getParamNo() { return paramNo; };
     std::string getName() const { return name; };
-    void setLabel() { label = SymbolTable::getLabel(); };
+    void setLabel(int label) { this->label = label; };
+    int getLabel() { return label; };
     bool isLibFunc();
     void decl_code();
     bool need8BytesAligned() { return this->is8BytesAligned; };
     void set8BytesAligned() { this->is8BytesAligned = true; };
+    std::multimap<int, Type *> &getOccupiedRegs() { return occupiedRegs; };
+    void addOccupiedReg(int reg_no, Type *type);
+    bool paramMem2RegAble();
+    void setFuncSe(IdentifierSymbolEntry *se) { func_se = se; };
+    void setParamOpe(Operand *ope) { paramOpe = ope; };
+    Operand *getParamOpe() { return paramOpe; };
+    IdentifierSymbolEntry *getFuncSe()
+    {
+        assert(func_se != nullptr);
+        return func_se;
+    };
 };
 
 /*
@@ -170,19 +185,16 @@ class TemporarySymbolEntry : public SymbolEntry
 private:
     int stack_offset;
     int label;
-    bool isArray;
 
 public:
-    TemporarySymbolEntry(Type *type, int label, bool isarray = false) : SymbolEntry(type, SymbolEntry::TEMPORARY)
+    TemporarySymbolEntry(Type *type, int label) : SymbolEntry(type, SymbolEntry::TEMPORARY)
     {
         this->label = label;
-        this->isArray = isarray;
         this->stack_offset = 0;
     };
     virtual ~TemporarySymbolEntry(){};
     std::string toStr();
     int getLabel() const { return label; };
-    void setArray() { isArray = true; };
     void setOffset(int offset) { this->stack_offset = offset; };
     int getOffset() { return this->stack_offset; };
     // You can add any function you need here.

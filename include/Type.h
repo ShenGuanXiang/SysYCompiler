@@ -112,7 +112,6 @@ class ArrayType : public Type
 {
 protected:
     std::vector<int> dim;
-    int lenth = 0;
 
 public:
     ArrayType(int elemType);
@@ -133,9 +132,6 @@ public:
             size *= d[i];
         }
     };
-    int getLength() { return dim.size(); };
-    void setlenth() { lenth = -1; };
-    int get_len() { return lenth; };
     Type *getElemType();
     virtual std::string toStr();
 };
@@ -198,5 +194,6 @@ Type *calcMax(Type *type1, Type *type2);
 Type *logicMax(Type *type1, Type *type2);
 Type *relMax(Type *type1, Type *type2);
 Type *Var2Const(Type *type);
+Type *Const2Var(Type *type);
 bool convertible(Type *from, Type *to);
 #endif

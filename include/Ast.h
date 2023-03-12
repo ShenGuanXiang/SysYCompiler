@@ -49,7 +49,7 @@ protected:
     bool is_array_ele = false;
 
 public:
-    ExprNode(SymbolEntry *symbolEntry, bool be_array = false) : symbolEntry(symbolEntry), dst(new Operand(symbolEntry)), is_array_ele(be_array){};
+    ExprNode(SymbolEntry *symbolEntry, bool is_array_ele = false) : symbolEntry(symbolEntry), dst(new Operand(symbolEntry)), is_array_ele(is_array_ele){};
     Type *getType();
     double getValue();
     Operand *getOperand() { return dst; };
@@ -57,9 +57,15 @@ public:
     void setSymPtr(SymbolEntry *newSymPtr) { symbolEntry = newSymPtr; };
     void setDst(Operand *newDst)
     {
-        if (dst != nullptr)
+        if (dst != nullptr && dst->usersNum() == 0 && dst->defsNum() == 0)
             delete dst;
         dst = newDst;
+    }
+    void updateDst() // 如果这个节点已经生成过IR，那么第二次生成IR要更新dst
+    {
+        if (dst != nullptr && dst->getEntry()->isTemporary())
+            if (dst->usersNum() != 0 || dst->defsNum() != 0)
+                this->setDst(new Operand(new TemporarySymbolEntry(this->getSymPtr()->getType(), SymbolTable::getLabel())));
     }
     ~ExprNode(){};
 };
@@ -172,28 +178,24 @@ class Id : public ExprNode
 private:
     IndicesNode *indices;
     bool is_array = false, is_array_ele = false; // is_array is array. is_array_ele is array ele
-    bool isleft;
+    bool is_left;
     bool is_FP;
 
 public:
-    Id(SymbolEntry *se, bool be_array = false, bool isleft = false, bool is_fp = false) : ExprNode(se, be_array)
+    Id(SymbolEntry *se, bool is_array_ele = false) : ExprNode(se, is_array_ele)
     {
         indices = nullptr;
-        is_array_ele = se->getType()->isARRAY() && be_array;
+        if (is_array_ele)
+            assert(se->getType()->isARRAY());
+        this->is_array_ele = is_array_ele;
         is_array = se->getType()->isARRAY();
-        this->isleft = isleft;
-        is_FP = is_fp;
+        is_left = false;
+        is_FP = false;
     };
     void setIndices(IndicesNode *new_indices) { indices = new_indices; };
     IndicesNode *getIndices() { return indices; };
-    int getidxsize() { return indices->getExprList().size(); };
-    int getlen() { return indices != nullptr; };
     void output(int level);
-    void SetLeft() { isleft = true; };
-    bool is_Array() { return is_array; };
-    bool is_Array_Ele() { return is_array_ele; };
-    void Set_Fp() { is_FP = true; };
-    ArrayType *get_Array_Type() { return (ArrayType *)(getSymPtr()->getType()); };
+    void setLeft() { is_left = true; };
     // void typeCheck();
     void genCode();
     ~Id()
@@ -222,7 +224,6 @@ public:
     bool isLeaf() { return leaves.empty() && leaf != nullptr; };
     void fill(int level, std::vector<int> d, Type *type);
     int getSize(int d_nxt);
-    bool isFull();
     bool isConst() const { return isconst; }
     void output(int level);
     void genCode(int level);
@@ -362,7 +363,7 @@ private:
 public:
     AssignStmt(ExprNode *lval, ExprNode *expr) : lval(lval), expr(expr)
     {
-        ((Id *)(lval))->SetLeft();
+        ((Id *)(lval))->setLeft();
     };
     void output(int level);
     // void typeCheck();
@@ -430,8 +431,6 @@ public:
     void output(int level);
     // void typeCheck();
     void genCode();
-    void SetCondBlock(BasicBlock *b) { condb = b; };
-    void SetEndBlock(BasicBlock *b) { endb = b; };
     BasicBlock *getCondBlock() const { return condb; };
     BasicBlock *getEndBlock() const { return endb; };
     ~WhileStmt()
@@ -440,7 +439,6 @@ public:
         delete stmt;
     };
 };
-static std::vector<WhileStmt *> whileStack;
 
 class FuncCallParamsNode : public StmtNode
 {
@@ -489,6 +487,7 @@ private:
 
 public:
     FuncDefParamsNode(){};
+    std::vector<Id *> getParamsList() { return paramsList; };
     std::vector<Type *> getParamsType();
     void output(int level);
     void addChild(Id *next);
@@ -509,7 +508,13 @@ private:
     StmtNode *stmt;
 
 public:
-    FuncDefNode(SymbolEntry *se, FuncDefParamsNode *params, StmtNode *stmt, bool needRet) : se(se), params(params), stmt(stmt){};
+    FuncDefNode(SymbolEntry *se, FuncDefParamsNode *params, StmtNode *stmt, bool needRet) : se(se), params(params), stmt(stmt)
+    {
+        // 设置param=>func的关系
+        if (params != nullptr)
+            for (auto id : params->getParamsList())
+                dynamic_cast<IdentifierSymbolEntry *>(id->getSymPtr())->setFuncSe(dynamic_cast<IdentifierSymbolEntry *>(se));
+    };
     void output(int level);
     // void typeCheck();
     void genCode();
