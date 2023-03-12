@@ -112,8 +112,8 @@ int main(int argc, char *argv[])
         //     fprintf(stderr, "lvn pass\n");
             
         // }
-        ValueNumbering lvn(&unit);
-        lvn.pass1();
+        //ValueNumbering lvn(&unit);
+       // lvn.pass1();
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {

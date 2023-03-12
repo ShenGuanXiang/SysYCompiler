@@ -26,8 +26,8 @@ class ValueNumbering
 public:
     ValueNumbering(Unit *unit) : unit(unit){valueNumber=0;};
     void dumpTable();
-    void lvn(BasicBlock* bb,nrContext ctx); // a wrapper of `pass1`, used in pass2
-    void svn(BasicBlock* bb,nrContext ctx);
+    void lvn(BasicBlock* bb); // a wrapper of `pass1`, used in pass2
+    void svn(BasicBlock* bb);
     void pass2(Function* func);
     void pass1();
     //pass1 is implemented using LVN, i.e. optimize within basic blocks

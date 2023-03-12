@@ -90,9 +90,9 @@ void ValueNumbering::pass1(){
     }
 }
 
-void ValueNumbering::lvn(BasicBlock* bb,nrContext ctx){
-    std::unordered_map<std::string,int>& valueTable=ctx.valueTable;
-    std::unordered_map<int,Operand*>& value2operand=ctx.value2operand;
+void ValueNumbering::lvn(BasicBlock* bb){
+   // std::unordered_map<std::string,int>& valueTable=ctx.valueTable;
+    //std::unordered_map<int,Operand*>& value2operand=ctx.value2operand;
     for(auto it_func=unit->begin();it_func!=unit->end();it_func++){
         for(auto it_bb=(*it_func)->begin();it_bb!=(*it_func)->end();it_bb++){
             std::vector<Instruction*>to_remove;
