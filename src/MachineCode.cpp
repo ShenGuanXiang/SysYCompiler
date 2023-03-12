@@ -466,6 +466,7 @@ void MovMInstruction::output()
     // case MovMInstruction::VMOVF32:
     //     fprintf(yyout, "\tvmov.f32");
     //     break;
+
     default:
         break;
     }
@@ -474,6 +475,16 @@ void MovMInstruction::output()
     this->def_list[0]->output();
     fprintf(yyout, ", ");
     this->use_list[0]->output();
+    switch (this->op)
+    {
+    case MovMInstruction::MOVLSL:
+        fprintf(yyout, ", LSL#%d", this->mov_num);
+        break;
+    
+    default:
+        break;
+    }
+
     fprintf(yyout, "\n");
 }
 
