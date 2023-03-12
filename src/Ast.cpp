@@ -12,29 +12,39 @@ extern FILE *yyout;
 int Node::counter = 0;
 IRBuilder *Node::builder = nullptr;
 static int height = 0;
-static int offset = 0;
+static std::vector<WhileStmt *> whileStack;
 static Operand *arrayAddr;
-static Operand *lastAddr;
 static Type *arrayType = nullptr;
 static std::vector<int> d;
-static std::vector<int> recover;
 std::vector<int> cur_dim;
 ArrayType *cur_type;
 std::vector<ExprNode *> vec_val;
-bool is_fp = false;
 
 static void get_vec_val(InitNode *cur_node)
 {
     if (cur_node->isLeaf() || cur_node->getself() != nullptr)
-    {
         vec_val.push_back(cur_node->getself());
+    else
+        for (auto l : cur_node->getleaves())
+            get_vec_val(l);
+}
+
+static ArrayType *arrTypeLike(ArrayType *old)
+{
+    if (old->isIntArray())
+    {
+        if (old->isConst())
+            return new ConstIntArrayType();
+        else
+            return new IntArrayType();
     }
     else
     {
-        for (auto l : cur_node->getleaves())
-        {
-            get_vec_val(l);
-        }
+        assert(old->isFloatArray());
+        if (old->isConst())
+            return new ConstFloatArrayType();
+        else
+            return new FloatArrayType();
     }
 }
 
@@ -378,14 +388,13 @@ void Ast::genCode(Unit *unit)
 
 void Id::genCode()
 {
-    if (getType()->isConst() && !is_Array()) // 常量折叠
+    if (getType()->isConst() && !is_array) // 常量折叠
         return;
     BasicBlock *bb = builder->getInsertBB();
     Operand *addr = dynamic_cast<IdentifierSymbolEntry *>(symbolEntry)->getAddr();
-    if (!is_Array())
+    if (!is_array)
     {
-        // delete dst;
-        dst = new Operand(new TemporarySymbolEntry(symbolEntry->getType(), SymbolTable::getLabel()));
+        setDst(new Operand(new TemporarySymbolEntry(symbolEntry->getType(), SymbolTable::getLabel())));
         new LoadInstruction(dst, addr, bb);
     }
     else
@@ -399,20 +408,7 @@ void Id::genCode()
                 cur_type = (ArrayType *)((PointerType *)symbolEntry->getType())->getValType();
             Operand *tempSrc = addr;
             ArrayType *curr_type;
-            if (cur_type->isIntArray())
-            {
-                if (cur_type->isConst())
-                    curr_type = new ConstIntArrayType();
-                else
-                    curr_type = new IntArrayType();
-            }
-            else
-            {
-                if (cur_type->isConst())
-                    curr_type = new ConstFloatArrayType();
-                else
-                    curr_type = new FloatArrayType();
-            }
+            curr_type = arrTypeLike(cur_type);
             Operand *dst1;
             if (isPtr)
             {
@@ -425,48 +421,19 @@ void Id::genCode()
                 currr_dim = ((ArrayType *)getSymPtr()->getType())->fetch(); // if is params, it should be 0
             else
                 currr_dim = ((ArrayType *)((PointerType *)getSymPtr()->getType())->getValType())->fetch();
-            if (currr_dim.size() > 0)
-            {
-                if (currr_dim[0] == -1)
-                {
-                    TemporarySymbolEntry *se = new TemporarySymbolEntry(new PointerType(getType()), SymbolTable::getLabel());
-                    Operand *new_addr = new Operand(se);
-                    new LoadInstruction(new_addr, addr, bb);
-                    tempSrc = new_addr;
-                }
-            }
             if (currr_dim.size() != indices->getExprList().size() && !isPtr)
                 is_FP = true;
             if (!isPtr)
                 currr_dim.erase(currr_dim.begin());
             curr_type->SetDim(currr_dim);
             Operand *tempDst;
-            // if (currr_dim.size() != 0)
-            // {
-            //     tempDst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
-            // }
-            // else
-            //     tempDst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), SymbolTable::getLabel()));
             bool isFirst = true;
             for (auto idx : indices->getExprList())
             {
                 if (!currr_dim.empty() && !isFirst)
                 {
                     currr_dim.erase(currr_dim.begin());
-                    if (curr_type->isIntArray())
-                    {
-                        if (curr_type->isConst())
-                            curr_type = new ConstIntArrayType();
-                        else
-                            curr_type = new IntArrayType();
-                    }
-                    else
-                    {
-                        if (curr_type->isConst())
-                            curr_type = new ConstFloatArrayType();
-                        else
-                            curr_type = new FloatArrayType();
-                    }
+                    curr_type = arrTypeLike(curr_type);
                     curr_type->SetDim(currr_dim);
                 }
                 idx->genCode();
@@ -484,7 +451,7 @@ void Id::genCode()
                 new GepInstruction(tempDst, tempSrc, std::vector<Operand *>{nullptr, nullptr}, bb);
                 tempSrc = tempDst;
             }
-            if (isleft)
+            if (is_left)
             {
                 arrayAddr = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
                 dst = arrayAddr;
@@ -501,19 +468,9 @@ void Id::genCode()
                     new_dst = new Operand(new TemporarySymbolEntry(new PointerType(TypeSystem::floatType), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
             }
             if (!isPtr)
-            {
-                if (getType()->isInt())
-                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
-                else
-                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::floatType, SymbolTable::getLabel()));
-            }
+                dst1 = new Operand(new TemporarySymbolEntry(Const2Var(getType()), SymbolTable::getLabel()));
             else
-            {
-                if (curr_type->getElemType()->isInt())
-                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
-                else
-                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::floatType, SymbolTable::getLabel()));
-            }
+                dst1 = new Operand(new TemporarySymbolEntry(Const2Var(curr_type->getElemType()), SymbolTable::getLabel()));
             if (is_FP)
             {
                 dst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
@@ -527,21 +484,8 @@ void Id::genCode()
         {
             if (symbolEntry->getType()->isPTR())
             {
-                ArrayType *curr_type;
-                if (cur_type->isIntArray())
-                {
-                    if (cur_type->isConst())
-                        curr_type = new ConstIntArrayType();
-                    else
-                        curr_type = new IntArrayType();
-                }
-                else
-                {
-                    if (cur_type->isConst())
-                        curr_type = new ConstFloatArrayType();
-                    else
-                        curr_type = new FloatArrayType();
-                }
+                cur_type = (ArrayType *)((PointerType *)(symbolEntry->getType()))->getValType();
+                ArrayType *curr_type = arrTypeLike(cur_type);
                 std::vector<int> currdim = cur_type->fetch();
                 curr_type->SetDim(currdim);
                 Operand *dst1 = new Operand(new TemporarySymbolEntry(new PointerType(cur_type), SymbolTable::getLabel()));
@@ -561,39 +505,11 @@ void Id::genCode()
                     FunP.erase(FunP.begin());
                     if (FunP.size() != 0)
                     {
-                        if (cur_type->isIntArray())
-                        {
-                            if (cur_type->isConst())
-                                curr_type = new ConstIntArrayType();
-                            else
-                                curr_type = new IntArrayType();
-                        }
-                        else
-                        {
-                            if (cur_type->isConst())
-                                curr_type = new ConstFloatArrayType();
-                            else
-                                curr_type = new FloatArrayType();
-                        }
+                        curr_type = arrTypeLike(cur_type);
                         ((ArrayType *)curr_type)->SetDim(FunP);
                     }
                     else
-                    {
-                        if (cur_type->isIntArray())
-                        {
-                            if (cur_type->isConst())
-                                curr_type = TypeSystem::constIntType;
-                            else
-                                curr_type = TypeSystem::intType;
-                        }
-                        else
-                        {
-                            if (cur_type->isConst())
-                                curr_type = TypeSystem::constFloatType;
-                            else
-                                curr_type = TypeSystem::floatType;
-                        }
-                    }
+                        curr_type = cur_type->getElemType();
                 }
                 else
                     assert(0);
@@ -607,6 +523,7 @@ void Id::genCode()
 
 void UnaryExpr::genCode()
 {
+    updateDst();
     BasicBlock *bb = builder->getInsertBB();
     Function *func = (bb == nullptr) ? nullptr : bb->getParent();
     if (getType()->isConst()) // 常量折叠
@@ -659,6 +576,7 @@ void UnaryExpr::genCode()
 
 void BinaryExpr::genCode()
 {
+    updateDst();
     BasicBlock *bb = builder->getInsertBB();
     Function *func = (bb == nullptr) ? nullptr : bb->getParent();
     if (getType()->isConst()) // 常量折叠
@@ -796,6 +714,7 @@ void Constant::genCode()
 
 void ImplicitCast::genCode()
 {
+    updateDst();
     BasicBlock *bb = builder->getInsertBB();
     Function *func = (bb == nullptr) ? nullptr : bb->getParent();
     if (getType()->isConst()) // 常量折叠
@@ -880,21 +799,7 @@ void InitNode::genCode(int level)
     for (size_t i = 0; i < vec_val.size(); i++)
     {
         int pos = i;
-        ArrayType *curr_type;
-        if (cur_type->isIntArray())
-        {
-            if (cur_type->isConst())
-                curr_type = new ConstIntArrayType();
-            else
-                curr_type = new IntArrayType();
-        }
-        else
-        {
-            if (cur_type->isConst())
-                curr_type = new ConstFloatArrayType();
-            else
-                curr_type = new FloatArrayType();
-        }
+        ArrayType *curr_type = arrTypeLike(cur_type);
         std::vector<int> curr_dim(cur_dim);
         Operand *final_offset = arrayAddr;
         for (size_t j = 0; j < d.size(); j++)
@@ -907,20 +812,7 @@ void InitNode::genCode(int level)
             fprintf(stderr, "currdim is %s\n", addr->getType()->toStr().c_str());
             new GepInstruction(final_offset, addr, std::vector<Operand *>{nullptr, offset_operand}, builder->getInsertBB());
             pos %= d[j];
-            if (cur_type->isIntArray())
-            {
-                if (cur_type->isConst())
-                    curr_type = new ConstIntArrayType();
-                else
-                    curr_type = new IntArrayType();
-            }
-            else
-            {
-                if (cur_type->isConst())
-                    curr_type = new ConstFloatArrayType();
-                else
-                    curr_type = new FloatArrayType();
-            }
+            curr_type = arrTypeLike(cur_type);
         }
         vec_val[i]->genCode();
         Operand *src = vec_val[i]->getOperand();
@@ -945,13 +837,9 @@ void InitNode::output(int level)
     std::string constStr = isconst ? "true" : "false";
     fprintf(yyout, "%*cInitValNode\tisConst:%s\n", level, ' ', constStr.c_str());
     for (auto l : leaves)
-    {
         l->output(level + 4);
-    }
     if (leaf != nullptr)
-    {
         leaf->output(level + 4);
-    }
 }
 
 void IndicesNode::genCode()
@@ -1001,7 +889,7 @@ void DeclStmt::genCode()
         Function *func = builder->getInsertBB()->getParent();
         BasicBlock *entry = func->getEntry();
         addr = new Operand(new TemporarySymbolEntry(new PointerType(se->getType()), SymbolTable::getLabel()));
-        Instruction *alloca = new AllocaInstruction(addr, se); // allocate space for local id in function stack. TODO：Alloc指令考虑数组
+        Instruction *alloca = new AllocaInstruction(addr, se); // allocate space for local id in function stack.
         entry->insertFront(alloca);                            // allocate instructions should be inserted into the begin of the entry block.
         se->setAddr(addr);                                     // set the addr operand in symbol entry so that we can use it in subsequent code generation.
         Operand *temp = nullptr;
@@ -1016,21 +904,7 @@ void DeclStmt::genCode()
             if (se->getType()->isARRAY())
             {
                 arrayType = se->getType();
-                Type *type = ((ArrayType *)arrayType)->getElemType();
-                if (type->isInt())
-                {
-                    if (type->isConst())
-                        cur_type = new ConstIntArrayType();
-                    else
-                        cur_type = new IntArrayType();
-                }
-                else
-                {
-                    if (type->isConst())
-                        cur_type = new ConstFloatArrayType();
-                    else
-                        cur_type = new FloatArrayType();
-                }
+                cur_type = arrTypeLike((ArrayType *)arrayType);
                 vec_val.clear();
                 get_vec_val(expr);
                 cur_dim = ((ArrayType *)arrayType)->fetch();
@@ -1038,9 +912,7 @@ void DeclStmt::genCode()
                 d.push_back(1), d.erase(d.begin());
                 for (int i = d.size() - 2; i >= 0; i--)
                     d[i] = d[i + 1] * d[i];
-                offset = 0;
                 arrayAddr = addr;
-                lastAddr = arrayAddr;
                 expr->genCode(0);
             }
             else
@@ -1223,10 +1095,14 @@ void WhileStmt::genCode()
         stmt_bb = new BasicBlock(func);
         backPatch(cond->trueList(), stmt_bb);
         builder->setInsertBB(stmt_bb);
-        stmt->genCode();
-        // 循环体完成之后，增加一句无条件跳转到cond_bb
-        stmt_bb = builder->getInsertBB();
-        new UncondBrInstruction(cond_bb, stmt_bb);
+        stmt->genCode(); // 当前bb可能发生变化
+
+        // 循环倒置：循环体完成之后，增加条件判断部分的中间代码跳转回原始stmt_bb
+        height = 1;
+        cond->genCode();
+        height = 0;
+        backPatch(cond->falseList(), end_bb);
+        backPatch(cond->trueList(), stmt_bb);
     }
 
     // 重新调整插入点到end_bb
@@ -1238,16 +1114,13 @@ void WhileStmt::genCode()
 
 void FuncCallParamsNode::genCode()
 {
-    is_fp = true;
     for (auto it : paramsList)
-    {
         it->genCode();
-    }
-    is_fp = false;
 }
 
 void FuncCallNode::genCode()
 {
+    updateDst();
     IdentifierSymbolEntry *se = dynamic_cast<IdentifierSymbolEntry *>(funcId->getSymPtr());
     if (se->isLibFunc())
         builder->getUnit()->insertDecl(se);
@@ -1262,9 +1135,7 @@ void FuncCallNode::genCode()
         params->genCode();
         std::vector<Operand *> Oplist;
         for (auto it : params->getParams())
-        {
             Oplist.push_back(it->getOperand());
-        }
         new FuncCallInstruction(dst, Oplist, se, bb);
     }
 }
@@ -1281,33 +1152,16 @@ void FuncDefParamsNode::genCode()
         {
             std::vector<int> dimensions;
             for (auto idx : it->getIndices()->getExprList())
-            {
                 dimensions.push_back(idx->getSymPtr()->getValue());
-            }
             dimensions.erase(dimensions.begin());
-            auto TType = ((ArrayType *)(it->getSymPtr()->getType()))->getElemType();
-            ArrayType *new_type;
-            if (TType->isInt())
-            {
-                if (TType->isConst())
-                    new_type = new ConstIntArrayType();
-                else
-                    new_type = new IntArrayType();
-            }
-            else
-            {
-                if (TType->isConst())
-                    new_type = new ConstFloatArrayType();
-                else
-                    new_type = new FloatArrayType();
-            }
+            ArrayType *new_type = arrTypeLike((ArrayType *)(it->getSymPtr()->getType()));
             new_type->SetDim(dimensions);
             type = new PointerType(new_type);
             it->getSymPtr()->setType(type);
         }
         else
             type = new PointerType(it->getSymPtr()->getType());
-        func->insertParams(it->getOperand());
+        func->insertParams(it->getOperand()->getEntry());
         SymbolEntry *addr_se;
         if (it->getIndices() != nullptr)
             addr_se = new TemporarySymbolEntry(new PointerType(type), SymbolTable::getLabel());
@@ -1323,6 +1177,7 @@ void FuncDefParamsNode::genCode()
          * If you want to implement array, you have to caculate the address first and then store the result into it.
          */
         new StoreInstruction(addr, src, entry);
+        dynamic_cast<IdentifierSymbolEntry *>(it->getSymPtr())->setParamOpe(src);
     }
 }
 
@@ -1337,7 +1192,7 @@ void FuncDefNode::genCode()
         params->genCode();
     stmt->genCode();
     /**
-     * Construct control flow graph. You need do set successors and predecessors for each basic block.
+     * Construct control flow graph. You need do set succs and preds for each basic block.
      */
     for (auto bb = func->begin(); bb != func->end(); bb++)
     {
@@ -1348,9 +1203,7 @@ void FuncDefNode::genCode()
             if (index->isRet())
             {
                 while (index != (*bb)->rbegin())
-                {
                     delete (index->getNext());
-                }
                 break;
             }
             index = index->getNext();
@@ -1369,11 +1222,17 @@ void FuncDefNode::genCode()
             falseBB->addPred(*bb);
         }
         // 对于无条件的跳转指令，只需要对其目标基本块设置控制流关系即可
-        if (last->isUncond())
+        else if (last->isUncond())
         {
             BasicBlock *dstBB = dynamic_cast<UncondBrInstruction *>(last)->getBranch();
             (*bb)->addSucc(dstBB);
             dstBB->addPred(*bb);
+        }
+        // 填充ret void
+        else
+        {
+            if (!last->isRet() /*&& dynamic_cast<FunctionType *>(se->getType())->getRetType()->isVoid()*/)
+                new RetInstruction(nullptr, *bb);
         }
     }
 }
@@ -1495,10 +1354,7 @@ void InitNode::fill(int level, std::vector<int> d, Type *type)
     if (level == (int)d.size() || leaf != nullptr)
     {
         if (leaf == nullptr)
-        {
             setleaf(new Constant(new ConstantSymbolEntry(Var2Const(type), 0)));
-        }
-
         return;
     }
     int cap = 1, num = 0;
@@ -1524,9 +1380,7 @@ void InitNode::fill(int level, std::vector<int> d, Type *type)
         t++;
     }
     for (auto l : leaves)
-    {
         l->fill(level + 1, d, type);
-    }
 }
 
 int InitNode::getSize(int d_nxt)
@@ -1535,13 +1389,9 @@ int InitNode::getSize(int d_nxt)
     for (auto l : leaves)
     {
         if (l->leaf != nullptr)
-        {
             num++;
-        }
         else
-        {
             cur_fit++;
-        }
         if (num == d_nxt)
         {
             cur_fit++;

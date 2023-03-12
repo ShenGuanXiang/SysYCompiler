@@ -9,6 +9,7 @@
 #include "Mem2Reg.h"
 #include "ElimPHI.h"
 #include "MulDivMod2Bit.h"
+#include "LiveVariableAnalysis.h"
 using namespace std;
 
 Ast ast;
@@ -89,22 +90,22 @@ int main(int argc, char *argv[])
         unit.output();
         fprintf(stderr, "ir output ok\n");
     }
-    // if (optimize)
-    // {
-    //     SimplifyCFG sc(&unit);
-    //     sc.pass();
-    //     Mem2Reg m2r(&unit);
-    //     m2r.pass();
-    //     // sc.pass();
-    //     ElimPHI ep(&unit);
-    //     ep.pass();
-    //     sc.pass();
-    //     fprintf(stderr, "opt ir generated\n");
-    // }
-    if (dump_ir && optimize)
+    if (optimize)
     {
-        unit.output();
-        fprintf(stderr, "opt ir output ok\n");
+        Mem2Reg m2r(&unit);
+        m2r.pass();
+        // todo:其它中间代码优化
+        // 自动内联
+        // 常量传播
+        // 强度削弱
+        fprintf(stderr, "opt ir generated\n");
+        if (dump_ir)
+        {
+            unit.output();
+            fprintf(stderr, "opt ir output ok\n");
+        }
+        ElimPHI ep(&unit);
+        ep.pass();
     }
     unit.genMachineCode(&mUnit);
 
@@ -119,6 +120,18 @@ int main(int argc, char *argv[])
     fprintf(stderr, "asm generated\n");
     if (dump_asm)
     {
+        unit.genMachineCode(&mUnit);
+        if (optimize)
+        {
+            // todo: 汇编代码优化
+        }
+        LinearScan linearScan(&mUnit);
+        linearScan.pass();
+        if (optimize)
+        {
+            // todo: 汇编代码优化
+        }
+        fprintf(stderr, "asm generated\n");
         mUnit.output();
         fprintf(stderr, "asm output ok\n");
     }

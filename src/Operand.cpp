@@ -24,28 +24,30 @@ std::string Operand::toStr() const
         return se->toStr();
 }
 
-void Operand::removeUse(Instruction *inst)
-{
-    auto i = std::find(uses.begin(), uses.end(), inst);
-    if (i != uses.end())
-        uses.erase(i);
-}
+// bool Operand::operator==(const Operand &a) const
+// {
+//     if (this->se->getKind() == a.se->getKind())
+//     {
+//         if (this->se->isConstant())
+//             return se->getValue() == a.se->getValue();
+//         if (this->se->isTemporary())
+//             return dynamic_cast<TemporarySymbolEntry *>(se)->getLabel() == dynamic_cast<TemporarySymbolEntry *>(a.se)->getLabel();
+//         if (this->se->isVariable())
+//             return dynamic_cast<IdentifierSymbolEntry *>(se)->getName() == dynamic_cast<IdentifierSymbolEntry *>(a.se)->getName();
+//     }
+//     return false;
+// }
 
-bool Operand::operator==(const Operand &a) const
-{
-    return this->se == a.se;
-}
-
-bool Operand::operator<(const Operand &a) const
-{
-    if (this->se->getKind() == a.se->getKind())
-    {
-        if (this->se->isConstant())
-            return se->getValue() < a.se->getValue();
-        if (this->se->isTemporary())
-            return dynamic_cast<TemporarySymbolEntry *>(se)->getLabel() < dynamic_cast<TemporarySymbolEntry *>(a.se)->getLabel();
-        if (this->se->isVariable())
-            return dynamic_cast<IdentifierSymbolEntry *>(se)->getName() < dynamic_cast<IdentifierSymbolEntry *>(a.se)->getName();
-    }
-    return this->se->getKind() < a.se->getKind();
-}
+// bool Operand::operator<(const Operand &a) const
+// {
+//     if (this->se->getKind() == a.se->getKind())
+//     {
+//         if (this->se->isConstant())
+//             return se->getValue() < a.se->getValue();
+//         if (this->se->isTemporary())
+//             return dynamic_cast<TemporarySymbolEntry *>(se)->getLabel() < dynamic_cast<TemporarySymbolEntry *>(a.se)->getLabel();
+//         if (this->se->isVariable())
+//             return dynamic_cast<IdentifierSymbolEntry *>(se)->getName() < dynamic_cast<IdentifierSymbolEntry *>(a.se)->getName();
+//     }
+//     return this->se->getKind() < a.se->getKind();
+// }

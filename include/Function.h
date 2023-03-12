@@ -22,7 +22,7 @@ private:
     SymbolEntry *sym_ptr;
     BasicBlock *entry;
     Unit *parent;
-    std::vector<Operand *> param_list;
+    std::vector<SymbolEntry *> param_list;
 
 public:
     Function(Unit *, SymbolEntry *);
@@ -30,16 +30,20 @@ public:
     void insertBlock(BasicBlock *bb) { block_list.push_back(bb); };
     BasicBlock *getEntry() { return entry; };
     void setEntry(BasicBlock *bb) { entry = bb; };
+    Unit *getParent() { return parent; };
+    void setParent(Unit *unit) { parent = unit; };
     void remove(BasicBlock *bb);
     void output() const;
     std::vector<BasicBlock *> &getBlockList() { return block_list; };
-    std::vector<Operand *> &getParamsList() { return param_list; };
+    std::vector<SymbolEntry *> &getParamsList() { return param_list; };
     iterator begin() { return block_list.begin(); };
     iterator end() { return block_list.end(); };
     reverse_iterator rbegin() { return block_list.rbegin(); };
     reverse_iterator rend() { return block_list.rend(); };
     SymbolEntry *getSymPtr() { return sym_ptr; };
-    void insertParams(Operand *param) { param_list.push_back(param); }
+    void insertParams(SymbolEntry *param) { param_list.push_back(param); }
+    void ComputeDom();
+    void ComputeDomFrontier();
     void genMachineCode(AsmBuilder *);
 };
 

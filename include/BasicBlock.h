@@ -18,12 +18,18 @@ private:
     int no;
     std::set<Operand *> live_in;
     std::set<Operand *> live_out;
+    std::set<BasicBlock *> SDoms;
+    BasicBlock *IDom;
+    std::set<BasicBlock *> DomFrontiers;
 
 public:
     BasicBlock(Function *);
     ~BasicBlock();
     std::set<Operand *> &getLiveIn() { return live_in; };
     std::set<Operand *> &getLiveOut() { return live_out; };
+    std::set<BasicBlock *> &getSDoms() { return SDoms; };
+    BasicBlock *&getIDom() { return IDom; };
+    std::set<BasicBlock *> &getDomFrontiers() { return DomFrontiers; };
     void insertFront(Instruction *);
     void insertBack(Instruction *);
     void insertBefore(Instruction *, Instruction *);
@@ -38,6 +44,7 @@ public:
     void removePred(BasicBlock *);
     int getNo() { return no; };
     Function *getParent() { return parent; };
+    void setParent(Function *func) { parent = func; };
     Instruction *begin() { return head->getNext(); };
     Instruction *end() { return head; };
     Instruction *rbegin() { return head->getPrev(); };

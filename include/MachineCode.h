@@ -24,12 +24,14 @@ class MachineInstruction;
 class MachineOperand;
 
 bool isShifterOperandVal(unsigned bin_val);
+bool isSignedShifterOperandVal(signed val);
+bool isFloatShifterOperandVal(float val);
 
 class MachineOperand
 {
 private:
     MachineInstruction *parent;
-    int type;
+    int type;          // {IMM, VREG, REG, LABEL}
     double val;        // value of immediate number
     int reg_no;        // register no
     std::string label; // address label
@@ -168,6 +170,9 @@ public:
         MOV,
         // MVN,
         // MOVT,
+        MOVLSL,
+        // MOVLSR,
+        // MOVASR,
         VMOV,
         // VMOVF32
         MOVLSL, MOVLSR, MOVASR //移位用
@@ -175,6 +180,7 @@ public:
     int mov_num;
     MovMInstruction(MachineBlock *p, int op,
                     MachineOperand *dst, MachineOperand *src,
+                    MachineOperand *shifter = nullptr,
                     int cond = MachineInstruction::NONE);
     void output();
 };
@@ -303,6 +309,7 @@ private:
     std::set<int> saved_rregs;
     std::set<int> saved_sregs;
     SymbolEntry *sym_ptr;
+    MachineBlock *entry;
     std::vector<MachineOperand *> additional_args_offset;
 
 public:
@@ -328,7 +335,12 @@ public:
     MachineUnit *getParent() { return parent; };
     SymbolEntry *getSymPtr() { return sym_ptr; };
     void addAdditionalArgsOffset(MachineOperand *param) { additional_args_offset.push_back(param); };
-    // std::vector<MachineOperand *> getAdditionalArgsOffset() { return additional_args_offset; };
+    std::vector<MachineOperand *> getAdditionalArgsOffset() { return additional_args_offset; };
+    MachineBlock *getEntry() { return entry; };
+    void setEntry(MachineBlock *entry) { this->entry = entry; };
+    void AnalyzeLiveVariable();
+    void outputStart();
+    void outputEnd();
     void output();
     ~MachineFunction();
 };

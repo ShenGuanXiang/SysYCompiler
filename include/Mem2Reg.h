@@ -14,10 +14,6 @@ class Mem2Reg
 {
 private:
     Unit *unit;
-    std::map<BasicBlock *, std::set<BasicBlock *>> IDom;
-    void ComputeDom(Function *);
-    std::map<BasicBlock *, std::set<BasicBlock *>> DF;
-    void ComputeDomFrontier(Function *);
     void InsertPhi(Function *);
     void Rename(Function *);
 

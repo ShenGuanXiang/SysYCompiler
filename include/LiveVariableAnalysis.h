@@ -9,20 +9,17 @@ class Operand;
 class BasicBlock;
 class Function;
 class Unit;
-class LiveVariableAnalysis
-{
-private:
-    std::map<Operand, std::set<Operand *>> all_uses;
-    std::map<BasicBlock *, std::set<Operand *>> def, use;
-    void computeUsePos(Function *);
-    void computeDefUse(Function *);
-    void computeLiveInOut(Function *);
+// class LiveVariableAnalysis
+// {
+// private:
+//     std::map<BasicBlock *, std::set<Operand *>> def, use;
+//     void computeDefUse(Function *);
+//     void computeLiveInOut(Function *);
 
-public:
-    void pass(Unit *unit);
-    void pass(Function *func);
-    std::map<Operand, std::set<Operand *>> &getAllUses() { return all_uses; };
-};
+// public:
+//     void pass(Unit *unit);
+//     void pass(Function *func);
+// };
 
 class MachineOperand;
 class MachineBlock;
@@ -31,16 +28,11 @@ class MachineUnit;
 class MLiveVariableAnalysis
 {
 private:
-    std::map<MachineOperand, std::set<MachineOperand *>> all_uses;
-    std::map<MachineBlock *, std::set<MachineOperand *>> def, use;
-    void computeUsePos(MachineFunction *);
-    void computeDefUse(MachineFunction *);
-    void computeLiveInOut(MachineFunction *);
+    MachineUnit *unit;
 
 public:
-    void pass(MachineUnit *unit);
-    void pass(MachineFunction *func);
-    std::map<MachineOperand, std::set<MachineOperand *>> &getAllUses() { return all_uses; };
+    MLiveVariableAnalysis(MachineUnit *unit) : unit(unit){};
+    void pass();
 };
 
 #endif

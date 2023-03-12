@@ -36,9 +36,13 @@ public:
     MachineOperand *genMachineImm(double val, Type *valType = TypeSystem::intType);
     MachineOperand *genMachineLabel(int block_no);
     virtual void genMachineCode(AsmBuilder *) = 0;
-    virtual std::vector<Operand *> &getDef() { return def_list; };
+    virtual Operand *&getDef()
+    {
+        assert(!def_list.empty());
+        return def_list[0];
+    };
     virtual std::vector<Operand *> &getUses() { return use_list; };
-    std::vector<Operand *> replaceAllUsesWith(Operand *); // Mem2Reg
+    void replaceAllUsesWith(Operand *); // Mem2Reg
 
 protected:
     unsigned instType;
@@ -94,8 +98,6 @@ public:
     void output() const;
     void genMachineCode(AsmBuilder *);
 };
-
-// TODO : GepInstruction and getDef、getUses
 
 class StoreInstruction : public Instruction
 {
@@ -217,7 +219,6 @@ private:
 
 public:
     PhiInstruction(Operand *dst, BasicBlock *insert_bb = nullptr);
-    ~PhiInstruction();
     void output() const;
     void updateDst(Operand *);
     void addEdge(BasicBlock *block, Operand *src);
