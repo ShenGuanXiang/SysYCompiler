@@ -8,6 +8,7 @@
 #include "SimplifyCFG.h"
 #include "Mem2Reg.h"
 #include "ElimPHI.h"
+#include "MulDivMod2Bit.h"
 using namespace std;
 
 Ast ast;
@@ -106,6 +107,13 @@ int main(int argc, char *argv[])
         fprintf(stderr, "opt ir output ok\n");
     }
     unit.genMachineCode(&mUnit);
+
+    // 乘除法优化，为了调试先手动在代码里开关
+    // MulDivMod2Bit mdm2b(&mUnit);
+    // mdm2b.pass();
+
+
+
     LinearScan linearScan(&mUnit);
     linearScan.allocateRegisters();
     fprintf(stderr, "asm generated\n");

@@ -117,6 +117,11 @@ public:
     std::vector<MachineOperand *> &getUse() { return use_list; };
     MachineBlock *getParent() { return parent; };
     int getOpType() { return op; };
+
+    bool isMul() const { return type == BINARY && op == 2; };
+    bool isLoad() const { return type == LOAD; };
+    bool isMov() const { return type == MOV && op == 0; };
+
 };
 
 class BinaryMInstruction : public MachineInstruction
@@ -142,6 +147,8 @@ public:
                      MachineOperand *dst, MachineOperand *src1, MachineOperand *src2 = nullptr,
                      int cond = MachineInstruction::NONE);
     void output();
+    bool is_1_src(){return use_list.size()==1;};
+
 };
 
 class StoreMInstruction : public MachineInstruction
@@ -163,7 +170,9 @@ public:
         // MOVT,
         VMOV,
         // VMOVF32
+        MOVLSL, MOVLSR, MOVASR //移位用
     };
+    int mov_num;
     MovMInstruction(MachineBlock *p, int op,
                     MachineOperand *dst, MachineOperand *src,
                     int cond = MachineInstruction::NONE);
