@@ -109,8 +109,8 @@ int main(int argc, char *argv[])
     unit.genMachineCode(&mUnit);
 
     // 乘除法优化，为了调试先手动在代码里开关
-    // MulDivMod2Bit mdm2b(&mUnit);
-    // mdm2b.pass();
+    MulDivMod2Bit mdm2b(&mUnit);
+    mdm2b.pass();
 
 
 

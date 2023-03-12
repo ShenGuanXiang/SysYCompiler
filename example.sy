@@ -1,6 +1,0 @@
-int main()
-{
-    int b = 4;
-    int a = 8*b;
-    return 0;
-}
