@@ -496,7 +496,9 @@ void Id::genCode()
             if (is_FP)
             {
                 // dst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
-                dst = new Operand(new TemporarySymbolEntry(new PointerType(((ArrayType*)final_type->getValType())->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                // dst = new Operand(new TemporarySymbolEntry(new PointerType(((ArrayType*)final_type->getValType())->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                dst = tempSrc;
+                dst->getEntry()->setType(new PointerType(((ArrayType*)final_type->getValType())->getElemType()));
                 // assert(0);
                 is_FP = false;
                 return;
@@ -849,9 +851,9 @@ void InitNode::genCode(int level)
         }
         curr_type->SetDim(curr_dim);
         Operand* final_offset = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
-        new GepInstruction(final_offset, addr, idx_operand, builder->getInsertBB());
         vec_val[i]->genCode();
         Operand *src = vec_val[i]->getOperand();
+        new GepInstruction(final_offset, addr, idx_operand, builder->getInsertBB());
         new StoreInstruction(final_offset, src, builder->getInsertBB());
         curr_dim.clear();
         // assert(cur_dim.empty());
