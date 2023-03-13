@@ -33,7 +33,7 @@ bool optimize;
 int main(int argc, char *argv[])
 {
     int opt;
-    while ((opt = getopt(argc, argv, "Siato:O::M")) != -1)
+    while ((opt = getopt(argc, argv, "Siato:O::")) != -1)
     {
         switch (opt)
         {
@@ -55,16 +55,12 @@ int main(int argc, char *argv[])
         case 'O':
             optimize = true;
             break;
-        case 'M':
-            optimize = true;
-            break;
         default:
             fprintf(stderr, "Usage: %s [-o outfile] infile\n", argv[0]);
             exit(EXIT_FAILURE);
             break;
         }
     }
-
     if (optind >= argc)
     {
         fprintf(stderr, "no input file\n");
