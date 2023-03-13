@@ -64,6 +64,7 @@ void SimplifyCFG::pass(Function *func)
                 if (succs[0]->getNumOfPred() == 1)
                 {
                     func->setEntry(succs[0]);
+                    func->remove(bb);
                     freeBBs.insert(bb);
                 }
                 goto Next;
@@ -73,7 +74,7 @@ void SimplifyCFG::pass(Function *func)
             {
                 auto srcs = ((PhiInstruction *)i)->getSrcs();
                 for (auto pred : preds)
-                    if (srcs.count(pred))
+                    if (srcs.count(pred) && srcs[pred] != srcs[bb] && !(srcs[pred]->getType()->isConst() && srcs[bb]->getType()->isConst() && srcs[pred]->getEntry()->getValue() == srcs[bb]->getEntry()->getValue()))
                         eliminable = false;
             }
             if (eliminable)
@@ -165,6 +166,60 @@ void SimplifyCFG::pass(Function *func)
             }
             func->remove(bb);
             freeBBs.insert(bb);
+        }
+        // 无条件跳转到只有一个ret语句的基本块的情况也可以被简化
+        else if (bb->begin()->getNext() == bb->end() && bb->begin()->isRet())
+        {
+            for (auto pred : preds)
+                if (pred->getNumOfSucc() == 1)
+                {
+                    auto lastInst = pred->rbegin();
+                    assert(lastInst->isUncond());
+                    pred->removeSucc(bb);
+                    bb->removePred(pred);
+                    pred->remove(lastInst);
+                    freeInsts.insert(lastInst);
+                    new RetInstruction(bb->begin()->getUses().empty() ? nullptr : bb->begin()->getUses()[0], pred);
+                    if (pred->begin()->getNext() == pred->end())
+                    {
+                        std::vector<BasicBlock *> pred_preds(pred->pred_begin(), pred->pred_end());
+                        for (auto pred_pred : pred_preds)
+                        {
+                            pred_pred->removeSucc(pred);
+                            auto lastInst = pred_pred->rbegin();
+                            if (lastInst->isCond())
+                            {
+                                CondBrInstruction *branch = (CondBrInstruction *)(lastInst);
+                                if (branch->getTrueBranch() == pred)
+                                    branch->setTrueBranch(bb);
+                                else
+                                    branch->setFalseBranch(bb);
+                                if (branch->getTrueBranch() == branch->getFalseBranch())
+                                {
+                                    pred_pred->remove(lastInst);
+                                    freeInsts.insert(lastInst);
+                                    new UncondBrInstruction(branch->getTrueBranch(), pred_pred);
+                                }
+                            }
+                            else
+                            {
+                                assert(lastInst->isUncond());
+                                pred_pred->remove(lastInst);
+                                freeInsts.insert(lastInst);
+                                new UncondBrInstruction(bb, pred_pred);
+                            }
+                            pred_pred->addSucc(bb);
+                            bb->addPred(pred_pred);
+                        }
+                        func->remove(pred);
+                        freeBBs.insert(pred);
+                    }
+                    if (bb->predEmpty())
+                    {
+                        func->remove(bb);
+                        freeBBs.insert(bb);
+                    }
+                }
         }
     Next:
         q.pop();

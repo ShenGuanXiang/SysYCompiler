@@ -173,6 +173,61 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
     this->scope = scope;
     addr = nullptr;
     this->is8BytesAligned = type->isFunc() && isLibFunc() && name != "getint" && name != "putint" && name != "getch" && name != "putch" && name != "getarray" && name != "putarray";
+    if (type->isFunc() && isLibFunc()) // todo 库函数到底哪些寄存器
+    {
+        if (name == "getint" || name == "putint" || name == "getch" || name == "putch" || name == "getarray" || name == "putarray")
+        {
+            occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
+        }
+        else if (name == "getfloat" || name == "putfloat")
+        {
+            occupiedRegs.insert(std::make_pair(0, TypeSystem::floatType));
+            occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
+        }
+        else if (name == "getfarray" || name == "putfarray")
+        {
+            occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
+        }
+    }
+    func_se = nullptr;
+    label = -1;
+    paramOpe = nullptr;
+}
+
+void IdentifierSymbolEntry::addOccupiedReg(int reg_no, Type *type)
+{
+    assert(0 <= reg_no && reg_no <= 3 && (type == TypeSystem::floatType || type == TypeSystem::intType));
+    int cnt = occupiedRegs.count(reg_no);
+    if (cnt)
+    {
+        auto it = occupiedRegs.find(reg_no);
+        for (int i = 0; i < cnt; i++, it++)
+            if (it->second == type)
+                return;
+    }
+    occupiedRegs.insert(std::make_pair(reg_no, type));
+}
+
+bool IdentifierSymbolEntry::paramMem2RegAble()
+{
+    assert(isParam());
+    if (paramNo < 4)
+    {
+        int count = getFuncSe()->getOccupiedRegs().count(paramNo);
+        if (!count)
+            return true;
+        auto it = getFuncSe()->getOccupiedRegs().find(paramNo);
+        for (int i = 0; i < count; i++, it++)
+            if ((it->second->isFloat() && type->isFloat()) || (it->second->isInt() && (type->isInt() /*|| type->isARRAY()*/ || type->isPTR())))
+                return false;
+        return true;
+    }
+    return false;
 }
 
 std::string IdentifierSymbolEntry::toStr()

@@ -118,8 +118,7 @@ ArrayVarIndices
     ;
 LRVal
     : ID {
-        SymbolEntry *se;
-        se = identifiers->lookup($1);
+        SymbolEntry *se = identifiers->lookup($1);
         // 类型检查1：变量未声明
         if(se == nullptr)
         {
@@ -131,8 +130,7 @@ LRVal
         delete []$1;
     }
     | ID ArrayVarIndices {
-        SymbolEntry *se;
-        se = identifiers->lookup($1);
+        SymbolEntry *se = identifiers->lookup($1);
         // 类型检查1：变量未声明
         if(se == nullptr)
         {
@@ -140,9 +138,8 @@ LRVal
             delete [](char*)$1;
             assert(se != nullptr);
         }
-        Id* new_id = new Id(se, true);
-        new_id->setIndices(dynamic_cast<IndicesNode*>($2));
-        $$ = new_id;
+        $$ = new Id(se, true);
+        dynamic_cast<Id*>($$)->setIndices(dynamic_cast<IndicesNode*>($2));
         delete []$1;
     }
     ; 
@@ -716,7 +713,7 @@ FuncDef
     LPAREN FuncFParams{
         Type *FuncType = ($5 != nullptr) ? new FunctionType($1, ((FuncDefParamsNode*)$5)->getParamsType()) : new FunctionType($1, {});
         SymbolEntry *se = new IdentifierSymbolEntry(FuncType, $2, identifiers->getLevel() - 1);
-        int ret = identifiers->getPrev()->install($2, se);
+        auto ret = identifiers->getPrev()->install($2, se);
         // 类型检查4：参数类型相同的函数重定义
         if(!ret)
         {
@@ -770,13 +767,11 @@ FuncFParam
             arrayType = new FloatArrayType();
         }
         arrayType->SetDim(arrayIdx);
-        arrayType->setlenth();
         arrayIdx.clear();
         SymbolEntry *se = new IdentifierSymbolEntry(arrayType, $2, identifiers->getLevel());
         identifiers->install($2, se);
         Id* id = new Id(se);
         id->setIndices(dynamic_cast<IndicesNode*>($3));
-        ((IdentifierSymbolEntry*)se)->setLabel();
         ((IdentifierSymbolEntry*)se)->setAddr(new Operand(se));
         $$ = id;
         delete []$2;

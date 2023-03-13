@@ -9,6 +9,7 @@
 #include "Mem2Reg.h"
 #include "ElimPHI.h"
 #include "LiveVariableAnalysis.h"
+#include "MulDivMod2Bit.h"
 #include "ValueNumbering.h"
 using namespace std;
 
@@ -66,7 +67,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
-    //optimize = false;
+    optimize = 1;
     if (optind >= argc)
     {
         fprintf(stderr, "no input file\n");
@@ -105,15 +106,14 @@ int main(int argc, char *argv[])
         // 自动内联
         // 常量传播
         // 强度削弱
-        // 公共子表达式消除（LVN实现）
-        // if(m_opt){
-        //     ValueNumbering lvn(&unit);
-        //     lvn.pass1();
-        //     fprintf(stderr, "lvn pass\n");
-            
-        // }
-        //ValueNumbering lvn(&unit);
-       // lvn.pass1();
+        
+        if(m_opt){
+            ValueNumbering lvn(&unit);
+            //lvn.pass1();
+            lvn.pass3();
+            fprintf(stderr, "lvn pass done\n");
+        }
+        
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
@@ -129,6 +129,8 @@ int main(int argc, char *argv[])
         if (optimize)
         {
             // todo: 汇编代码优化
+            MulDivMod2Bit mdm2b(&mUnit);
+            mdm2b.pass();
         }
         LinearScan linearScan(&mUnit);
         linearScan.pass();

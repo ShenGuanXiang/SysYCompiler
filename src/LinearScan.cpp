@@ -6,9 +6,9 @@
 LinearScan::LinearScan(MachineUnit *unit)
 {
     this->unit = unit;
-    for (int i = 10; i >= 4; i--)
+    for (int i = 4; i < 11; i++)
         rregs.push_back(i);
-    for (int i = 31; i >= 5; i--)
+    for (int i = 5; i < 32; i++)
         sregs.push_back(i);
 }
 
@@ -195,7 +195,7 @@ bool LinearScan::linearScanRegisterAllocation()
     active.clear();
     rregs.clear();
     sregs.clear();
-    for (int i = 4; i < 11; i++)
+    for (int i = 4; i < 11; i++) // 为什么反着push就需要更多寄存器？
         rregs.push_back(i);
     for (int i = 5; i < 32; i++)
         sregs.push_back(i);

@@ -3,6 +3,9 @@
 #include "Type.h"
 #include <queue>
 
+bool mem2reg = false;
+
+static std::map<AllocaInstruction *, bool> allocaPromotable;
 static std::map<Instruction *, unsigned> InstNumbers;
 static std::vector<PhiInstruction *> newPHIs;
 static std::set<Instruction *> freeInsts;
@@ -64,6 +67,7 @@ void Mem2Reg::pass()
         InsertPhi(*func);
         Rename(*func);
     }
+    mem2reg = true;
 }
 
 // SDoms & IDom
@@ -177,20 +181,20 @@ void Instruction::replaceAllUsesWith(Operand *replVal)
     for (auto userInst : def_list[0]->getUses())
     {
         auto &uses = userInst->getUses();
-        for (size_t i = 0; i != userInst->getUses().size(); i++)
-            if (uses[i] == def_list[0])
+        for (auto &use : uses)
+            if (use == def_list[0])
             {
                 if (userInst->isPHI())
                 {
                     auto &srcs = ((PhiInstruction *)userInst)->getSrcs();
                     for (auto &src : srcs)
                     {
-                        if (src.second == uses[i])
+                        if (src.second == use)
                             src.second = replVal;
                     }
                 }
-                uses[i]->removeUse(userInst);
-                uses[i] = replVal;
+                use->removeUse(userInst);
+                use = replVal;
                 replVal->addUse(userInst);
             }
     }
@@ -198,8 +202,13 @@ void Instruction::replaceAllUsesWith(Operand *replVal)
 
 static bool isAllocaPromotable(AllocaInstruction *alloca)
 {
+    if (allocaPromotable.count(alloca))
+        return allocaPromotable[alloca];
     if (dynamic_cast<PointerType *>(alloca->getDef()->getEntry()->getType())->isARRAY())
+    {
+        allocaPromotable[alloca] = false;
         return false; // toDo ：数组拟采用sroa、向量化优化
+    }
     auto users = alloca->getDef()->getUses();
     for (auto user : users)
     {
@@ -208,9 +217,6 @@ static bool isAllocaPromotable(AllocaInstruction *alloca)
         {
             assert(user->getUses()[1]->getEntry() != alloca->getDef()->getEntry());
             assert(dynamic_cast<PointerType *>(user->getUses()[0]->getType())->getValType() == dynamic_cast<PointerType *>(alloca->getDef()->getType())->getValType());
-            if (user->getUses()[1]->getEntry()->isVariable())
-                if (dynamic_cast<IdentifierSymbolEntry *>(user->getUses()[1]->getEntry())->isParam() /* && dynamic_cast<IdentifierSymbolEntry *>(user->getUses()[1]->getEntry())->getParamNo() <= 3 */)
-                    return false; // todo : 函数参数先不提升
         }
         // load: 不允许load src的类型和alloc dst的类型不符
         else if (user->isLoad())
@@ -219,8 +225,12 @@ static bool isAllocaPromotable(AllocaInstruction *alloca)
         }
         // else if (user->isGep())
         else
+        {
+            allocaPromotable[alloca] = false;
             return false;
+        }
     }
+    allocaPromotable[alloca] = true;
     return true;
 }
 
@@ -344,7 +354,7 @@ static bool promoteSingleBlockAlloca(AllocaInstruction *alloca)
         StoresByIndexTy::iterator it = std::lower_bound(StoresByIndex.begin(), StoresByIndex.end(), std::make_pair(LoadIdx, static_cast<StoreInstruction *>(nullptr)));
         if (it == StoresByIndex.begin())
         {
-            assert(0);
+            assert(0 && "Load before Store");
             // if (StoresByIndex.size())
             //     LoadInst->replaceAllUsesWith((*it).second->getUses()[1]);
             // else
@@ -540,10 +550,13 @@ void Mem2Reg::Rename(Function *func)
         isVisited[BB] = true;
         for (auto inst = BB->begin(); inst != BB->end(); inst = inst->getNext())
         {
-            if (inst->isAlloca() && isAllocaPromotable(dynamic_cast<AllocaInstruction *>(inst)))
+            if (inst->isAlloca())
             {
-                inst->getParent()->remove(inst);
-                freeInsts.insert(inst);
+                if (isAllocaPromotable(dynamic_cast<AllocaInstruction *>(inst)))
+                {
+                    inst->getParent()->remove(inst);
+                    freeInsts.insert(inst);
+                }
             }
             else if (inst->isStore())
             {

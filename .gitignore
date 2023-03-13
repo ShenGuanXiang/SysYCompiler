@@ -1,4 +1,4 @@
-.vscode
+# .vscode
 build
 lexer.cpp
 parser.cpp
@@ -11,5 +11,5 @@ parser.h
 *.bin
 *.s
 *.dot
-debug.*
-Makefile
+debug*
+makefile

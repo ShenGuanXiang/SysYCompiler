@@ -204,6 +204,19 @@ Type *Var2Const(Type *type)
     return type;
 }
 
+Type *Const2Var(Type *type)
+{
+    if (type == TypeSystem::constIntType)
+        return TypeSystem::intType;
+    if (type == TypeSystem::constBoolType)
+        return TypeSystem::boolType;
+    if (type == TypeSystem::constFloatType)
+        return TypeSystem::floatType;
+
+    assert((type->isInt() && !type->isConstInt()) || (type->isFloat() && !type->isConstFloat()));
+    return type;
+}
+
 bool convertible(Type *from, Type *to)
 {
     // to do : array type
