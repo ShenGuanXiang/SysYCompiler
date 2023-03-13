@@ -225,8 +225,10 @@ void ValueNumbering::dvnt(BasicBlock* bb)
                 torm.push_back(cur_inst);
             }
             else if(htable.count(instString)){
+                //redundant
                 htable[dst->toStr()]=htable[instString];
                 m_htable[dst->toStr()]=htable[instString];
+                torm.push_back(cur_inst);
             }
             else{
                 htable[dst->toStr()]=dst;
@@ -255,15 +257,18 @@ void ValueNumbering::dvnt(BasicBlock* bb)
             }
         }
     }
-    for(auto i :torm) bb->remove(i);
+    for(auto i :torm)
+    {
+        bb->remove(i);
+        delete i;     
+    }
 
     for(auto it_succ = bb->succ_begin();it_succ!=bb->succ_end();it_succ++){
         for(auto i = (*it_succ)->begin();i->getInstType()==Instruction::PHI;i=i->getNext()){
             auto phi=dynamic_cast<PhiInstruction*>(i);
-            auto &srcs = phi->getSrcs();
-            for (auto &src : srcs)
+            for (auto &src : phi->getSrcs())
             {
-                auto use=src.second;
+                auto& use=src.second;  //watch out: It is `reference` here !
                 if(htable.count(use->toStr())){
                     src.second = htable[use->toStr()];
                     use->removeUse(i);

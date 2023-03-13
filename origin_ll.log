@@ -1,4 +1,3 @@
-FAIL: 089_hidden_var	Wrong Answer
 FAIL: 103_long_func	Wrong Answer
 FAIL: 38_light2d	Wrong Answer
-Total: 91	Accept: 88	Fail: 3
+Total: 151	Accept: 149	Fail: 2
