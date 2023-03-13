@@ -21,7 +21,7 @@
                 // "-So",
                 // "debug.s",
                 "debug.sy",
-                "-O2",
+                "-M",
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}", // 当前项目的路径，即用vscode打开文件夹时的位置，需要注意。

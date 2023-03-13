@@ -101,8 +101,9 @@ void ElimPHI::pass()
                 block->insertBefore(inst, block->rbegin()); // 跳过branch指令
         }
     }
-    for (auto i : freeList)
+    for (auto i : freeList){
         delete i;
+    }
     freeList.clear();
     SimplifyCFG sc(unit);
     sc.pass();

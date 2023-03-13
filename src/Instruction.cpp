@@ -41,9 +41,11 @@ Instruction::~Instruction()
                 freeOps.insert(use);
         }
     }
-    for (auto op : freeOps)
+    for (auto op : freeOps){
         if (op != nullptr)
             delete op;
+    }
+        
 }
 
 BasicBlock *Instruction::getParent()
@@ -552,7 +554,7 @@ void GepInstruction::output() const
         fprintf(yyout, ", i32 %s", use_list[i]->toStr().c_str());
         fprintf(stderr, ", i32 %s", use_list[i]->toStr().c_str());
     }
-    fprintf(yyout, "\n");
+    fprintf(yyout, "\n");    
     fprintf(stderr, "\n");
 }
 

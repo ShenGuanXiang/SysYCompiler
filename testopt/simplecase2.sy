@@ -1,0 +1,7 @@
+int main(){
+    int a = 5, b = 10, c = 5;
+    int x = (a + b) * c;
+    int y = (a + b) * c;
+    int z = (a * a + b * b + b * c) * c;
+    return 0;
+}

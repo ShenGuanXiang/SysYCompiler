@@ -95,9 +95,9 @@ testasm:app $(OUTPUT_ASM)
 
 .ONESHELL:
 test:app
-	@sudo cp -arf ./newpass.log ./lastpass.log
-	@rm newpass.log
-	@touch newpass.log
+	@sudo cp -arf ./asmnew.log ./asmlast.log
+	@rm asmnew.log
+	@touch asmnew.log
 	@success=0
 	@for file in $(sort $(TESTCASE))
 	do
@@ -112,16 +112,16 @@ test:app
 		timeout 5s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2
 		RETURN_VALUE=$$?
 		if [ $$RETURN_VALUE = 124 ]; then
-			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Timeout\033[0m" && echo "FAIL: $${FILE}\tCompile Timeout" >> newpass.log
+			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Timeout\033[0m" && echo "FAIL: $${FILE}\tCompile Timeout" >> asmnew.log
 			continue
 		else if [ $$RETURN_VALUE != 0 ]; then
-			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Error\033[0m" && echo "FAIL: $${FILE}\tCompile Error" >> newpass.log
+			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Error\033[0m" && echo "FAIL: $${FILE}\tCompile Error" >> asmlast.log
 			continue
 			fi
 		fi
 		arm-linux-gnueabihf-gcc -mcpu=cortex-a72 -o $${BIN} $${ASM} $(SYSLIB_PATH)/libsysy.a >>$${LOG} 2>&1
 		if [ $$? != 0 ]; then
-			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mAssemble Error\033[0m" && echo "FAIL: $${FILE}\tAssemble Error" >> newpass.log
+			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mAssemble Error\033[0m" && echo "FAIL: $${FILE}\tAssemble Error" >> asmnew.log
 		else
 			if [ -f "$${IN}" ]; then
 				timeout 20s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} <$${IN} >$${RES} 2>>$${LOG}
@@ -132,25 +132,25 @@ test:app
 			FINAL=`tail -c 1 $${RES}`
 			[ $${FINAL} ] && echo "\n$${RETURN_VALUE}" >> $${RES} || echo "$${RETURN_VALUE}" >> $${RES}
 			if [ "$${RETURN_VALUE}" = "124" ]; then
-				echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mExecute Timeout\033[0m" && echo "FAIL: $${FILE}\tExecute Timeout" >> newpass.log
+				echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mExecute Timeout\033[0m" && echo "FAIL: $${FILE}\tExecute Timeout" >> asmnew.log
 			else if [ "$${RETURN_VALUE}" = "127" ]; then
-				echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mExecute Error\033[0m" && echo "FAIL: $${FILE}\tExecute Error" >> newpass.log
+				echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mExecute Error\033[0m" && echo "FAIL: $${FILE}\tExecute Error" >> asmnew.log
 				else
 					diff -Z $${RES} $${OUT} >/dev/null 2>&1
 					if [ $$? != 0 ]; then
-						echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mWrong Answer\033[0m" && echo "FAIL: $${FILE}\tWrong Answer" >> newpass.log
+						echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mWrong Answer\033[0m" && echo "FAIL: $${FILE}\tWrong Answer" >> asmnew.log
 					else
 						success=$$((success + 1))
-						echo "\033[1;32mPASS:\033[0m $${FILE}" && echo "PASS: $${FILE}" >> newpass.log
+						echo "\033[1;32mPASS:\033[0m $${FILE}"
 					fi
 				fi
 			fi
 		fi
 	done
-	echo "\033[1;33mTotal: $(TESTCASE_NUM)\t\033[1;32mAccept: $${success}\t\033[1;31mFail: $$(($(TESTCASE_NUM) - $${success}))\033[0m" && echo "Total: $(TESTCASE_NUM)\tAccept: $${success}\tFail: $$(($(TESTCASE_NUM) - $${success}))" >> newpass.log
-	[ $(TESTCASE_NUM) = $${success} ] && echo "\033[5;32mAll Accepted. Congratulations!\033[0m" && echo "All Accepted. Congratulations!" >> newpass.log
+	echo "\033[1;33mTotal: $(TESTCASE_NUM)\t\033[1;32mAccept: $${success}\t\033[1;31mFail: $$(($(TESTCASE_NUM) - $${success}))\033[0m" && echo "Total: $(TESTCASE_NUM)\tAccept: $${success}\tFail: $$(($(TESTCASE_NUM) - $${success}))" >> asmnew.log
+	[ $(TESTCASE_NUM) = $${success} ] && echo "\033[5;32mAll Accepted. Congratulations!\033[0m" && echo "All Accepted. Congratulations!" >> asmnew.log
 	:
-	diff lastpass.log newpass.log > passchange.log
+	diff asmlast.log asmnew.log > asmchange.log
 
 testopt:app
 	@for file in $(sort $(OPTTESTCASE))
@@ -176,7 +176,7 @@ clean-test:
 	@find . -name "*.s" | grep -v *copy.s | xargs rm -rf
 	@find . -name "*.bin" | xargs rm -rf
 	@find . -name "*.res" | xargs rm -rf
-	@find . -name "*.log" | grep -v lastpass.log | grep -v newpass.log|grep -v passchange.log | xargs rm -rf 
+	@find . -name "*.log" | grep -v *last.log | grep -v *new.log|grep -v *change.log | xargs rm -rf 
 
 clean-all:clean-test clean-app
 
@@ -184,6 +184,9 @@ clean:clean-all
 
 .ONESHELL:
 testll:app
+	@sudo cp -arf ./llnew.log ./lllast.log
+	@rm llnew.log
+	@touch llnew.log
 	@success=0
 	@for file in $(sort $(TESTCASE))
 	do
@@ -198,16 +201,16 @@ testll:app
 		timeout 5s $(BINARY) $${file} -o $${IR} -O2 -i 2>$${LOG}
 		RETURN_VALUE=$$?
 		if [ $$RETURN_VALUE = 124 ]; then
-			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Timeout\033[0m"
+			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Timeout\033[0m"  && echo "FAIL: $${FILE}\tCompile Timeout" >> llnew.log
 			continue
 		else if [ $$RETURN_VALUE != 0 ]; then
-			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Error\033[0m"
+			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Error\033[0m"  && echo "FAIL: $${FILE}\tCompile Error" >> llnew.log
 			continue
 			fi
 		fi
 		clang -o $${BIN} $${IR} $(SYSLIB_PATH)/sylib.c >>$${LOG} 2>&1
 		if [ $$? != 0 ]; then
-			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mAssemble Error\033[0m"
+			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mAssemble Error\033[0m" && echo "FAIL: $${FILE}\tAssemble Error" >> llnew.log
 		else
 			if [ -f "$${IN}" ]; then
 				timeout 10s $${BIN} <$${IN} >$${RES} 2>>$${LOG}
@@ -218,13 +221,13 @@ testll:app
 			FINAL=`tail -c 1 $${RES}`
 			[ $${FINAL} ] && echo "\n$${RETURN_VALUE}" >> $${RES} || echo "$${RETURN_VALUE}" >> $${RES}
 			if [ "$${RETURN_VALUE}" = "124" ]; then
-				echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mExecute Timeout\033[0m"
+				echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mExecute Timeout\033[0m" && echo "FAIL: $${FILE}\tExecute Timeout" >> llnew.log
 			else if [ "$${RETURN_VALUE}" = "127" ]; then
-				echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mExecute Error\033[0m"
+				echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mExecute Error\033[0m" && echo "FAIL: $${FILE}\tExecute Error" >> llnew.log
 				else
 					diff -Z $${RES} $${OUT} >/dev/null 2>&1
 					if [ $$? != 0 ]; then
-						echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mWrong Answer\033[0m"
+						echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mWrong Answer\033[0m" && echo "FAIL: $${FILE}\tWrong Answer" >> llnew.log
 					else
 						success=$$((success + 1))
 						echo "\033[1;32mPASS:\033[0m $${FILE}"
@@ -233,6 +236,7 @@ testll:app
 			fi
 		fi
 	done
-	echo "\033[1;33mTotal: $(TESTCASE_NUM)\t\033[1;32mAccept: $${success}\t\033[1;31mFail: $$(($(TESTCASE_NUM) - $${success}))\033[0m"
-	[ $(TESTCASE_NUM) = $${success} ] && echo "\033[5;32mAll Accepted. Congratulations!\033[0m"
+	echo "\033[1;33mTotal: $(TESTCASE_NUM)\t\033[1;32mAccept: $${success}\t\033[1;31mFail: $$(($(TESTCASE_NUM) - $${success}))\033[0m" && echo "Total: $(TESTCASE_NUM)\tAccept: $${success}\tFail: $$(($(TESTCASE_NUM) - $${success}))" >> llnew.log
+	[ $(TESTCASE_NUM) = $${success} ] && echo "\033[5;32mAll Accepted. Congratulations!\033[0m" && echo "All Accepted. Congratulations!" >> llnew.log
 	:
+	diff lllast.log llnew.log > llchange.log
