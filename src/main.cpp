@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
-    optimize = 1;
+   // optimize = 0;
     
     if (optind >= argc)
     {

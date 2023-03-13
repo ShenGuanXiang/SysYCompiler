@@ -10,8 +10,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/compiler", // 调试的程序位置，是你实际makefile生成的程序
             "args": [
-                // "-Siato",
-                // "debug.log",
+                "-Siato",
+                "debug.log",
                 // "-to",
                 // "debug.toks",
                 // "-ao",

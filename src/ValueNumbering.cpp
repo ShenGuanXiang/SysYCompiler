@@ -174,24 +174,20 @@ void ValueNumbering::computeDomTree(Function* func)
         BasicBlock* bb=*it_bb;
         domtree[bb->getIDom()].push_back(bb);
     }
+    printf("dom tree:\n");
+    //print dom tree
+    // for(auto p=domtree.begin();p!=domtree.end();p++)
+    // {
+    //     if(p->first==nullptr) continue;
+    //     printf("%d:",p->first->getNo());
+    //     for(auto bb : p->second)
+    //         printf("%d ",bb->getNo());
+    //     printf("\n");
+    // }
 }
 
-static void replaceWithinBB(Operand* src,Operand* dst,BasicBlock* bb,bool isgep=false)
+static void replaceWithinBB(Operand* src,Operand* dst,BasicBlock* bb)
 {
-    if(isgep){
-        for(auto i=bb->begin();i!=bb->end();i=i->getNext()){
-            if(i->getInstType()==Instruction::LOAD || i->getInstType()==Instruction::STORE || i->getInstType()==Instruction::CALL || i->getInstType()==Instruction::GEP){
-                for(auto& use : i->getUses()){
-                    if(use->toStr()==dst->toStr()){
-                        use->removeUse(i);
-                        use=src;
-                        src->addUse(i);
-                    }
-                }
-            }
-        }
-        return;
-    }
     // replace dst with src in bb
     for (auto userInst : dst->getUses())
     {
@@ -210,6 +206,7 @@ static void replaceWithinBB(Operand* src,Operand* dst,BasicBlock* bb,bool isgep=
 
 void ValueNumbering::dvnt(BasicBlock* bb)
 {
+    
     std::unordered_map<std::string,Operand*> m_htable; //current block's own local context
     //every time change htable, copy the new pair to m_table
     std::vector<Instruction*> torm; //instruction to remove
@@ -228,7 +225,7 @@ void ValueNumbering::dvnt(BasicBlock* bb)
             std::string preargstr;
             
             for(auto it_arg=args.begin();it_arg!=args.end();it_arg++){
-                std::string argstr="B"+std::to_string(it_arg->first->getNo())+it_arg->second->toStr();
+                std::string argstr=",B"+std::to_string(it_arg->first->getNo())+it_arg->second->toStr();
                 if(it_arg==args.begin()) preargstr=argstr;
                 else meanless = (preargstr==argstr);
                 instString+=argstr;
@@ -257,11 +254,11 @@ void ValueNumbering::dvnt(BasicBlock* bb)
 
             for(auto use : cur_inst->getUses()){
                 if(!htable.count(use->toStr())) m_htable[use->toStr()]=htable[use->toStr()]=use;
-                instString+=htable[use->toStr()]->toStr();
+                instString+=","+htable[use->toStr()]->toStr();
             }
             if(htable.count(instString)){
                 auto src=htable[instString];
-                replaceWithinBB(src,dst,bb,cur_inst->getInstType()==Instruction::GEP);
+                replaceWithinBB(src,dst,bb);
                 torm.push_back(cur_inst);
                 m_htable[dst->toStr()]=htable[dst->toStr()]=src;
             }
@@ -297,11 +294,10 @@ void ValueNumbering::dvnt(BasicBlock* bb)
         dvnt(child);
     }
 
+
     //deallocate context for this basic block
-    std::unordered_map<std::string,Operand*>res;
-    std::set_difference(htable.begin(), htable.end(), m_htable.begin(), m_htable.end(),
-                    std::inserter(res, res.end()));
-    htable.swap(res);
+    for(auto p = m_htable.begin();p!=m_htable.end();p++)
+        htable.erase(p->first);
 }
 
 void ValueNumbering::pass3()

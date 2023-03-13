@@ -126,10 +126,7 @@ void StoreInstruction::output() const
     std::string dst = use_list[0]->toStr();
     std::string src = use_list[1]->toStr();
     std::string dst_type = use_list[0]->getType()->toStr();
-    // assert(use_list[0]->getType()->isPTR());
     std::string src_type = use_list[1]->getType()->toStr();
-    auto dstop=use_list[0];
-    fprintf(yyout,"; %s is in addr %p\n",dstop->toStr().c_str(),dstop);
     fprintf(yyout, "  store %s %s, %s %s, align 4\n", src_type.c_str(), src.c_str(), dst_type.c_str(), dst.c_str());
     fprintf(stderr, "  store %s %s, %s %s, align 4\n", src_type.c_str(), src.c_str(), dst_type.c_str(), dst.c_str());
 }
@@ -471,6 +468,7 @@ void FuncCallInstruction::output() const
     }
     fprintf(yyout, ")\n");
     fprintf(stderr, ")\n");
+    fprintf(yyout, ";%s : %p\n",use_list[0]->toStr().c_str(),use_list[0]);
 }
 
 PhiInstruction::PhiInstruction(Operand *dst, BasicBlock *insert_bb) : Instruction(PHI, insert_bb)
@@ -543,7 +541,6 @@ void GepInstruction::output() const
     Operand *dst = def_list[0];
     Operand *arr = use_list[0];
     std::string arrType = arr->getType()->toStr();
-    fprintf(yyout,"; %s is in addr %p\n",dst->toStr().c_str(),dst);
     fprintf(yyout, "  %s = getelementptr inbounds %s, %s %s, i32 %s",
             dst->toStr().c_str(), arrType.substr(0, arrType.size() - 1).c_str(),
             arrType.c_str(), arr->toStr().c_str(), use_list[1]->toStr().c_str());
@@ -556,9 +553,11 @@ void GepInstruction::output() const
         fprintf(stderr, ", i32 %s", use_list[i]->toStr().c_str());
     }
     fprintf(yyout, "\n");
+    fprintf(yyout, ";%s : %p\n",dst->toStr().c_str(),dst);
     
     fprintf(stderr, "\n");
 }
+
 
 MachineOperand *Instruction::genMachineOperand(Operand *ope)
 {
