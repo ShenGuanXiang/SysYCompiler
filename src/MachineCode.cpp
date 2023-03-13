@@ -316,9 +316,9 @@ void LoadMInstruction::output()
             fprintf(yyout, "\n");
             return;
         }
-        else if (this->use_list[0]->getValType()->isInt())
+        else if (this->def_list[0]->getValType()->isInt()) // todo：vldr s, floatImm
         {
-            if (isSignedShifterOperandVal(~((int)this->use_list[0]->getVal())))
+            if ((this->use_list[0]->getValType()->isInt() && isShifterOperandVal(~((int)this->use_list[0]->getVal()))))
             {
                 fprintf(yyout, "\tmvn");
                 printCond();
@@ -332,8 +332,18 @@ void LoadMInstruction::output()
             }
             else
             {
-                int val = (int)this->use_list[0]->getVal();
-                unsigned temp = reinterpret_cast<unsigned &>(val);
+                unsigned temp;
+                if (this->use_list[0]->getValType()->isInt())
+                {
+                    int val = (int)this->use_list[0]->getVal();
+                    temp = reinterpret_cast<unsigned &>(val);
+                }
+                else
+                {
+                    assert(this->use_list[0]->getValType()->isFloat());
+                    float val = (float)this->use_list[0]->getVal();
+                    temp = reinterpret_cast<unsigned &>(val);
+                }
                 unsigned high = (temp & 0xFFFF0000) >> 16;
                 unsigned low = temp & 0x0000FFFF;
                 if (isShifterOperandVal(high) && isShifterOperandVal(low))
@@ -351,29 +361,6 @@ void LoadMInstruction::output()
                     fprintf(yyout, ", #%u\n", high);
                     return;
                 }
-            }
-        }
-        else
-        {
-            assert(this->use_list[0]->getValType()->isFloat()); // todo：vldr s, floatImm
-            float val = (float)this->use_list[0]->getVal();
-            unsigned temp = reinterpret_cast<unsigned &>(val);
-            unsigned high = (temp & 0xFFFF0000) >> 16;
-            unsigned low = temp & 0x0000FFFF;
-            if (def_list[0]->getValType()->isInt() && isShifterOperandVal(high) && isShifterOperandVal(low))
-            {
-                fprintf(yyout, "\tmovw");
-                printCond();
-                fprintf(yyout, " ");
-                this->def_list[0]->output();
-                fprintf(yyout, ", #%u\n", low);
-
-                fprintf(yyout, "\tmovt");
-                printCond();
-                fprintf(yyout, " ");
-                this->def_list[0]->output();
-                fprintf(yyout, ", #%u\n", high);
-                return;
             }
         }
     }

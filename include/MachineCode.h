@@ -68,7 +68,7 @@ public:
     void output();
     Type *getValType()
     {
-        assert((valType->isInt() && valType->getSize() == 4) || valType->isFloat());
+        assert(valType->isInt() || valType->isFloat());
         return this->valType;
     };
     bool isIllegalShifterOperand(); // 第二操作数应符合8位图格式

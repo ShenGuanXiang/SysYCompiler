@@ -65,7 +65,7 @@ Type *ExprNode::getType()
     if (symbolEntry->getType()->isPTR())
     {
         // TODO :
-        return ((PointerType *)symbolEntry->getType())->getValType();
+        return ((PointerType*)symbolEntry->getType())->getValType();
     }
     else
     {
@@ -400,15 +400,13 @@ void Id::genCode()
     else
     {
         bool isPtr = (symbolEntry->getType())->isPTR();
+        if (!isPtr)
+                cur_type = ((ArrayType *)getSymPtr()->getType());
+        else
+            cur_type = (ArrayType *)((PointerType *)symbolEntry->getType())->getValType();
         if (indices != nullptr)
         {
-            if (!isPtr)
-                cur_type = ((ArrayType *)getSymPtr()->getType());
-            else
-                cur_type = (ArrayType *)((PointerType *)symbolEntry->getType())->getValType();
             Operand *tempSrc = addr;
-            ArrayType *curr_type;
-            curr_type = arrTypeLike(cur_type);
             Operand *dst1;
             if (isPtr)
             {
@@ -418,74 +416,113 @@ void Id::genCode()
             }
             std::vector<int> currr_dim;
             if (!isPtr)
-                currr_dim = ((ArrayType *)getSymPtr()->getType())->fetch(); // if is params, it should be 0
+                currr_dim = cur_type->fetch(); // if is params, it should be 0
             else
                 currr_dim = ((ArrayType *)((PointerType *)getSymPtr()->getType())->getValType())->fetch();
             if (currr_dim.size() != indices->getExprList().size() && !isPtr)
                 is_FP = true;
-            if (!isPtr)
-                currr_dim.erase(currr_dim.begin());
-            curr_type->SetDim(currr_dim);
-            Operand *tempDst;
-            bool isFirst = true;
-            for (auto idx : indices->getExprList())
-            {
-                if (!currr_dim.empty() && !isFirst)
-                {
-                    currr_dim.erase(currr_dim.begin());
-                    curr_type = arrTypeLike(curr_type);
-                    curr_type->SetDim(currr_dim);
-                }
+            
+            std::vector<Operand*> idx_operend;
+            if (!isPtr) 
+                idx_operend.push_back(nullptr);
+            bool be_first = true;
+            for (auto idx : indices->getExprList()) {
                 idx->genCode();
-                tempDst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
-                if (isPtr && isFirst)
-                    new GepInstruction(tempDst, tempSrc, std::vector<Operand *>{idx->getOperand()}, bb);
+                if (!isPtr) currr_dim.erase(currr_dim.begin());
                 else
-                    new GepInstruction(tempDst, tempSrc, std::vector<Operand *>{nullptr, idx->getOperand()}, bb);
-                tempSrc = tempDst;
-                isFirst = false;
+                {
+                    if (!be_first) {
+                        currr_dim.erase(currr_dim.begin());
+                    }
+                    be_first = false;
+                }
+                idx_operend.push_back(idx->getOperand());
             }
+            ArrayType *curr_type;
+            PointerType* final_type;
+            if (currr_dim.size()) {
+                if (cur_type->isIntArray())
+                {
+                    if (cur_type->isConst())
+                        curr_type = new ConstIntArrayType();
+                    else
+                        curr_type = new IntArrayType();
+                }
+                else
+                {
+                    if (cur_type->isConst())
+                        curr_type = new ConstFloatArrayType();
+                    else
+                        curr_type = new FloatArrayType();
+                }
+                curr_type->SetDim(currr_dim);
+                final_type = new PointerType(curr_type);
+            }
+            else {
+                if (cur_type->getElemType()->isInt())
+                    final_type = new PointerType(TypeSystem::intType);
+                else
+                    final_type = new PointerType(TypeSystem::floatType);
+            }
+            Operand *tempDst = new Operand(new TemporarySymbolEntry(final_type, SymbolTable::getLabel()));
+            new GepInstruction(tempDst, tempSrc, idx_operend, bb);
+            tempSrc = tempDst;
             if (is_FP)
             {
-                tempDst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
+                tempDst = new Operand(new TemporarySymbolEntry(final_type, SymbolTable::getLabel()));
                 new GepInstruction(tempDst, tempSrc, std::vector<Operand *>{nullptr, nullptr}, bb);
                 tempSrc = tempDst;
             }
             if (is_left)
             {
-                arrayAddr = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
-                dst = arrayAddr;
+                arrayAddr = tempSrc;
+                dst = tempSrc;
                 return;
             }
-            Operand *new_dst;
-            if (!isFirst)
-                new_dst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+            if (!isPtr)
+            {
+                if (getType()->isInt())
+                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
+                else
+                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::floatType, SymbolTable::getLabel()));
+            }
             else
             {
-                if (curr_type->getElemType()->isAnyInt())
-                    new_dst = new Operand(new TemporarySymbolEntry(new PointerType(TypeSystem::intType), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                if (final_type->getValType()->isAnyInt())
+                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
                 else
-                    new_dst = new Operand(new TemporarySymbolEntry(new PointerType(TypeSystem::floatType), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::floatType, SymbolTable::getLabel()));
             }
-            if (!isPtr)
-                dst1 = new Operand(new TemporarySymbolEntry(Const2Var(getType()), SymbolTable::getLabel()));
-            else
-                dst1 = new Operand(new TemporarySymbolEntry(Const2Var(curr_type->getElemType()), SymbolTable::getLabel()));
             if (is_FP)
             {
-                dst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                // dst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                dst = new Operand(new TemporarySymbolEntry(new PointerType(((ArrayType*)final_type->getValType())->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                // assert(0);
                 is_FP = false;
                 return;
             }
-            new LoadInstruction(dst1, new_dst, bb);
+            new LoadInstruction(dst1, tempSrc, bb);
             dst = dst1;
         }
         else
         {
             if (symbolEntry->getType()->isPTR())
             {
-                cur_type = (ArrayType *)((PointerType *)(symbolEntry->getType()))->getValType();
-                ArrayType *curr_type = arrTypeLike(cur_type);
+                ArrayType *curr_type;
+                if (cur_type->isIntArray())
+                {
+                    if (cur_type->isConst())
+                        curr_type = new ConstIntArrayType();
+                    else
+                        curr_type = new IntArrayType();
+                }
+                else
+                {
+                    if (cur_type->isConst())
+                        curr_type = new ConstFloatArrayType();
+                    else
+                        curr_type = new FloatArrayType();
+                }
                 std::vector<int> currdim = cur_type->fetch();
                 curr_type->SetDim(currdim);
                 Operand *dst1 = new Operand(new TemporarySymbolEntry(new PointerType(cur_type), SymbolTable::getLabel()));
@@ -801,22 +838,20 @@ void InitNode::genCode(int level)
         int pos = i;
         ArrayType *curr_type = arrTypeLike(cur_type);
         std::vector<int> curr_dim(cur_dim);
-        Operand *final_offset = arrayAddr;
+        Operand *addr = arrayAddr;
+        std::vector<Operand*> idx_operand{nullptr};
         for (size_t j = 0; j < d.size(); j++)
         {
             curr_dim.erase(curr_dim.begin());
-            curr_type->SetDim(curr_dim);
-            Operand *offset_operand = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, pos / d[j]));
-            Operand *addr = final_offset;
-            final_offset = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
+            idx_operand.push_back(new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, pos / d[j])));
             fprintf(stderr, "currdim is %s\n", addr->getType()->toStr().c_str());
-            new GepInstruction(final_offset, addr, std::vector<Operand *>{nullptr, offset_operand}, builder->getInsertBB());
             pos %= d[j];
-            curr_type = arrTypeLike(cur_type);
         }
+        curr_type->SetDim(curr_dim);
+        Operand* final_offset = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
+        new GepInstruction(final_offset, addr, idx_operand, builder->getInsertBB());
         vec_val[i]->genCode();
         Operand *src = vec_val[i]->getOperand();
-        final_offset = new Operand(new TemporarySymbolEntry(new PointerType(((ArrayType *)cur_type)->getElemType()), dynamic_cast<TemporarySymbolEntry *>(final_offset->getEntry())->getLabel()));
         new StoreInstruction(final_offset, src, builder->getInsertBB());
         curr_dim.clear();
         // assert(cur_dim.empty());
