@@ -12,3 +12,5 @@ parser.h
 *.s
 *.dot
 debug*
+*.sh
+Makefile
