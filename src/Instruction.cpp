@@ -617,7 +617,7 @@ MachineOperand *Instruction::genMachineVReg(Type *valType)
 
 MachineOperand *Instruction::genMachineImm(double val, Type *valType)
 {
-    return new MachineOperand(MachineOperand::IMM, val, valType);
+    return new MachineOperand(MachineOperand::IMM, val, Var2Const(valType));
 }
 
 MachineOperand *Instruction::genMachineLabel(int block_no)

@@ -354,7 +354,7 @@ static bool promoteSingleBlockAlloca(AllocaInstruction *alloca)
         StoresByIndexTy::iterator it = std::lower_bound(StoresByIndex.begin(), StoresByIndex.end(), std::make_pair(LoadIdx, static_cast<StoreInstruction *>(nullptr)));
         if (it == StoresByIndex.begin())
         {
-            assert(0 && "Load before Store");
+            assert(0 && "Load before Store?");
             // if (StoresByIndex.size())
             //     LoadInst->replaceAllUsesWith((*it).second->getUses()[1]);
             // else
@@ -484,7 +484,6 @@ void Mem2Reg::InsertPhi(Function *func)
             for (auto df : bb->getDomFrontiers())
                 if (!is_visited[df])
                 {
-                    is_visited[df] = true;
                     if (LiveInBlocks.find(df) != LiveInBlocks.end())
                     {
                         auto phi = new PhiInstruction(alloca->getDef()); // 现在PHI的dst是PTR
