@@ -176,8 +176,22 @@ void ValueNumbering::computeDomTree(Function* func)
     }
 }
 
-static void replaceWithinBB(Operand* src,Operand* dst,BasicBlock* bb)
+static void replaceWithinBB(Operand* src,Operand* dst,BasicBlock* bb,bool isgep=false)
 {
+    if(isgep){
+        for(auto i=bb->begin();i!=bb->end();i=i->getNext()){
+            if(i->getInstType()==Instruction::LOAD || i->getInstType()==Instruction::STORE || i->getInstType()==Instruction::CALL || i->getInstType()==Instruction::GEP){
+                for(auto& use : i->getUses()){
+                    if(use->toStr()==dst->toStr()){
+                        use->removeUse(i);
+                        use=src;
+                        src->addUse(i);
+                    }
+                }
+            }
+        }
+        return;
+    }
     // replace dst with src in bb
     for (auto userInst : dst->getUses())
     {
@@ -224,7 +238,7 @@ void ValueNumbering::dvnt(BasicBlock* bb)
                 m_htable[dst->toStr()]=args.begin()->second;
                 torm.push_back(cur_inst);
             }
-            else if(htable.count(instString)){
+            else if(m_htable.count(instString)){
                 //redundant
                 htable[dst->toStr()]=htable[instString];
                 m_htable[dst->toStr()]=htable[instString];
@@ -247,7 +261,7 @@ void ValueNumbering::dvnt(BasicBlock* bb)
             }
             if(htable.count(instString)){
                 auto src=htable[instString];
-                replaceWithinBB(src,dst,bb);
+                replaceWithinBB(src,dst,bb,cur_inst->getInstType()==Instruction::GEP);
                 torm.push_back(cur_inst);
                 m_htable[dst->toStr()]=htable[dst->toStr()]=src;
             }

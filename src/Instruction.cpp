@@ -128,7 +128,8 @@ void StoreInstruction::output() const
     std::string dst_type = use_list[0]->getType()->toStr();
     // assert(use_list[0]->getType()->isPTR());
     std::string src_type = use_list[1]->getType()->toStr();
-    fprintf(yyout,"; %s is in addr %p\n",dst.c_str(),&use_list[0]);
+    auto dstop=use_list[0];
+    fprintf(yyout,"; %s is in addr %p\n",dstop->toStr().c_str(),dstop);
     fprintf(yyout, "  store %s %s, %s %s, align 4\n", src_type.c_str(), src.c_str(), dst_type.c_str(), dst.c_str());
     fprintf(stderr, "  store %s %s, %s %s, align 4\n", src_type.c_str(), src.c_str(), dst_type.c_str(), dst.c_str());
 }
@@ -542,7 +543,7 @@ void GepInstruction::output() const
     Operand *dst = def_list[0];
     Operand *arr = use_list[0];
     std::string arrType = arr->getType()->toStr();
-    fprintf(yyout,"; %s is in addr %p\n",dst->toStr().c_str(),&dst);
+    fprintf(yyout,"; %s is in addr %p\n",dst->toStr().c_str(),dst);
     fprintf(yyout, "  %s = getelementptr inbounds %s, %s %s, i32 %s",
             dst->toStr().c_str(), arrType.substr(0, arrType.size() - 1).c_str(),
             arrType.c_str(), arr->toStr().c_str(), use_list[1]->toStr().c_str());
