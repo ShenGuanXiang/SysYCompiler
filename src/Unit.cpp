@@ -18,6 +18,7 @@ void Unit::removeFunc(Function *func)
 
 void Unit::output() const
 {
+    
     for (auto item : decl_list)
         if (!item->isLibFunc())
             item->decl_code();

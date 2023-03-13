@@ -67,7 +67,6 @@ int main(int argc, char *argv[])
             break;
         }
     }
-   // optimize = 0;
     
     if (optind >= argc)
     {
@@ -107,13 +106,11 @@ int main(int argc, char *argv[])
         // 自动内联
         // 常量传播
         // 强度削弱
-        
-        if(m_opt){
-            ValueNumbering lvn(&unit);
-            //lvn.pass1();
-            lvn.pass3();
-            fprintf(stderr, "common subexpression elimination done\n");
-        }
+        // 公共子表达式消除
+        ValueNumbering lvn(&unit);
+        lvn.pass3();
+        fprintf(stderr, "; common subexpression elimination done\n");
+
         
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)

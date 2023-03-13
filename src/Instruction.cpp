@@ -470,7 +470,6 @@ void FuncCallInstruction::output() const
     }
     fprintf(yyout, ")\n");
     fprintf(stderr, ")\n");
-    fprintf(yyout, ";%s : %p\n",use_list[0]->toStr().c_str(),use_list[0]);
 }
 
 PhiInstruction::PhiInstruction(Operand *dst, BasicBlock *insert_bb) : Instruction(PHI, insert_bb)
@@ -555,9 +554,7 @@ void GepInstruction::output() const
         fprintf(yyout, ", i32 %s", use_list[i]->toStr().c_str());
         fprintf(stderr, ", i32 %s", use_list[i]->toStr().c_str());
     }
-    fprintf(yyout, "\n");
-    fprintf(yyout, ";%s : %p\n",dst->toStr().c_str(),dst);
-    
+    fprintf(yyout, "\n");    
     fprintf(stderr, "\n");
 }
 
