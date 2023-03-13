@@ -38,7 +38,7 @@ MachineOperand::MachineOperand(int tp, double val, Type *valType)
     // 约定MachineOperand的valType是int/float/bool
     assert(!valType->isARRAY());
     assert(!valType->isPTR());
-    this->valType = valType;
+    this->valType = tp == MachineOperand::IMM ? Var2Const(valType) : valType;
     this->parent = nullptr;
     newMachineOperands.push_back(this);
 }
@@ -300,31 +300,69 @@ LoadMInstruction::LoadMInstruction(MachineBlock *p,
 void LoadMInstruction::output()
 {
     // 强度削弱：小的立即数用MOV/MVN优化一下，arm汇编器会自动做?
-    if ((this->use_list.size() == 1) && this->use_list[0]->isImm() && !this->use_list[0]->isIllegalShifterOperand())
+    if ((this->use_list.size() == 1) && this->use_list[0]->isImm())
     {
-        if (this->def_list[0]->getValType()->isFloat())
-            fprintf(yyout, "\tvmov.f32");
-        else
-            fprintf(yyout, "\tmov");
-        printCond();
-        fprintf(yyout, " ");
-        this->def_list[0]->output();
-        fprintf(yyout, ", ");
-        this->use_list[0]->output();
-        fprintf(yyout, "\n");
-        return;
-    }
-    if ((this->use_list.size() == 1) && this->use_list[0]->isImm() && this->use_list[0]->getValType()->isInt() && isSignedShifterOperandVal(~((int)this->use_list[0]->getVal())))
-    {
-        fprintf(yyout, "\tmvn");
-        printCond();
-        fprintf(yyout, " ");
-        this->def_list[0]->output();
-        fprintf(yyout, ", ");
-        auto negative_imm = new MachineOperand(MachineOperand::IMM, ~((int)this->use_list[0]->getVal()), this->use_list[0]->getValType());
-        negative_imm->output();
-        fprintf(yyout, "\n");
-        return;
+        if (!this->use_list[0]->isIllegalShifterOperand())
+        {
+            if (this->def_list[0]->getValType()->isFloat())
+                fprintf(yyout, "\tvmov.f32");
+            else
+                fprintf(yyout, "\tmov");
+            printCond();
+            fprintf(yyout, " ");
+            this->def_list[0]->output();
+            fprintf(yyout, ", ");
+            this->use_list[0]->output();
+            fprintf(yyout, "\n");
+            return;
+        }
+        else if (this->def_list[0]->getValType()->isInt()) // todo：vldr s, floatImm
+        {
+            if ((this->use_list[0]->getValType()->isInt() && isShifterOperandVal(~((int)this->use_list[0]->getVal()))))
+            {
+                fprintf(yyout, "\tmvn");
+                printCond();
+                fprintf(yyout, " ");
+                this->def_list[0]->output();
+                fprintf(yyout, ", ");
+                auto negative_imm = new MachineOperand(MachineOperand::IMM, ~((int)this->use_list[0]->getVal()), this->use_list[0]->getValType());
+                negative_imm->output();
+                fprintf(yyout, "\n");
+                return;
+            }
+            else
+            {
+                unsigned temp;
+                if (this->use_list[0]->getValType()->isInt())
+                {
+                    int val = (int)this->use_list[0]->getVal();
+                    temp = reinterpret_cast<unsigned &>(val);
+                }
+                else
+                {
+                    assert(this->use_list[0]->getValType()->isFloat());
+                    float val = (float)this->use_list[0]->getVal();
+                    temp = reinterpret_cast<unsigned &>(val);
+                }
+                unsigned high = (temp & 0xFFFF0000) >> 16;
+                unsigned low = temp & 0x0000FFFF;
+                if (isShifterOperandVal(high) && isShifterOperandVal(low))
+                {
+                    fprintf(yyout, "\tmovw");
+                    printCond();
+                    fprintf(yyout, " ");
+                    this->def_list[0]->output();
+                    fprintf(yyout, ", #%u\n", low);
+
+                    fprintf(yyout, "\tmovt");
+                    printCond();
+                    fprintf(yyout, " ");
+                    this->def_list[0]->output();
+                    fprintf(yyout, ", #%u\n", high);
+                    return;
+                }
+            }
+        }
     }
 
     if (this->def_list[0]->getValType()->isFloat())
@@ -431,6 +469,7 @@ MovMInstruction::MovMInstruction(MachineBlock *p, int op,
     if (shifter != nullptr)
     {
         // assert(op == MOVASR || op == MOVLSL || op == MOVLSR);
+        assert(shifter->isImm() && shifter->getValType()->isInt());
         this->use_list.push_back(shifter);
         shifter->setParent(this);
     }
@@ -463,9 +502,9 @@ void MovMInstruction::output()
     case MovMInstruction::VMOV:
         fprintf(yyout, "\tvmov");
         break;
-    // case MovMInstruction::VMOVF32:
-    //     fprintf(yyout, "\tvmov.f32");
-    //     break;
+        // case MovMInstruction::VMOVF32:
+        //     fprintf(yyout, "\tvmov.f32");
+        //     break;
 
     default:
         break;
@@ -478,9 +517,10 @@ void MovMInstruction::output()
     switch (this->op)
     {
     case MovMInstruction::MOVLSL:
-        fprintf(yyout, ", LSL#%d", this->mov_num);
+        if ((int)this->use_list[1]->getVal())
+            fprintf(yyout, ", LSL#%d", (int)this->use_list[1]->getVal());
         break;
-    
+
     default:
         break;
     }

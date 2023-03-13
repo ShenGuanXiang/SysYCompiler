@@ -174,16 +174,6 @@ void ValueNumbering::computeDomTree(Function* func)
         BasicBlock* bb=*it_bb;
         domtree[bb->getIDom()].push_back(bb);
     }
-    printf("dom tree:\n");
-    //print dom tree
-    // for(auto p=domtree.begin();p!=domtree.end();p++)
-    // {
-    //     if(p->first==nullptr) continue;
-    //     printf("%d:",p->first->getNo());
-    //     for(auto bb : p->second)
-    //         printf("%d ",bb->getNo());
-    //     printf("\n");
-    // }
 }
 
 static void replaceWithinBB(Operand* src,Operand* dst,BasicBlock* bb)

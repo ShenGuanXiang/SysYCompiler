@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
             ValueNumbering lvn(&unit);
             //lvn.pass1();
             lvn.pass3();
-            fprintf(stderr, "lvn pass done\n");
+            fprintf(stderr, "common subexpression elimination done\n");
         }
         
         fprintf(stderr, "opt ir generated\n");

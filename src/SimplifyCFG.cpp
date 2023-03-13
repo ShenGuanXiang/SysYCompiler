@@ -13,6 +13,7 @@ void SimplifyCFG::pass()
         pass(func);
 }
 
+// todo:某些情况下phi增加来源的代价反而比消除控制流更高，可以判断一下
 void SimplifyCFG::pass(Function *func)
 {
     // bfs
@@ -54,9 +55,19 @@ void SimplifyCFG::pass(Function *func)
             }
             func->remove(bb);
             freeBBs.insert(bb);
+            goto Next;
         }
-        // 消除仅包含无条件分支的基本块。
-        else if (bb->begin()->getNext() == bb->end() && bb->begin()->isUncond())
+        // 将两个目标基本块相同的条件分支削弱为无条件分支
+        if (bb->rbegin()->isCond() && ((CondBrInstruction *)(bb->rbegin()))->getTrueBranch() == ((CondBrInstruction *)(bb->rbegin()))->getFalseBranch())
+        {
+            assert(0);
+            // auto lastInst = bb->rbegin();
+            // bb->remove(lastInst);
+            // freeInsts.insert(lastInst);
+            // new UncondBrInstruction(((CondBrInstruction *)lastInst)->getTrueBranch(), bb);
+        }
+        // 消除仅包含无条件跳转的基本块。
+        if (bb->begin()->getNext() == bb->end() && bb->begin()->isUncond())
         {
             assert(bb->getNumOfSucc() == 1);
             if (bb == func->getEntry())
@@ -166,6 +177,50 @@ void SimplifyCFG::pass(Function *func)
             }
             func->remove(bb);
             freeBBs.insert(bb);
+        }
+        // 无条件跳转到只有一个条件跳转语句的基本块的情况可以被简化
+        else if (bb->begin()->getNext() == bb->end() && bb->begin()->isCond())
+        {
+            assert(0);
+            // auto condOpe = ((CondBrInstruction *)bb->begin())->getUses()[0];
+            // auto trueBB = ((CondBrInstruction *)bb->begin())->getTrueBranch();
+            // auto falseBB = ((CondBrInstruction *)bb->begin())->getFalseBranch();
+            // for (auto pred : preds)
+            //     if (pred->getNumOfSucc() == 1)
+            //     {
+            //         auto lastInst = pred->rbegin();
+            //         assert(lastInst->isUncond());
+            //         pred->removeSucc(bb);
+            //         bb->removePred(pred);
+            //         pred->remove(lastInst);
+            //         freeInsts.insert(lastInst);
+            //         new CondBrInstruction(trueBB, falseBB, condOpe, pred);
+            //         assert(pred->begin()->getNext() != pred->end());
+            //         // 更新PHI
+            //         for (auto phi_bb : {falseBB, trueBB})
+            //             for (auto i = phi_bb->begin(); i != phi_bb->end() && i->isPHI(); i = i->getNext())
+            //             {
+            //                 auto &srcs = ((PhiInstruction *)i)->getSrcs();
+            //                 assert(srcs.count(bb));
+            //                 for (auto pred : preds)
+            //                 {
+            //                     assert(!srcs.count(pred));
+            //                     srcs[pred] = srcs[bb];
+            //                 }
+            //                 srcs.erase(bb);
+            //             }
+            //         trueBB->addPred(pred);
+            //         falseBB->addPred(pred);
+            //         pred->addSucc(trueBB);
+            //         pred->addSucc(falseBB);
+            //     }
+            // if (bb->predEmpty())
+            // {
+            //     trueBB->removePred(bb);
+            //     falseBB->removePred(bb);
+            //     func->remove(bb);
+            //     freeBBs.insert(bb);
+            // }
         }
         // 无条件跳转到只有一个ret语句的基本块的情况也可以被简化
         else if (bb->begin()->getNext() == bb->end() && bb->begin()->isRet())

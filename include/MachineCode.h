@@ -66,7 +66,11 @@ public:
     void setParent(MachineInstruction *p) { this->parent = p; };
     void printReg();
     void output();
-    Type *getValType() { return this->valType; };
+    Type *getValType()
+    {
+        assert(valType->isInt() || valType->isFloat());
+        return this->valType;
+    };
     bool isIllegalShifterOperand(); // 第二操作数应符合8位图格式
 };
 
@@ -115,6 +119,7 @@ public:
     bool isBranch() { return type == BRANCH; };
     void setNo(int no) { this->no = no; };
     int getNo() { return no; };
+    int getCond() { return cond; };
     std::vector<MachineOperand *> &getDef() { return def_list; };
     std::vector<MachineOperand *> &getUse() { return use_list; };
     MachineBlock *getParent() { return parent; };
@@ -123,7 +128,6 @@ public:
     bool isMul() const { return type == BINARY && op == 2; };
     bool isLoad() const { return type == LOAD; };
     bool isMov() const { return type == MOV && op == 0; };
-
 };
 
 class BinaryMInstruction : public MachineInstruction
@@ -149,8 +153,7 @@ public:
                      MachineOperand *dst, MachineOperand *src1, MachineOperand *src2 = nullptr,
                      int cond = MachineInstruction::NONE);
     void output();
-    bool is_1_src(){return use_list.size()==1;};
-
+    bool is_1_src() { return use_list.size() == 1; };
 };
 
 class StoreMInstruction : public MachineInstruction
@@ -177,7 +180,6 @@ public:
         // VMOVF32
 
     };
-    int mov_num;
     MovMInstruction(MachineBlock *p, int op,
                     MachineOperand *dst, MachineOperand *src,
                     MachineOperand *shifter = nullptr,
@@ -284,7 +286,12 @@ public:
         this->no = no;
     };
     void insertInst(MachineInstruction *inst) { this->inst_list.push_back(inst); };
-    void removeInst(MachineInstruction *inst) { inst_list.erase(std::find(inst_list.begin(), inst_list.end(), inst)); };
+    void removeInst(MachineInstruction *inst)
+    {
+        auto iter = std::find(inst_list.begin(), inst_list.end(), inst);
+        if (iter != inst_list.end())
+            inst_list.erase(iter);
+    };
     void addPred(MachineBlock *p) { this->pred.push_back(p); };
     void addSucc(MachineBlock *s) { this->succ.push_back(s); };
     std::set<MachineOperand *> &getLiveIn() { return live_in; };

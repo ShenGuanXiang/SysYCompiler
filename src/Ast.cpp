@@ -496,7 +496,9 @@ void Id::genCode()
             if (is_FP)
             {
                 // dst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
-                dst = new Operand(new TemporarySymbolEntry(new PointerType(((ArrayType*)final_type->getValType())->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                // dst = new Operand(new TemporarySymbolEntry(new PointerType(((ArrayType*)final_type->getValType())->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                dst = tempSrc;
+                dst->getEntry()->setType(new PointerType(((ArrayType*)final_type->getValType())->getElemType()));
                 // assert(0);
                 is_FP = false;
                 return;
