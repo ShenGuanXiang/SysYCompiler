@@ -6,7 +6,7 @@
 /*
     Local Value Numbering, I'll implement dominator-based algorithm later.
 */
-// 公共子表达式消除（LVN实现）
+// 公共子表达式消除（DVNT实现）
 
 class ValueNumbering
 {
@@ -16,7 +16,6 @@ class ValueNumbering
     // construct operation's key from operand's name
     std::string getOpString(Instruction *inst);
     std::unordered_map<BasicBlock*,std::vector<BasicBlock*>>domtree;
-    std::vector<BasicBlock *> worklist;
 
 public:
     ValueNumbering(Unit *unit) : unit(unit){};

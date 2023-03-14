@@ -1,0 +1,15 @@
+int main(){
+    int a=getint();
+    int b=getint();
+    int c=getint();
+    int d=getint();
+    int e=getint();
+    a=b+c*d;
+    if(a>1){
+        a=b+c*d;
+    }
+    else{
+        a=b+c*d;
+    }
+    return a;
+}

@@ -100,8 +100,8 @@ int main(int argc, char *argv[])
         // 常量传播
         // 强度削弱
         // 公共子表达式消除，还有bug
-        // ValueNumbering lvn(&unit);
-        // lvn.pass3();
+        ValueNumbering dvn(&unit);
+        dvn.pass3();
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
