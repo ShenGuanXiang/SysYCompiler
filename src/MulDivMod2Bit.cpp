@@ -102,4 +102,5 @@ void MulDivMod2Bit::mul2lsl()
 
     for (auto inst : freeInsts)
         delete inst;
+    freeInsts.clear();
 }

@@ -174,11 +174,9 @@ public:
         // MVN,
         // MOVT,
         MOVLSL,
-        // MOVLSR,
-        // MOVASR,
-        VMOV,
-        // VMOVF32
-
+        MOVLSR,
+        MOVASR,
+        VMOV
     };
     MovMInstruction(MachineBlock *p, int op,
                     MachineOperand *dst, MachineOperand *src,

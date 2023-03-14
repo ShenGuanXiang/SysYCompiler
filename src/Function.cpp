@@ -102,6 +102,7 @@ void Function::genMachineCode(AsmBuilder *builder)
         }
     }
     cur_func->setEntry(map[entry]);
+    assert(entry->predEmpty());
 
     // for (auto block : block_list)
     // {
@@ -129,8 +130,20 @@ void Function::genMachineCode(AsmBuilder *builder)
                 auto offset = new MachineOperand(MachineOperand::IMM, below_dist);
                 // 由于函数栈帧初始化时会将一些寄存器压栈，在FuncDef打印时还需要偏移一个值，这里保存未偏移前的值，方便后续调整
                 cur_func->addAdditionalArgsOffset(offset);
-                auto inst = new LoadMInstruction(map[entry], new MachineOperand(MachineOperand::VREG, id_se->getLabel(), type), new MachineOperand(MachineOperand::REG, 11), offset);
-                map[entry]->insertBefore(*(map[entry]->getInsts().begin()), inst);
+                if (offset->getVal() >= 120) // todo：想办法优化栈偏移非法的情况，窥孔？
+                {
+                    MachineOperand *internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
+                    auto inst1 = new LoadMInstruction(map[entry], internal_reg, offset);
+                    internal_reg = new MachineOperand(*internal_reg);
+                    auto inst2 = new LoadMInstruction(map[entry], new MachineOperand(MachineOperand::VREG, id_se->getLabel(), type), new MachineOperand(MachineOperand::REG, 11), internal_reg);
+                    map[entry]->insertBefore(*(map[entry]->getInsts().begin()), inst2);
+                    map[entry]->insertBefore(*(map[entry]->getInsts().begin()), inst1);
+                }
+                else
+                {
+                    auto inst = new LoadMInstruction(map[entry], new MachineOperand(MachineOperand::VREG, id_se->getLabel(), type), new MachineOperand(MachineOperand::REG, 11), offset);
+                    map[entry]->insertBefore(*(map[entry]->getInsts().begin()), inst);
+                }
             }
         }
     }

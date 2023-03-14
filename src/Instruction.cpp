@@ -41,11 +41,11 @@ Instruction::~Instruction()
                 freeOps.insert(use);
         }
     }
-    for (auto op : freeOps){
+    for (auto op : freeOps)
+    {
         if (op != nullptr)
             delete op;
     }
-        
 }
 
 BasicBlock *Instruction::getParent()
@@ -447,7 +447,6 @@ void FuncCallInstruction::output() const
     Type *returnType = dynamic_cast<FunctionType *>(func_se->getType())->getRetType();
     if (!returnType->isVoid())
     { // 仅当返回值为非void时，向临时寄存器赋值
-        // fprintf(yyout, ";%s's addr is %p", use_list[0]->toStr().c_str(), use_list[0]);
         fprintf(yyout, "  %s = call %s %s(", dst.c_str(), dst_type.c_str(), func_se->toStr().c_str());
         fprintf(stderr, "  %s = call %s %s(", dst.c_str(), dst_type.c_str(), func_se->toStr().c_str());
     }
@@ -554,10 +553,9 @@ void GepInstruction::output() const
         fprintf(yyout, ", i32 %s", use_list[i]->toStr().c_str());
         fprintf(stderr, ", i32 %s", use_list[i]->toStr().c_str());
     }
-    fprintf(yyout, "\n");    
+    fprintf(yyout, "\n");
     fprintf(stderr, "\n");
 }
-
 
 MachineOperand *Instruction::genMachineOperand(Operand *ope)
 {
@@ -692,7 +690,11 @@ void LoadInstruction::genMachineCode(AsmBuilder *builder)
         auto offset = genMachineImm(dynamic_cast<TemporarySymbolEntry *>(use_list[0]->getEntry())->getOffset());
         // 如果是函数参数(第四个以后)，由于函数栈帧初始化时会将一些寄存器压栈，在FuncDef打印时还需要偏移一个值，这里保存未偏移前的值，方便后续调整
         if (offset->getVal() >= 0)
+        {
             cur_block->getParent()->addAdditionalArgsOffset(offset);
+            if (offset->getVal() >= 120) // 后面分配好寄存器后偏移量会增加，所以这里直接做一个严格的判断
+                offset = cur_block->insertLoadImm(offset);
+        }
         if (offset->getVal() < 0 && offset->isIllegalShifterOperand())
             offset = cur_block->insertLoadImm(offset);
         cur_inst = new LoadMInstruction(cur_block, dst, fp, offset);
@@ -1040,7 +1042,7 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
         cur_block->insertInst(cur_inst);
     }
     // 如果函数执行结果被用到，还需要保存 R0 寄存器中的返回值。
-    if (def_list[0]->getType() != TypeSystem::voidType) // TODO：这个判断并不精准，返回值非void不代表一定用到,后续可以通过窥孔优化删除无用指令
+    if (def_list[0]->getType() != TypeSystem::voidType) // TODO：这个判断并不精准，返回值非void不代表一定用到,后续可以通过死代码消除删除无用指令
     {
         auto dst = genMachineOperand(def_list[0]);
         auto src = new MachineOperand(MachineOperand::REG, 0, dst->getValType()); // r0/s0

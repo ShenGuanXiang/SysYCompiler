@@ -3,6 +3,8 @@ extern FILE *yyout;
 
 static std::vector<MachineOperand *> newMachineOperands; // 用来回收new出来的SymbolEntry
 
+extern bool mem2reg;
+
 // 合法的第二操作数循环移位偶数位后可以用8bit表示
 bool isShifterOperandVal(unsigned bin_val)
 {
@@ -302,48 +304,40 @@ void LoadMInstruction::output()
     // 强度削弱：小的立即数用MOV/MVN优化一下，arm汇编器会自动做?
     if ((this->use_list.size() == 1) && this->use_list[0]->isImm())
     {
-        if (!this->use_list[0]->isIllegalShifterOperand())
+        if (this->def_list[0]->getValType()->isInt()) // todo：vldr s, floatImm
         {
-            if (this->def_list[0]->getValType()->isFloat())
-                fprintf(yyout, "\tvmov.f32");
+            unsigned temp;
+            if (this->use_list[0]->getValType()->isInt())
+            {
+                int val = (int)this->use_list[0]->getVal();
+                temp = reinterpret_cast<unsigned &>(val);
+            }
             else
+            {
+                assert(this->use_list[0]->getValType()->isFloat());
+                float val = (float)this->use_list[0]->getVal();
+                temp = reinterpret_cast<unsigned &>(val);
+            }
+            if (isShifterOperandVal(temp))
+            {
                 fprintf(yyout, "\tmov");
-            printCond();
-            fprintf(yyout, " ");
-            this->def_list[0]->output();
-            fprintf(yyout, ", ");
-            this->use_list[0]->output();
-            fprintf(yyout, "\n");
-            return;
-        }
-        else if (this->def_list[0]->getValType()->isInt()) // todo：vldr s, floatImm
-        {
-            if ((this->use_list[0]->getValType()->isInt() && isShifterOperandVal(~((int)this->use_list[0]->getVal()))))
+                printCond();
+                fprintf(yyout, " ");
+                this->def_list[0]->output();
+                fprintf(yyout, ", #%u\n", temp);
+                return;
+            }
+            else if ((this->use_list[0]->getValType()->isInt() && isShifterOperandVal(~temp)))
             {
                 fprintf(yyout, "\tmvn");
                 printCond();
                 fprintf(yyout, " ");
                 this->def_list[0]->output();
-                fprintf(yyout, ", ");
-                auto negative_imm = new MachineOperand(MachineOperand::IMM, ~((int)this->use_list[0]->getVal()), this->use_list[0]->getValType());
-                negative_imm->output();
-                fprintf(yyout, "\n");
+                fprintf(yyout, ", #%u\n", ~temp);
                 return;
             }
             else
             {
-                unsigned temp;
-                if (this->use_list[0]->getValType()->isInt())
-                {
-                    int val = (int)this->use_list[0]->getVal();
-                    temp = reinterpret_cast<unsigned &>(val);
-                }
-                else
-                {
-                    assert(this->use_list[0]->getValType()->isFloat());
-                    float val = (float)this->use_list[0]->getVal();
-                    temp = reinterpret_cast<unsigned &>(val);
-                }
                 unsigned high = (temp & 0xFFFF0000) >> 16;
                 unsigned low = temp & 0x0000FFFF;
                 if (isShifterOperandVal(high) && isShifterOperandVal(low))
@@ -394,7 +388,7 @@ void LoadMInstruction::output()
         fprintf(yyout, "[");
 
     this->use_list[0]->output();
-    if (this->use_list.size() > 1)
+    if (this->use_list.size() > 1 && !(this->use_list[1]->isImm() && this->use_list[1]->getVal() == 0))
     {
         fprintf(yyout, ", ");
         this->use_list[1]->output();
@@ -483,8 +477,9 @@ void MovMInstruction::output()
     {
     case MovMInstruction::MOV:
     case MovMInstruction::MOVLSL:
-        // case MovMInstruction::MOVLSR:
-        // case MovMInstruction::MOVASR:
+    case MovMInstruction::MOVLSR:
+    case MovMInstruction::MOVASR:
+    {
         if (use_list[0]->getValType()->isBool())
             fprintf(yyout, "\tmovw"); // move byte指令呢?
         else
@@ -493,19 +488,18 @@ void MovMInstruction::output()
             fprintf(yyout, "\tmov");
         }
         break;
-    // case MovMInstruction::MVN:
-    //     fprintf(yyout, "\tmvn");
-    //     break;
-    // case MovMInstruction::MOVT:
-    //     fprintf(yyout, "\tmovt");
-    //     break;
-    case MovMInstruction::VMOV:
-        fprintf(yyout, "\tvmov");
-        break;
-        // case MovMInstruction::VMOVF32:
-        //     fprintf(yyout, "\tvmov.f32");
+    }
+        // case MovMInstruction::MVN:
+        //     fprintf(yyout, "\tmvn");
         //     break;
-
+        // case MovMInstruction::MOVT:
+        //     fprintf(yyout, "\tmovt");
+        //     break;
+    case MovMInstruction::VMOV:
+    {
+        fprintf(yyout, "\tvmov.f32");
+        break;
+    }
     default:
         break;
     }
@@ -619,6 +613,8 @@ StackMInstruction::StackMInstruction(MachineBlock *p, int op,
 void StackMInstruction::output()
 {
     assert(this->cond == NONE);
+    if (this->use_list.empty())
+        return;
     std::string op_str;
     if (this->use_list[0]->getValType()->isFloat())
     {
@@ -761,17 +757,19 @@ MachineOperand *MachineBlock::insertLoadImm(MachineOperand *imm)
     // return new MachineOperand(*internal_reg);
 
     // ToDo:有些浮点字面常量可以直接vldr到s寄存器
-    MachineOperand *internal_reg1 = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
-    this->insertInst(new LoadMInstruction(this, internal_reg1, imm));
     if (imm->getValType()->isFloat())
     {
+        MachineOperand *internal_reg1 = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
+        this->insertInst(new LoadMInstruction(this, internal_reg1, imm));
         MachineOperand *internal_reg2 = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
         internal_reg1 = new MachineOperand(*internal_reg1);
         this->insertInst(new MovMInstruction(this, MovMInstruction::VMOV, internal_reg2, internal_reg1));
         return new MachineOperand(*internal_reg2);
     }
     assert(imm->getValType()->isInt());
-    return new MachineOperand(*internal_reg1);
+    MachineOperand *internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
+    this->insertInst(new LoadMInstruction(this, internal_reg, imm));
+    return new MachineOperand(*internal_reg);
 }
 
 void MachineBlock::output()
@@ -848,34 +846,19 @@ std::vector<MachineOperand *> MachineFunction::getSavedSRegs()
 void MachineFunction::outputStart()
 {
     // Save callee saved int registers
-    fprintf(yyout, "\tpush {");
-    std::vector<MachineOperand *> regs = getSavedRRegs();
-    regs[0]->output();
-    size_t i;
-    for (i = 1; i != regs.size(); i++)
-    {
-        fprintf(yyout, ", ");
-        regs[i]->output();
-    }
-    fprintf(yyout, "}\n");
+    auto rregs = getSavedRRegs();
+    auto inst = new StackMInstruction(nullptr, StackMInstruction::PUSH, rregs);
+    inst->output();
+    delete inst;
     // Save callee saved float registers
-    std::vector<MachineOperand *> sregs = getSavedSRegs();
-    i = 0;
-    while (i != sregs.size())
-    {
-        fprintf(yyout, "\tvpush {");
-        sregs[i++]->output();
-        for (int j = 1; i != sregs.size() && j != 16; i++, j++)
-        {
-            fprintf(yyout, ", ");
-            sregs[i]->output();
-        }
-        fprintf(yyout, "}\n");
-    }
+    auto sregs = getSavedSRegs();
+    inst = new StackMInstruction(nullptr, StackMInstruction::PUSH, sregs);
+    inst->output();
+    delete inst;
     // fp = sp
     fprintf(yyout, "\tmov fp, sp\n");
     if (dynamic_cast<IdentifierSymbolEntry *>(sym_ptr)->need8BytesAligned() &&
-        (4 * (regs.size() + sregs.size() + std::max(0, (int)dynamic_cast<FunctionType *>(sym_ptr->getType())->getParamsType().size() - 4)) + stack_size) % 8)
+        (4 * (rregs.size() + sregs.size() + std::max(0, (int)dynamic_cast<FunctionType *>(sym_ptr->getType())->getParamsType().size() - 4)) + stack_size) % 8)
         stack_size += 4;
     // Allocate stack space for local variable
     if (stack_size)
@@ -900,28 +883,12 @@ void MachineFunction::outputEnd()
     if (stack_size)
         fprintf(yyout, "\tmov sp, fp\n");
     // Restore saved registers
-    std::vector<MachineOperand *> sregs = getSavedSRegs();
-    size_t i = 0;
-    while (i != sregs.size())
-    {
-        fprintf(yyout, "\tvpop {");
-        sregs[i++]->output();
-        for (int j = 1; i != sregs.size() && j != 16; i++, j++)
-        {
-            fprintf(yyout, ", ");
-            sregs[i]->output();
-        }
-        fprintf(yyout, "}\n");
-    }
-    std::vector<MachineOperand *> regs = getSavedRRegs();
-    fprintf(yyout, "\tpop {");
-    regs[0]->output();
-    for (i = 1; i != regs.size(); i++)
-    {
-        fprintf(yyout, ", ");
-        regs[i]->output();
-    }
-    fprintf(yyout, "}\n");
+    auto inst = new StackMInstruction(nullptr, StackMInstruction::POP, getSavedSRegs());
+    inst->output();
+    delete inst;
+    inst = new StackMInstruction(nullptr, StackMInstruction::POP, getSavedRRegs());
+    inst->output();
+    delete inst;
     // Generate bx instruction
     fprintf(yyout, "\tbx lr\n\n");
 }
@@ -931,14 +898,11 @@ void MachineFunction::output()
     fprintf(yyout, "\t.global %s\n", this->sym_ptr->toStr().c_str() + 1);
     fprintf(yyout, "\t.type %s , %%function\n", this->sym_ptr->toStr().c_str() + 1);
     fprintf(yyout, "%s:\n", this->sym_ptr->toStr().c_str() + 1);
-    // 栈帧初始化
+    // 插入栈帧初始化代码
     outputStart();
     // 更新additional args的偏移
     for (auto offset : additional_args_offset)
-    {
         offset->setVal(offset->getVal() + 4 * (getSavedSRegs().size() + getSavedRRegs().size()));
-        assert(!offset->isIllegalShifterOperand()); // toDo : 栈中偏移更新后非法怎么办？
-    }
     // Traverse all the block in block_list to print assembly code.
     int cnt = 0;
     std::vector<MachineBlock *> empty_block_list, not_empty_block_list;

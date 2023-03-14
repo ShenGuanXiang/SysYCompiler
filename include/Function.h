@@ -41,7 +41,11 @@ public:
     reverse_iterator rbegin() { return block_list.rbegin(); };
     reverse_iterator rend() { return block_list.rend(); };
     SymbolEntry *getSymPtr() { return sym_ptr; };
-    void insertParams(SymbolEntry *param) { param_list.push_back(param); }
+    void insertParams(SymbolEntry *param)
+    {
+        param_list.push_back(param);
+        dynamic_cast<IdentifierSymbolEntry *>(sym_ptr)->getParamsSe().insert(dynamic_cast<IdentifierSymbolEntry *>(param));
+    }
     void ComputeDom();
     void ComputeDomFrontier();
     void genMachineCode(AsmBuilder *);
