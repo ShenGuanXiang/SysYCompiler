@@ -169,6 +169,61 @@ void MachineOperand::output()
         break;
     }
 }
+std::string MachineOperand::toStr()
+{
+    /* HINT：print operand
+     * Example:
+     * immediate num 1 -> print #1;
+     * register 1 -> print r1;
+     * label addr_a -> print addr_a; */
+    std:: string operandstr;
+    switch (this->type)
+    {
+    case IMM:
+    {
+        if (valType->isFloat())
+        {
+            float float_val = (float)(this->val);
+            operandstr= "#"+std::to_string(reinterpret_cast<unsigned &>(float_val));
+        }
+        else
+        {
+            assert(valType->isInt());
+            operandstr= "#"+std::to_string((int)this->val);
+        }
+        break;
+    }
+    case VREG:
+    {
+        assert(valType->isInt() || valType->isFloat());
+        std::string str = valType->isFloat() ? "vs" : "vr";
+        operandstr= str+std::to_string(this->reg_no);
+        break;
+    }
+    case REG:
+    {
+        if (valType->isFloat())
+            operandstr= "s"+std::to_string(reg_no);
+        else if(valType->isInt() && reg_no == 13)
+            operandstr= "fp";
+        else if(valType->isInt())
+            operandstr= "r"+std::to_string(reg_no);
+        else   
+            assert(0);
+        break;
+    }
+    case LABEL:
+    {
+        if (this->label.substr(0, 1) == "@")
+            operandstr= this->label;  
+        else
+            operandstr= "addr_"+std::to_string(parent->getParent()->getParent()->getParent()->getLtorgNo())+"_"+this->label;
+        break;
+    }
+    default:
+        break;
+    }
+}
 
 bool MachineOperand::isIllegalShifterOperand()
 {

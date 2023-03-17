@@ -1,6 +1,6 @@
 #ifndef __VALUENUMBERING_H__
-#define __VALUENUMBERING_H__
-
+#define __VALUENUMBERING_H__ 
+#include "MachineCode.h"
 #include "Unit.h"
 #include <unordered_map>
 /*
@@ -29,6 +29,20 @@ public:
     //pass2 is implemented using SVN, i.e. optimize within extended blocks (tree shape), to be implemented
     //pass3 is implemented using DVNT, dominator-based
     //we only use dvnt, so pass1 and pass2 are removed
+};
+
+class ValueNumberingASM
+{
+    MachineUnit* munit;
+    std::unordered_map<std::string,MachineOperand*> htable;
+    std::string getOpString(MachineInstruction *inst);
+    std::unordered_map<MachineBlock*,std::vector<MachineBlock*>>domtree;
+public:
+    ValueNumberingASM(MachineUnit* munit) : munit(munit){};
+    void dumpTable();
+    void computeDomTree(MachineFunction* func){};
+    void dvnt(MachineBlock* bb);
+    void pass();
 };
 
 #endif

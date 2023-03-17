@@ -66,6 +66,7 @@ public:
     void setParent(MachineInstruction *p) { this->parent = p; };
     void printReg();
     void output();
+    std::string toStr();
     Type *getValType()
     {
         assert(valType->isInt() || valType->isFloat());
@@ -89,6 +90,8 @@ protected:
     void addUse(MachineOperand *ope) { use_list.push_back(ope); };
     // print execution code after printing opcode
     void printCond();
+
+public:
     enum instType
     {
         BINARY,
@@ -102,8 +105,6 @@ protected:
         VCVT,
         VMRS
     };
-
-public:
     enum condType
     {
         EQ,
@@ -124,6 +125,8 @@ public:
     std::vector<MachineOperand *> &getUse() { return use_list; };
     MachineBlock *getParent() { return parent; };
     int getOpType() { return op; };
+    int getInstType() const { return type; };
+
 
     bool isMul() const { return type == BINARY && op == 2; };
     bool isLoad() const { return type == LOAD; };

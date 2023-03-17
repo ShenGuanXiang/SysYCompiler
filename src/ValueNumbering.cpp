@@ -166,3 +166,123 @@ void ValueNumbering::pass3()
         dvnt(entry);
     }
 }
+
+
+//the following functions are used for value numbering in assmbly code generation phase
+
+
+std::string ValueNumberingASM::getOpString(MachineInstruction *minst)
+{
+    std::string instString = "";
+    if(minst->getDef()[0]->isReg())
+        return instString;
+    for(auto use : minst->getUse())
+        if(use->isReg() && use->getReg()!=13)
+            return instString;
+
+    switch (minst->getOpType())
+    {
+    case MachineInstruction::BINARY:
+        switch (dynamic_cast<BinaryMInstruction *>(minst)->getOpType())
+        {
+        case BinaryMInstruction::ADD:
+            instString += "ADD";
+            break;
+        case BinaryMInstruction::SUB:
+            instString += "SUB";
+            break;
+        case BinaryMInstruction::MUL:
+            instString += "MUL";
+            break;
+        case BinaryMInstruction::DIV:
+            instString += "DIV";
+            break;
+        default: assert(0);
+        }
+        break;
+    case MachineInstruction::MOV:
+        instString += "MOV";
+        break;
+    case MachineInstruction::VCVT:
+        instString += "VCVT";
+        break;
+    default:
+        break;
+    }
+    return instString;
+}
+
+void ValueNumberingASM::pass()
+{
+    for (auto it_mfunc = munit->begin(); it_mfunc != munit->end(); it_mfunc++)
+    {
+        auto entry = (*it_mfunc)->getEntry();
+        domtree.clear();
+        computeDomTree(*it_mfunc);
+        dvnt(entry);
+    }
+}
+void ValueNumberingASM::dvnt(MachineBlock* bb)
+{
+    std::unordered_map<std::string, MachineOperand *> prehtable; 
+    prehtable = htable;// store curent htable, to restore after processing children
+    std::unordered_map<std::string, MachineOperand *> localhtable;
+    //some info can only be used within a basic block 
+    std::vector<MachineInstruction *> torm; // instruction to remove
+    for(auto it_minst=bb->begin();it_minst!=bb->end();it_minst++)
+    {
+
+        auto inst=*it_minst;
+
+        for(auto& use : inst->getUse())
+            if(htable.count(use->toStr()))
+                use=htable[use->toStr()];
+            else if(localhtable.count(use->toStr()))
+                use=localhtable[use->toStr()];
+                
+        std::string instString = getOpString(inst);
+        if(instString=="") continue;
+
+        bool withfp=false;
+        for(auto use : inst->getUse()){
+            auto usestr=use->toStr();
+            if(htable.count(usestr))
+                instString+=htable[usestr]->toStr();
+            else
+                instString+=usestr;
+            if(usestr=="fp")
+                withfp=true;
+        }
+            
+        
+        auto dst=inst->getDef()[0];
+        if(withfp){
+            if(localhtable.count(instString)){
+                localhtable[dst->toStr()]=localhtable[instString];
+                torm.push_back(inst);
+            }
+            else 
+                localhtable[instString]=dst;
+        }
+        else{
+            if(htable.count(instString)){
+                htable[dst->toStr()]=htable[instString];
+                torm.push_back(inst);
+            }
+            else 
+                htable[instString]=dst;
+        }
+        
+
+        htable.clear();     //clear before recursive invoking 
+        for(auto mb : domtree[bb])
+            dvnt(mb);
+        
+        htable=prehtable;
+    }
+    for (auto i : torm)
+    {
+        bb->removeInst(i);
+        delete i;
+    }
+}
