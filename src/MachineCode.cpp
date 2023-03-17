@@ -772,6 +772,25 @@ MachineOperand *MachineBlock::insertLoadImm(MachineOperand *imm)
     return new MachineOperand(*internal_reg);
 }
 
+std::pair<MachineOperand *, std::vector<MachineInstruction *>> MachineBlock::getLoadImmInsts(MachineOperand *imm)
+{
+    // ToDo:有些浮点字面常量可以直接vldr到s寄存器
+    std::vector<MachineInstruction *> insts;
+    if (imm->getValType()->isFloat())
+    {
+        MachineOperand *internal_reg1 = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
+        insts.push_back(new LoadMInstruction(this, internal_reg1, imm));
+        MachineOperand *internal_reg2 = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
+        internal_reg1 = new MachineOperand(*internal_reg1);
+        insts.push_back(new MovMInstruction(this, MovMInstruction::VMOV, internal_reg2, internal_reg1));
+        return std::make_pair(new MachineOperand(*internal_reg2), insts);
+    }
+    assert(imm->getValType()->isInt());
+    MachineOperand *internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
+    insts.push_back(new LoadMInstruction(this, internal_reg, imm));
+    return std::make_pair(new MachineOperand(*internal_reg), insts);
+}
+
 void MachineBlock::output()
 {
     fprintf(yyout, ".L%d:", this->no);

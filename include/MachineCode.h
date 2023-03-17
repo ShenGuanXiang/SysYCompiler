@@ -301,6 +301,7 @@ public:
     void insertBefore(MachineInstruction *pos, MachineInstruction *inst);
     void insertAfter(MachineInstruction *pos, MachineInstruction *inst);
     MachineOperand *insertLoadImm(MachineOperand *imm);
+    std::pair<MachineOperand *, std::vector<MachineInstruction *>> getLoadImmInsts(MachineOperand *imm);
     void output();
     ~MachineBlock();
 };
