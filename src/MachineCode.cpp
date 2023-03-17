@@ -223,6 +223,7 @@ std::string MachineOperand::toStr()
     default:
         break;
     }
+    return operandstr;
 }
 
 bool MachineOperand::isIllegalShifterOperand()
@@ -575,6 +576,7 @@ void MovMInstruction::output()
     }
 
     fprintf(yyout, "\n");
+
 }
 
 BranchMInstruction::BranchMInstruction(MachineBlock *p, int op,

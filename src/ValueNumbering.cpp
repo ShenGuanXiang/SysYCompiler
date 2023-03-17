@@ -173,15 +173,15 @@ void ValueNumbering::pass3()
 
 std::string ValueNumberingASM::getOpString(MachineInstruction *minst)
 {
-    std::string instString = "";
-    if(minst->getDef()[0]->isReg())
-        return instString;
-    for(auto use : minst->getUse())
-        if(use->isReg() && use->getReg()!=13)
-            return instString;
 
-    switch (minst->getOpType())
+    std::string instString = "";
+    // minst->output();
+    switch (minst->getInstType())
     {
+    case MachineInstruction::LOAD: // for load imm
+        if((minst->getUse().size() == 1) && minst->getUse()[0]->isImm())
+        instString += "LOADI";
+        break;
     case MachineInstruction::BINARY:
         switch (dynamic_cast<BinaryMInstruction *>(minst)->getOpType())
         {
@@ -201,7 +201,16 @@ std::string ValueNumberingASM::getOpString(MachineInstruction *minst)
         }
         break;
     case MachineInstruction::MOV:
-        instString += "MOV";
+        switch (dynamic_cast<MovMInstruction*>(minst)->getOpType())
+        {
+        case MovMInstruction::MOV:
+            instString="MOV";
+            break;
+        case MovMInstruction::VMOV:
+            instString="VMOV";
+            break;
+        default:assert(0);
+        }
         break;
     case MachineInstruction::VCVT:
         instString += "VCVT";
@@ -231,32 +240,37 @@ void ValueNumberingASM::dvnt(MachineBlock* bb)
     std::vector<MachineInstruction *> torm; // instruction to remove
     for(auto it_minst=bb->begin();it_minst!=bb->end();it_minst++)
     {
-
+        
         auto inst=*it_minst;
 
+
         for(auto& use : inst->getUse())
-            if(htable.count(use->toStr()))
-                use=htable[use->toStr()];
+            if(htable.count(use->toStr())){
+                use=new MachineOperand(*htable[use->toStr()]);
+            }
             else if(localhtable.count(use->toStr()))
-                use=localhtable[use->toStr()];
+                use=new MachineOperand(*localhtable[use->toStr()]);
                 
         std::string instString = getOpString(inst);
         if(instString=="") continue;
-
-        bool withfp=false;
+        if(inst->getDef()[0]->isReg()) continue;
+            
+        int withreg=-1;
         for(auto use : inst->getUse()){
             auto usestr=use->toStr();
             if(htable.count(usestr))
-                instString+=htable[usestr]->toStr();
+                instString+=","+htable[usestr]->toStr();
             else
-                instString+=usestr;
-            if(usestr=="fp")
-                withfp=true;
+                instString+=","+usestr;
+            if(withreg==-1 && use->isReg())
+                withreg=use->getReg();
         }
-            
+        if(withreg!=-1 && withreg!=11) continue;
         
+        //only fp inst could be removed
+
         auto dst=inst->getDef()[0];
-        if(withfp){
+        if(withreg==11){
             if(localhtable.count(instString)){
                 localhtable[dst->toStr()]=localhtable[instString];
                 torm.push_back(inst);
@@ -272,17 +286,24 @@ void ValueNumberingASM::dvnt(MachineBlock* bb)
             else 
                 htable[instString]=dst;
         }
-        
-
-        htable.clear();     //clear before recursive invoking 
-        for(auto mb : domtree[bb])
-            dvnt(mb);
-        
-        htable=prehtable;
     }
     for (auto i : torm)
     {
         bb->removeInst(i);
         delete i;
     }
+
+    
+    return ;
+    for(auto mb : domtree[bb])
+            dvnt(mb);
+        
+    htable=prehtable;
+}
+
+void ValueNumberingASM::dumpTable(){
+    printf("------\n");
+    for(auto it=htable.begin();it!=htable.end();it++)
+        std::cout<<it->first<<" "<<it->second->toStr()<<std::endl;
+    printf("------\n");
 }

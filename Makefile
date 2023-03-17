@@ -56,7 +56,7 @@ run:app
 	@opt -dot-cfg debug.ll
 
 gdb:app
-	@gdb $(BINARY)
+	@gdb $(BINARY) 
 
 $(OBJ_PATH)/lexer.o:$(SRC_PATH)/lexer.cpp
 	@mkdir -p $(OBJ_PATH)
