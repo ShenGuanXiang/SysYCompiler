@@ -175,12 +175,17 @@ std::string ValueNumberingASM::getOpString(MachineInstruction *minst)
 {
 
     std::string instString = "";
-    // minst->output();
+    //忽略带有条件的指令，这种指令不能被消除，但是其操作数应该被替换
+    if(minst->getCond() != MachineInstruction::NONE)
+        return instString;
+
     switch (minst->getInstType())
     {
     case MachineInstruction::LOAD: // for load imm
         if((minst->getUse().size() == 1) && minst->getUse()[0]->isImm())
-        instString += "LOADI";
+            instString += "LOADI";
+        else if((minst->getUse().size() == 1) && minst->getUse()[0]->isLabel())
+            instString += "LOADG";
         break;
     case MachineInstruction::BINARY:
         switch (dynamic_cast<BinaryMInstruction *>(minst)->getOpType())
@@ -208,6 +213,15 @@ std::string ValueNumberingASM::getOpString(MachineInstruction *minst)
             break;
         case MovMInstruction::VMOV:
             instString="VMOV";
+            break;
+        case MovMInstruction::MOVLSL:
+            instString="MOVLSL";
+            break;
+        case MovMInstruction::MOVLSR:
+            instString="MOVLSR";
+            break;
+        case MovMInstruction::MOVASR:
+            instString="MOVASR";
             break;
         default:assert(0);
         }

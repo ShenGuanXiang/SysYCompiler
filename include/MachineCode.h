@@ -90,6 +90,7 @@ protected:
     void addUse(MachineOperand *ope) { use_list.push_back(ope); };
     // print execution code after printing opcode
     void printCond();
+    int getcond() { return cond;}
 
 public:
     enum instType
