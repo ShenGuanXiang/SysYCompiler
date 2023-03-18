@@ -247,9 +247,12 @@ void ValueNumberingASM::dvnt(MachineBlock* bb)
         for(auto& use : inst->getUse())
             if(htable.count(use->toStr())){
                 use=new MachineOperand(*htable[use->toStr()]);
+                use->setParent(inst);
             }
-            else if(localhtable.count(use->toStr()))
+            else if(localhtable.count(use->toStr())){
                 use=new MachineOperand(*localhtable[use->toStr()]);
+                use->setParent(inst);
+            }
                 
         std::string instString = getOpString(inst);
         if(instString=="") continue;
