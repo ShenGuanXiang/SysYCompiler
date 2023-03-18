@@ -1,0 +1,7 @@
+int h[100];
+int main(int a, int b, int c, int d, int e)
+{
+    h[d + e] = getint();
+    e = e + 1;
+    return h[d + e]; 
+}
