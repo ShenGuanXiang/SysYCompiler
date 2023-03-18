@@ -1,4 +1,5 @@
 #include "MachineCode.h"
+#include <queue>
 extern FILE *yyout;
 
 static std::vector<MachineOperand *> newMachineOperands; // 用来回收new出来的SymbolEntry
@@ -976,6 +977,65 @@ void MachineFunction::output()
     for (auto iter : empty_block_list)
         iter->output();
     outputEnd();
+}
+
+void MachineFunction::computeDom()
+{
+    // Vertex-removal Algorithm, O(n^2)
+    for (auto bb : getBlocks())
+        bb->getSDoms() = std::set<MachineBlock *>();
+    std::set<MachineBlock *> all_bbs(getBlocks().begin(), getBlocks().end());
+    for (auto removed_bb : getBlocks())
+    {
+        std::set<MachineBlock *> visited;
+        std::queue<MachineBlock *> q;
+        std::map<MachineBlock *, bool> is_visited;
+        for (auto bb : getBlocks())
+            is_visited[bb] = false;
+        if (getEntry() != removed_bb)
+        {
+            visited.insert(getEntry());
+            is_visited[getEntry()] = true;
+            q.push(getEntry());
+            while (!q.empty())
+            {
+                MachineBlock *cur = q.front();
+                q.pop();
+                for (auto succ : cur->getSuccs())
+                    if (succ != removed_bb && !is_visited[succ])
+                    {
+                        q.push(succ);
+                        visited.insert(succ);
+                        is_visited[succ] = true;
+                    }
+            }
+        }
+        std::set<MachineBlock *> not_visited;
+        set_difference(all_bbs.begin(), all_bbs.end(), visited.begin(), visited.end(), inserter(not_visited, not_visited.end()));
+        for (auto bb : not_visited)
+        {
+            if (bb != removed_bb)
+                bb->getSDoms().insert(removed_bb); // strictly dominators
+        }
+    }
+    // immediate dominator ：严格支配 bb，且不严格支配任何严格支配 bb 的节点的节点
+    std::set<MachineBlock *> temp_IDoms;
+    for (auto bb : getBlocks())
+    {
+        temp_IDoms = bb->getSDoms();
+        for (auto sdom : bb->getSDoms())
+        {
+            std::set<MachineBlock *> diff_set;
+            set_difference(temp_IDoms.begin(), temp_IDoms.end(), sdom->getSDoms().begin(), sdom->getSDoms().end(), inserter(diff_set, diff_set.end()));
+            temp_IDoms = diff_set;
+        }
+        assert(temp_IDoms.size() == 1 || (bb == getEntry() && temp_IDoms.size() == 0));
+        if (bb != getEntry())
+            bb->getIDom() = *temp_IDoms.begin();
+    }
+    // for (auto bb : getBlocks())
+    //     if (bb != getEntry())
+    //         fprintf(stderr, "IDom[.L%d] = .L%d\n", bb->getNo(), bb->getIDom()->getNo());
 }
 
 MachineFunction::~MachineFunction()

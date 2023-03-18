@@ -271,6 +271,8 @@ private:
     std::vector<MachineInstruction *> inst_list;
     std::set<MachineOperand *> live_in;
     std::set<MachineOperand *> live_out;
+    std::set<MachineBlock *> SDoms;
+    MachineBlock *IDom;
 
 public:
     std::vector<MachineInstruction *> &getInsts() { return inst_list; };
@@ -303,6 +305,8 @@ public:
     MachineOperand *insertLoadImm(MachineOperand *imm);
     std::pair<MachineOperand *, std::vector<MachineInstruction *>> getLoadImmInsts(MachineOperand *imm);
     void output();
+    std::set<MachineBlock *> &getSDoms() { return SDoms; };
+    MachineBlock *&getIDom() { return IDom; };
     ~MachineBlock();
 };
 
@@ -348,6 +352,7 @@ public:
     void outputStart();
     void outputEnd();
     void output();
+    void computeDom();
     ~MachineFunction();
 };
 
