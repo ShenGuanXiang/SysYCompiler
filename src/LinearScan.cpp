@@ -190,12 +190,6 @@ void LinearScan::computeLiveIntervals()
             }
     }
     sort(intervals.begin(), intervals.end(), compareStart);
-    //print all intervals
-    for(auto &interval : intervals)
-    {
-        std::cout << "interval: " << interval->start << " " << interval->end <<" of "<<(*interval->defs.begin())->toStr()<< std::endl;
-    }
-    std::cout<<"-----"<<std::endl;
 }
 
 bool LinearScan::linearScanRegisterAllocation()

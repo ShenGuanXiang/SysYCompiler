@@ -40,7 +40,7 @@ class ValueNumberingASM
 public:
     ValueNumberingASM(MachineUnit* munit) : munit(munit){};
     void dumpTable();
-    void computeDomTree(MachineFunction* func){};
+    void computeDomTree(MachineFunction* func);
     void dvnt(MachineBlock* bb);
     void pass();
 };

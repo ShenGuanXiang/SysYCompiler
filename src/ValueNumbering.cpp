@@ -171,6 +171,27 @@ void ValueNumbering::pass3()
 //the following functions are used for value numbering in assmbly code generation phase
 
 
+void ValueNumberingASM::computeDomTree(MachineFunction* func)
+{
+    func->computeDom();
+    for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
+    {
+        MachineBlock *bb = *it_bb;
+        domtree[bb->getIDom()].push_back(bb);
+    }
+
+    // print domtree
+    // for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
+    // {
+    //     MachineBlock *bb = *it_bb;
+    //     printf("bb%d's dom children are:",bb->getNo());
+    //     for(auto child:domtree[bb])
+    //         printf("bb%d ",child->getNo());
+    //     printf("\n");
+    // }
+}
+
+
 std::string ValueNumberingASM::getOpString(MachineInstruction *minst)
 {
 
@@ -287,6 +308,16 @@ void ValueNumberingASM::dvnt(MachineBlock* bb)
         //only fp inst could be removed
 
         auto dst=inst->getDef()[0];
+        //后端生成的代码中，应该符合SSA形式（但phi指令的dst可以在不同的基本块中被多次定义）
+        // if(localhtable.count(dst->toStr()) || htable.count(dst->toStr()))
+        // {
+        //     //add `yyout=stdout;` in main.cpp to see the violating instruction
+            
+        //     inst->output();
+        //     dumpTable();
+        //     assert(!localhtable.count(dst->toStr()) && !htable.count(dst->toStr()));
+        // }
+        
         if(withreg==11){
             if(localhtable.count(instString)){
                 localhtable[dst->toStr()]=localhtable[instString];
@@ -311,9 +342,8 @@ void ValueNumberingASM::dvnt(MachineBlock* bb)
     }
 
     
-    return ;
     for(auto mb : domtree[bb])
-            dvnt(mb);
+        dvnt(mb);
         
     htable=prehtable;
 }
