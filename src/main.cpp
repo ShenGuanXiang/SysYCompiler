@@ -119,6 +119,9 @@ int main(int argc, char *argv[])
             // todo: 汇编代码优化
             MulDivMod2Bit mdm2b(&mUnit);
             mdm2b.pass();
+            
+            ValueNumberingASM vnasm(&mUnit);
+            vnasm.pass();
         }
         LinearScan linearScan(&mUnit);
         linearScan.pass();

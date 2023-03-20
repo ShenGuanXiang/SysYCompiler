@@ -3,6 +3,7 @@
 #include "MachineCode.h"
 #include "Unit.h"
 #include <unordered_map>
+#include <set>
 /*
     Local Value Numbering, I'll implement dominator-based algorithm later.
 */
@@ -37,8 +38,11 @@ class ValueNumberingASM
     std::unordered_map<std::string,MachineOperand*> htable;
     std::string getOpString(MachineInstruction *inst);
     std::unordered_map<MachineBlock*,std::vector<MachineBlock*>>domtree;
+    std::set<MachineOperand> defset;
+    std::set<MachineOperand> redef;
 public:
     ValueNumberingASM(MachineUnit* munit) : munit(munit){};
+    void findredef(MachineBlock* bb);
     void dumpTable();
     void computeDomTree(MachineFunction* func);
     void dvnt(MachineBlock* bb);

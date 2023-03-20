@@ -263,6 +263,7 @@ void ValueNumberingASM::pass()
         auto entry = (*it_mfunc)->getEntry();
         domtree.clear();
         computeDomTree(*it_mfunc);
+        findredef(entry);
         dvnt(entry);
     }
 }
@@ -278,7 +279,6 @@ void ValueNumberingASM::dvnt(MachineBlock* bb)
         
         auto inst=*it_minst;
 
-
         for(auto& use : inst->getUse())
             if(htable.count(use->toStr())){
                 use=new MachineOperand(*htable[use->toStr()]);
@@ -289,10 +289,10 @@ void ValueNumberingASM::dvnt(MachineBlock* bb)
                 use->setParent(inst);
             }
                 
+                
         std::string instString = getOpString(inst);
         if(instString=="") continue;
         if(inst->getDef()[0]->isReg()) continue;
-            
         int withreg=-1;
         for(auto use : inst->getUse()){
             auto usestr=use->toStr();
@@ -308,19 +308,13 @@ void ValueNumberingASM::dvnt(MachineBlock* bb)
         //only fp inst could be removed
 
         auto dst=inst->getDef()[0];
-        //后端生成的代码中，应该符合SSA形式（但phi指令的dst可以在不同的基本块中被多次定义）
-        // if(localhtable.count(dst->toStr()) || htable.count(dst->toStr()))
-        // {
-        //     //add `yyout=stdout;` in main.cpp to see the violating instruction
-            
-        //     inst->output();
-        //     dumpTable();
-        //     assert(!localhtable.count(dst->toStr()) && !htable.count(dst->toStr()));
-        // }
+        if(redef.count(*dst)) continue;
+
         
         if(withreg==11){
             if(localhtable.count(instString)){
-                localhtable[dst->toStr()]=localhtable[instString];
+                auto src = localhtable[instString];
+                localhtable[dst->toStr()]=src;
                 torm.push_back(inst);
             }
             else 
@@ -335,6 +329,8 @@ void ValueNumberingASM::dvnt(MachineBlock* bb)
                 htable[instString]=dst;
         }
     }
+
+
     for (auto i : torm)
     {
         bb->removeInst(i);
@@ -353,4 +349,23 @@ void ValueNumberingASM::dumpTable(){
     for(auto it=htable.begin();it!=htable.end();it++)
         std::cout<<it->first<<" "<<it->second->toStr()<<std::endl;
     printf("------\n");
+}
+void ValueNumberingASM::findredef(MachineBlock* bb)
+{
+    std::set<MachineOperand> curset;
+    std::copy(defset.begin(),defset.end(),std::inserter(curset,curset.end()));
+    for(auto it_minst=bb->begin();it_minst!=bb->end();it_minst++)
+    {
+        auto inst=*it_minst;
+        if(inst->getDef().size()==0) continue;
+        auto def=inst->getDef()[0];
+        if(def->isReg()) continue;
+        if(defset.count(*def))
+            redef.insert(*def);
+        else defset.insert(*def);
+    }
+    for(auto mb : domtree[bb])
+        findredef(mb);
+    defset.clear();
+    std::copy(curset.begin(),curset.end(),std::inserter(defset,defset.end()));
 }

@@ -190,6 +190,11 @@ void LinearScan::computeLiveIntervals()
             }
     }
     sort(intervals.begin(), intervals.end(), compareStart);
+    //print all intervals
+    // for (auto &interval : intervals)
+    // {
+    //     std::cout << (*interval->defs.begin())->toStr()<<"  interval:" << interval->start << " " << interval->end  << std::endl;
+    // }
 }
 
 bool LinearScan::linearScanRegisterAllocation()
@@ -237,6 +242,7 @@ bool LinearScan::linearScanRegisterAllocation()
             }
         }
     }
+   // printf("one iteration finished\n");
     return success;
 }
 
@@ -318,16 +324,40 @@ void LinearScan::expireOldIntervals(Interval *interval)
 
 void LinearScan::spillAtInterval(Interval *interval)
 {
+  //  printf("------------------\n");
+  //  printf("incoming: %s [%d,%d]\n",(*interval->defs.begin())->toStr().c_str(),interval->start,interval->end);
+    // for (auto &interval : active)
+    // {
+    //     std::cout << (*interval->defs.begin())->toStr()<<"  interval:" << interval->start << " " << interval->end  << std::endl;
+    // }
+    
+    Interval* toSpill = nullptr;
+  
     if ((*active.rbegin())->end > interval->end)
     {
+
+        toSpill=(*active.rbegin());
+
         (*active.rbegin())->spill = true;
         interval->real_reg = (*active.rbegin())->real_reg;
         active.pop_back();
         auto insertPos = std::lower_bound(active.begin(), active.end(), interval, compareEnd);
         active.insert(insertPos, interval);
+
     }
     else
     {
         interval->spill = true;
+
+        toSpill=interval;   
     }
+
+    // printf("spill at %s:[%d,%d]\n",(*toSpill->defs.begin())->toStr().c_str(),toSpill->start,toSpill->end);
+    // // print active
+    // for (auto &interval : active)
+    // {
+    //     std::cout << (*interval->defs.begin())->toStr()<<"  interval:" << interval->start << " " << interval->end  << std::endl;
+    // }
+    // printf("------------------\n");
+
 }
