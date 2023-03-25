@@ -6,6 +6,13 @@ static std::vector<MachineOperand *> newMachineOperands; // 用来回收new出�
 
 extern bool mem2reg;
 
+union VAL
+{
+    unsigned unsigned_val;
+    signed signed_val;
+    float float_val;
+};
+
 // 合法的第二操作数循环移位偶数位后可以用8bit表示
 bool isShifterOperandVal(unsigned bin_val)
 {
@@ -134,8 +141,9 @@ void MachineOperand::output()
     {
         if (valType->isFloat())
         {
-            float float_val = (float)(this->val);
-            fprintf(yyout, "#%u", reinterpret_cast<unsigned &>(float_val));
+            VAL val;
+            val.float_val = (float)(this->val);
+            fprintf(yyout, "#%u", val.signed_val);
         }
         else
         {
@@ -310,14 +318,16 @@ void LoadMInstruction::output()
             unsigned temp;
             if (this->use_list[0]->getValType()->isInt())
             {
-                int val = (int)this->use_list[0]->getVal();
-                temp = reinterpret_cast<unsigned &>(val);
+                VAL val;
+                val.signed_val = (int)this->use_list[0]->getVal();
+                temp = val.unsigned_val;
             }
             else
             {
                 assert(this->use_list[0]->getValType()->isFloat());
-                float val = (float)this->use_list[0]->getVal();
-                temp = reinterpret_cast<unsigned &>(val);
+                VAL val;
+                val.float_val = (float)this->use_list[0]->getVal();
+                temp = val.unsigned_val;
             }
             if (isShifterOperandVal(temp))
             {
@@ -376,8 +386,9 @@ void LoadMInstruction::output()
     {
         if (this->use_list[0]->getValType()->isFloat())
         {
-            float float_val = (float)(this->use_list[0]->getVal());
-            fprintf(yyout, "=%u\n", reinterpret_cast<unsigned &>(float_val));
+            VAL val;
+            val.float_val = (float)(this->use_list[0]->getVal());
+            fprintf(yyout, "=%u\n", val.unsigned_val);
         }
         else
             fprintf(yyout, "=%d\n", (int)this->use_list[0]->getVal());
@@ -473,7 +484,38 @@ MovMInstruction::MovMInstruction(MachineBlock *p, int op,
 void MovMInstruction::output()
 {
     if ((*def_list[0]) == (*use_list[0]))
-        return;
+    {
+        if (use_list.size() == 1)
+            return;
+        else
+        {
+            assert(use_list.size() == 2);
+            if ((int)this->use_list[1]->getVal())
+            {
+                switch (this->op)
+                {
+                case MovMInstruction::MOVLSL:
+                    fprintf(yyout, "\tLSL");
+                    break;
+                case MovMInstruction::MOVLSR:
+                    fprintf(yyout, "\tLSR");
+                    break;
+                case MovMInstruction::MOVASR:
+                    fprintf(yyout, "\tASR");
+                    break;
+                default:
+                    assert(0);
+                }
+                printCond();
+                fprintf(yyout, " ");
+                this->def_list[0]->output();
+                fprintf(yyout, ", ");
+                this->use_list[0]->output();
+                fprintf(yyout, ", #%d\n", (int)this->use_list[1]->getVal());
+            }
+            return;
+        }
+    }
     switch (this->op)
     {
     case MovMInstruction::MOV:
@@ -513,7 +555,7 @@ void MovMInstruction::output()
     {
     case MovMInstruction::MOVLSL:
         if ((int)this->use_list[1]->getVal())
-            fprintf(yyout, ", LSL#%d", (int)this->use_list[1]->getVal());
+            fprintf(yyout, ", LSL #%d", (int)this->use_list[1]->getVal());
         break;
 
     default:
@@ -1072,8 +1114,9 @@ void MachineUnit::printGlobalDecl()
                 {
                     for (auto val : var->getArrVals())
                     {
-                        float value = float(val);
-                        fprintf(yyout, "\t.word %u\n", reinterpret_cast<unsigned &>(value));
+                        VAL value;
+                        value.float_val = float(val);
+                        fprintf(yyout, "\t.word %u\n", value.unsigned_val);
                     }
                 }
             }
@@ -1088,8 +1131,9 @@ void MachineUnit::printGlobalDecl()
                 fprintf(yyout, "\t.word %d\n", int(var->getValue()));
             else
             {
-                float value = float(var->getValue());
-                fprintf(yyout, "\t.word %u\n", reinterpret_cast<unsigned &>(value));
+                VAL value;
+                value.float_val = float(var->getValue());
+                fprintf(yyout, "\t.word %u\n", value.unsigned_val);
             }
         }
     }

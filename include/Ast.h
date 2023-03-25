@@ -211,7 +211,6 @@ private:
     bool isconst;
     ExprNode *leaf;
     std::vector<InitNode *> leaves;
-    int cur_size = 0;
 
 public:
     InitNode(bool isconst = false) : isconst(isconst), leaf(nullptr){};
@@ -226,7 +225,7 @@ public:
     int getSize(int d_nxt);
     bool isConst() const { return isconst; }
     void output(int level);
-    void genCode(int level);
+    void genCode();
     std::vector<InitNode *> getleaves() { return leaves; };
     ExprNode *getself() { return leaf; };
     ~InitNode()
@@ -280,12 +279,10 @@ private:
     Id *id;
     InitNode *expr;
     DeclStmt *next;
-    bool BeConst;
-    bool BeArray;
     DeclStmt *head;
 
 public:
-    DeclStmt(Id *id, InitNode *expr = nullptr, bool isConst = false, bool isArray = false);
+    DeclStmt(Id *id, InitNode *expr = nullptr);
     void setNext(DeclStmt *next);
     DeclStmt *getNext();
     void setHead(DeclStmt *head) { this->head = head; };

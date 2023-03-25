@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <stack>
 #include "LinearScan.h"
 #include "MachineCode.h"
 #include "LiveVariableAnalysis.h"
@@ -50,7 +51,7 @@ void LinearScan::makeDuChains()
             auto uses = inst->getUse();
             for (auto &use : uses)
             {
-                if (!use->isLabel())
+                if (use->isVReg())
                     all_uses[*use].insert(use);
             }
         }
@@ -58,11 +59,21 @@ void LinearScan::makeDuChains()
     du_chains.clear();
     int i = 0;
     std::map<MachineOperand, std::set<MachineOperand *>> liveVar;
-    for (auto &bb : func->getBlocks())
+    std::map<MachineBlock *, bool> is_visited;
+    for (auto bb : func->getBlocks())
+        is_visited[bb] = false;
+    std::stack<MachineBlock *> st;
+    st.push(func->getEntry());
+    is_visited[func->getEntry()] = true;
+    while (!st.empty())
     {
+        auto bb = st.top();
         liveVar.clear();
         for (auto &t : bb->getLiveOut())
-            liveVar[*t].insert(t);
+        {
+            if (t->isVReg())
+                liveVar[*t].insert(t);
+        }
         int no;
         no = i = bb->getInsts().size() + i;
         for (auto inst = bb->getInsts().rbegin(); inst != bb->getInsts().rend(); inst++)
@@ -86,6 +97,19 @@ void LinearScan::makeDuChains()
                     liveVar[*use].insert(use);
             }
         }
+        bool next_found = false;
+        for (auto succ : bb->getSuccs())
+        {
+            if (!is_visited[succ])
+            {
+                is_visited[succ] = true;
+                st.push(succ);
+                next_found = true;
+                break;
+            }
+        }
+        if (!next_found)
+            st.pop();
     }
 }
 
@@ -299,7 +323,7 @@ void LinearScan::expireOldIntervals(Interval *interval)
 {
     for (auto inter = active.begin(); inter != active.end(); inter = active.erase(find(active.begin(), active.end(), (*inter))))
     {
-        if ((*inter)->end >= interval->start)
+        if ((*inter)->end > interval->start)
             return;
         if ((*inter)->valType->isFloat())
         {
