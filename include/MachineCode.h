@@ -30,6 +30,7 @@ bool isFloatShifterOperandVal(float val);
 class MachineOperand
 {
 private:
+    MachineInstruction* def = nullptr;
     MachineInstruction *parent;
     int type;          // {IMM, VREG, REG, LABEL}
     double val;        // value of immediate number
@@ -73,6 +74,8 @@ public:
         return this->valType;
     };
     bool isIllegalShifterOperand(); // 第二操作数应符合8位图格式
+    void setMDef(MachineInstruction* inst) { def = inst; };
+    MachineInstruction* getMDef() { return def; };
 };
 
 class MachineInstruction
@@ -104,7 +107,8 @@ public:
         STACK,
         ZEXT,
         VCVT,
-        VMRS
+        VMRS,
+        SMULL
     };
     enum condType
     {
@@ -125,11 +129,14 @@ public:
     std::vector<MachineOperand *> &getDef() { return def_list; };
     std::vector<MachineOperand *> &getUse() { return use_list; };
     MachineBlock *getParent() { return parent; };
+    void setParent(MachineBlock* block) { this->parent = block; }
     int getOpType() { return op; };
     int getInstType() const { return type; };
 
 
     bool isMul() const { return type == BINARY && op == 2; };
+    bool isDiv() const { return type == BINARY && op == 3; };
+    bool isMod() const { return type == BINARY && op == 4; };
     bool isLoad() const { return type == LOAD; };
     bool isMov() const { return type == MOV && op == 0; };
 };
@@ -143,6 +150,8 @@ public:
         SUB,
         MUL,
         DIV,
+        AND,
+        RSB
     };
     BinaryMInstruction(MachineBlock *p, int op,
                        MachineOperand *dst, MachineOperand *src1, MachineOperand *src2,
@@ -266,6 +275,18 @@ public:
     void output();
 };
 
+class SmullMInstruction : public MachineInstruction {
+   public:
+    SmullMInstruction(MachineBlock* p,
+                       MachineOperand* dst,
+                       MachineOperand* dst1,
+                       MachineOperand* src1,
+                       MachineOperand* src2,
+                       int cond = MachineInstruction::NONE);
+    void output();
+    int latency();
+};
+
 class MachineBlock
 {
 private:
@@ -312,6 +333,7 @@ public:
     std::set<MachineBlock *> &getSDoms() { return SDoms; };
     MachineBlock *&getIDom() { return IDom; };
     ~MachineBlock();
+    void remove(MachineInstruction* ins);
 };
 
 class MachineFunction

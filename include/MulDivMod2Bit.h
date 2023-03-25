@@ -10,6 +10,7 @@ class MulDivMod2Bit {
     MulDivMod2Bit(MachineUnit* unit) : unit(unit){};
     void pass();
     void mul2lsl();
+    void div2mul();
 
 };
 

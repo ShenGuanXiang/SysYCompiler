@@ -223,6 +223,12 @@ std::string ValueNumberingASM::getOpString(MachineInstruction *minst)
         case BinaryMInstruction::DIV:
             instString += "DIV";
             break;
+        case BinaryMInstruction::AND:
+            instString += "AND";
+            break;
+        case BinaryMInstruction::RSB:
+            instString += "RSB";
+            break;
         default: assert(0);
         }
         break;

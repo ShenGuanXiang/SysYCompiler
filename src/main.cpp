@@ -125,6 +125,7 @@ int main(int argc, char *argv[])
         }
         LinearScan linearScan(&mUnit);
         linearScan.pass();
+        fprintf(stderr, "linearScan ok\n");
         if (optimize)
         {
             // todo: 汇编代码优化

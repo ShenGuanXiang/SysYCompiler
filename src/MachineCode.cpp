@@ -284,6 +284,7 @@ BinaryMInstruction::BinaryMInstruction(
     dst->setParent(this);
     src1->setParent(this);
     src2->setParent(this);
+    dst->setMDef(this);
 }
 
 void BinaryMInstruction::output()
@@ -324,6 +325,12 @@ void BinaryMInstruction::output()
         case BinaryMInstruction::DIV:
             fprintf(yyout, "\tsdiv");
             break;
+        case BinaryMInstruction::AND:
+            fprintf(yyout, "\tand ");
+            break;
+        case BinaryMInstruction::RSB:
+            fprintf(yyout, "\trsb ");
+            break;
         default:
             break;
         }
@@ -354,6 +361,7 @@ LoadMInstruction::LoadMInstruction(MachineBlock *p,
     src1->setParent(this);
     if (src2)
         src2->setParent(this);
+    dst->setMDef(this);
 }
 
 void LoadMInstruction::output()
@@ -524,12 +532,13 @@ MovMInstruction::MovMInstruction(MachineBlock *p, int op,
         this->use_list.push_back(shifter);
         shifter->setParent(this);
     }
+    dst->setMDef(this);
 }
 
 void MovMInstruction::output()
 {
-    if ((*def_list[0]) == (*use_list[0]))
-        return;
+    // if ((*def_list[0]) == (*use_list[0]))
+    //     return;
     switch (this->op)
     {
     case MovMInstruction::MOV:
@@ -569,7 +578,17 @@ void MovMInstruction::output()
     {
     case MovMInstruction::MOVLSL:
         if ((int)this->use_list[1]->getVal())
-            fprintf(yyout, ", LSL#%d", (int)this->use_list[1]->getVal());
+            fprintf(yyout, ", LSL #%d", (int)this->use_list[1]->getVal());
+        break;
+
+    case MovMInstruction::MOVLSR:
+        if ((int)this->use_list[1]->getVal())
+            fprintf(yyout, ", LSR #%d", (int)this->use_list[1]->getVal());
+        break;
+
+    case MovMInstruction::MOVASR:
+        if ((int)this->use_list[1]->getVal())
+            fprintf(yyout, ", ASR #%d", (int)this->use_list[1]->getVal());
         break;
 
     default:
@@ -590,6 +609,7 @@ BranchMInstruction::BranchMInstruction(MachineBlock *p, int op,
     this->cond = cond;
     this->def_list.push_back(dst);
     dst->setParent(this);
+    dst->setMDef(this);
 }
 
 void BranchMInstruction::output()
@@ -749,6 +769,7 @@ VcvtMInstruction::VcvtMInstruction(MachineBlock *p,
     this->use_list.push_back(src);
     dst->setParent(this);
     src->setParent(this);
+    dst->setMDef(this);
 }
 
 void VcvtMInstruction::output()
@@ -781,6 +802,45 @@ VmrsMInstruction::VmrsMInstruction(MachineBlock *p)
 void VmrsMInstruction::output()
 {
     fprintf(yyout, "\tvmrs APSR_nzcv, FPSCR\n");
+}
+
+SmullMInstruction::SmullMInstruction(MachineBlock* p,
+                                       MachineOperand* dst,
+                                       MachineOperand* dst1,
+                                       MachineOperand* src1,
+                                       MachineOperand* src2,
+                                       int cond) {
+    this->parent = p;
+    this->type = MachineInstruction::SMULL;
+    this->cond = cond;
+    this->def_list.push_back(dst);
+    this->def_list.push_back(dst1);
+    this->use_list.push_back(src1);
+    this->use_list.push_back(src2);
+    dst->setParent(this);
+    dst1->setParent(this);
+    src1->setParent(this);
+    src2->setParent(this);
+    dst->setMDef(this);
+    dst1->setMDef(this);
+}
+
+void SmullMInstruction::output() {
+    fprintf(yyout, "\tumull ");
+    this->def_list[0]->output();
+    fprintf(yyout, ", ");
+    this->def_list[1]->output();
+    fprintf(yyout, ", ");
+    this->use_list[0]->output();
+    fprintf(yyout, ", ");
+    this->use_list[1]->output();
+    fprintf(yyout, "\n");
+}
+
+void MachineBlock::remove(MachineInstruction* ins) {
+    auto it = find(inst_list.begin(), inst_list.end(), ins);
+    if (it != inst_list.end())
+        inst_list.erase(it);
 }
 
 void MachineBlock::insertBefore(MachineInstruction *pos, MachineInstruction *inst)
