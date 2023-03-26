@@ -13,12 +13,28 @@ class ValueNumbering
 {
     Unit *unit;
     std::unordered_map<std::string,Operand*> htable;
+    std::unordered_map<std::string,Operand*> global_htable;
     // use def as value number, the hash is f: string->operand
     // construct operation's key from operand's name
-    std::string getOpString(Instruction *inst);
     std::unordered_map<BasicBlock*,std::vector<BasicBlock*>>domtree;
 
+
+    //for dataflow analysis
+    void addtoghtable(Operand* def,std::string instStr){
+        if(global_htable.count(instStr)) {
+            global_htable[def->toStr()]=global_htable[instStr];
+        }
+        else{
+            global_htable[instStr]=def;
+        }
+    }
+    std::string getOpString (Instruction *inst);
 public:
+    //export for dataflow analysis
+    std::unordered_map<std::string,Operand*>& getmap() {return global_htable;}
+    
+
+
     ValueNumbering(Unit *unit) : unit(unit){};
     void dumpTable();
     void computeDomTree(Function* func);

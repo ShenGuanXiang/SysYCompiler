@@ -2,7 +2,7 @@
 #include "Instruction.h"
 
 #include <vector>
-std::string ValueNumbering::getOpString(Instruction *inst)
+std::string ValueNumbering::getOpString(Instruction *inst) 
 {
     std::string instString = "";
     switch (inst->getInstType())
@@ -130,6 +130,9 @@ void ValueNumbering::dvnt(BasicBlock *bb)
         }
         else
         {
+            //table used in lcm
+            addtoghtable(dst,instString);
+
             if(htable.count(instString)){
                 auto src=htable[instString];
                 torm.push_back(cur_inst);
@@ -269,6 +272,13 @@ void ValueNumberingASM::pass()
 }
 void ValueNumberingASM::dvnt(MachineBlock* bb)
 {
+    printf("cur bb is %d",bb->getNo());
+    //print htable
+    printf("htable is:");
+    for(auto it=htable.begin();it!=htable.end();it++)
+        printf("%s->%s ",it->first.c_str(),it->second->toStr().c_str());
+    printf("\n");
+
     std::unordered_map<std::string, MachineOperand *> prehtable; 
     prehtable = htable;// store curent htable, to restore after processing children
     std::unordered_map<std::string, MachineOperand *> localhtable;
