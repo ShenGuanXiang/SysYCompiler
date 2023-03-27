@@ -174,6 +174,8 @@ void LazyCodeMotion::computeAnt()
         //iteratively solve
         bool changed=true;
         while(changed){
+            changed=false;
+
             for(auto bb_it=(*func_it)->begin();bb_it!=(*func_it)->end();bb_it++){
                 auto curbb=*bb_it;
                 std::set<Operand*> temp_diff;
@@ -189,10 +191,7 @@ void LazyCodeMotion::computeAnt()
 
                 if(curbb==dummy) continue;
 
-
-
-                std::set<Operand*> temp_antout;
-                
+                std::set<Operand*> temp_antout;                
                 for(auto succ_it=curbb->succ_begin();succ_it!=curbb->succ_end();succ_it++){
                     auto cur_succ=*succ_it;
                     if(succ_it==curbb->succ_begin())
@@ -210,6 +209,7 @@ void LazyCodeMotion::computeAnt()
                     antout[curbb].insert(temp_antout.begin(),temp_antout.end());
                     changed=true;
                 }
+
 
             }
 
@@ -229,99 +229,175 @@ void LazyCodeMotion::computeAnt()
 void LazyCodeMotion::computeEarliest()
 {
     //bfs the cfg
-    // for(auto func_it=unit->begin();func_it!=unit->end();func_it++){
-    //     std::queue<BasicBlock*> q;
-    //     std::set<BasicBlock*> visited;
-    //     q.push((*func_it)->getEntry());
-    //     visited.insert((*func_it)->getEntry());
-    //     while(!q.empty()){
-    //         auto curbb=q.front();
-    //         q.pop();
-    //         for(auto succ_it=curbb->succ_begin();succ_it!=curbb->succ_end();succ_it++){
-    //             auto succ=*succ_it;
-    //             //compute earliest
-    //             Edge edge{curbb,succ};
-    //             std::set<Operand*> diff,comple,uni,intersect;
-    //             std::set_difference(antin[succ].begin(),antin[succ].end(),availout[curbb].begin(),availout[curbb].end(),std::inserter(diff,diff.end()));
-    //             std::set_difference(allexpr[*func_it].begin(),allexpr[*func_it].end(),antout[curbb].begin(),antout[curbb].end(),std::inserter(comple,comple.end()));
-    //             std::set_union(killexpr[curbb].begin(),killexpr[curbb].end(),comple.begin(),comple.end(),std::inserter(uni,uni.end()));
-    //             std::set_intersection(diff.begin(),diff.end(),uni.begin(),uni.end(),std::inserter(intersect,intersect.end()));
-    //             earliest[edge].insert(intersect.begin(),intersect.end());
-    //             if(visited.find(succ)==visited.end()){
-    //                 q.push(succ);
-    //                 visited.insert(succ);
-    //             }
-    //         }
-    //     }
-    // }
+    for(auto func_it=unit->begin();func_it!=unit->end();func_it++){
+        std::queue<BasicBlock*> q;
+        std::set<BasicBlock*> visited;
+        q.push((*func_it)->getEntry());
+        visited.insert((*func_it)->getEntry());
+        while(!q.empty()){
+            auto curbb=q.front();
+            q.pop();
+            for(auto succ_it=curbb->succ_begin();succ_it!=curbb->succ_end();succ_it++){
+                auto succ=*succ_it;
+                //compute earliest
+                Edge edge{curbb,succ};
+                std::set<Operand*> diff,comple,uni,intersect;
+                std::set_difference(antin[succ].begin(),antin[succ].end(),availout[curbb].begin(),availout[curbb].end(),std::inserter(diff,diff.end()));
+                std::set_difference(allexpr[*func_it].begin(),allexpr[*func_it].end(),antout[curbb].begin(),antout[curbb].end(),std::inserter(comple,comple.end()));
+                std::set_union(killexpr[curbb].begin(),killexpr[curbb].end(),comple.begin(),comple.end(),std::inserter(uni,uni.end()));
+                std::set_intersection(diff.begin(),diff.end(),uni.begin(),uni.end(),std::inserter(intersect,intersect.end()));
+                earliest[edge].insert(intersect.begin(),intersect.end());
+                if(visited.find(succ)==visited.end()){
+                    q.push(succ);
+                    visited.insert(succ);
+                }
+            }
+        }
+    }
 }
 
 void LazyCodeMotion::computeLater()
 {
-    // for(auto func_it=unit->begin();func_it!=unit->end();func_it++)
-    // {
-    //     auto dummy=new BasicBlock(*func_it);
-    //     dummy->addSucc((*func_it)->getEntry());
-    //     (*func_it)->getEntry()->addPred(dummy);
+    for(auto func_it=unit->begin();func_it!=unit->end();func_it++)
+    {
+        auto dummy=new BasicBlock(*func_it);
+        dummy->addSucc((*func_it)->getEntry());
+        (*func_it)->getEntry()->addPred(dummy);
 
-    //     for(auto bb_it=(*func_it)->begin();bb_it!=(*func_it)->end();bb_it++)
-    //         availout[*bb_it].insert(allexpr[*func_it].begin(),allexpr[*func_it].end());
-    //     availout[dummy].clear();
+        for(auto bb_it=(*func_it)->begin();bb_it!=(*func_it)->end();bb_it++)
+            laterin[*bb_it].insert(allexpr[*func_it].begin(),allexpr[*func_it].end());
+        laterin[dummy].clear();
 
-    //     bool changed=true;
-    //     while(changed){
-    //         changed=false;
-    //         for(auto bb_it=(*func_it)->begin();bb_it!=(*func_it)->end();bb_it++){
-    //             auto curbb=*bb_it;
-    //             if(curbb==dummy) continue;
-    //             std::set<Operand*> temp_laterin;
-    //             for(auto pred_it=curbb->pred_begin();pred_it!=curbb->pred_end();pred_it++){
-    //                 auto pred=*pred_it;
-    //                 Edge e{pred,curbb};
-    //                 if(temp_laterin.empty())
-    //                     temp_laterin.insert(later[e].begin(),later[e].end());
-    //                 else{
-    //                     std::set<Operand*> intersect;
-    //                     std::set_intersection(temp_laterin.begin(),temp_laterin.end(),later[e].begin(),later[e].end(),std::inserter(intersect,intersect.end()));
-    //                     temp_laterin.insert(intersect.begin(),intersect.end());
-    //                 }
-    //                 if(temp_laterin!=laterin[curbb]){
-    //                     laterin[curbb].clear();
-    //                     laterin[curbb].insert(temp_laterin.begin(),temp_laterin.end());
-    //                     changed=true;
-    //                 }
-    //             }
+        bool changed=true;
+        while(changed){
+            changed=false;
+            for(auto bb_it=(*func_it)->begin();bb_it!=(*func_it)->end();bb_it++){
+                auto curbb=*bb_it;
+                if(curbb==dummy) continue;
+                std::set<Operand*> temp_laterin;
+                for(auto pred_it=curbb->pred_begin();pred_it!=curbb->pred_end();pred_it++){
+                    auto pred=*pred_it;
+                    Edge e{pred,curbb};
+                    if(temp_laterin.empty())
+                        temp_laterin.insert(later[e].begin(),later[e].end());
+                    else{
+                        std::set<Operand*> intersect;
+                        std::set_intersection(temp_laterin.begin(),temp_laterin.end(),later[e].begin(),later[e].end(),std::inserter(intersect,intersect.end()));
+                        temp_laterin.insert(intersect.begin(),intersect.end());
+                    }
+                    if(temp_laterin!=laterin[curbb]){
+                        laterin[curbb].clear();
+                        laterin[curbb].insert(temp_laterin.begin(),temp_laterin.end());
+                        changed=true;
+                    }
+                }
 
 
-    //             // for(auto pred_it=curbb->pred_begin();pred_it!=curbb->pred_end();pred_it++){
-    //             //     auto pred=*pred_it;
-    //             //     Edge e{pred,curbb};
-    //             //     later[e].clear();
-    //             //     later[e].insert(earliest[e].begin(),earliest[e].end());
-    //             //     std::set<Operand*> diff;
-    //             //     std::set_difference(laterin[pred].begin(),)
-    //             //     if(temp_laterin.empty())
-    //             //         temp_laterin.insert(later[e].begin(),later[e].end());
-    //             //     else{
-    //             //         std::set<Operand*> intersect;
-    //             //         std::set_intersection(temp_laterin.begin(),temp_laterin.end(),later[e].begin(),later[e].end(),std::inserter(intersect,intersect.end()));
-    //             //         temp_laterin.insert(intersect.begin(),intersect.end());
-    //             //     }
-    //             //     if(temp_laterin!=laterin[curbb]){
-    //             //         laterin[curbb].clear();
-    //             //         laterin[curbb].insert(temp_laterin.begin(),temp_laterin.end());
-    //             //         changed=true;
-    //             //     }
-    //             // }
-    //         }
-    //     }
+                for(auto pred_it=curbb->pred_begin();pred_it!=curbb->pred_end();pred_it++){
+                    auto pred=*pred_it;
+                    Edge e{pred,curbb};
+                    std::set<Operand*> diff,temp_later,uni;
+                    std::set_difference(laterin[pred].begin(),laterin[pred].end(),ueexpr[pred].begin(),ueexpr[pred].end(),std::inserter(diff,diff.end()));
+                    std::set_union(earliest[e].begin(),earliest[e].end(),diff.begin(),diff.end(),std::inserter(temp_later,temp_later.end()));
+                    if(temp_later!=later[e]){
+                        later[e].clear();
+                        later[e].insert(temp_later.begin(),temp_later.end());
+                        changed=true;
+                    }
+                }
 
-    //     (*func_it)->getEntry()->removePred(dummy);
-    //     dummy->removeSucc((*func_it)->getEntry());
-    //     (*func_it)->remove(dummy);
-    //     delete dummy;
-    // }
+
+            }
+        }
+
+        (*func_it)->getEntry()->removePred(dummy);
+        dummy->removeSucc((*func_it)->getEntry());
+        (*func_it)->remove(dummy);
+        delete dummy;
+    }
     
+}
+
+void LazyCodeMotion::rewrite()
+{
+    //bfs
+    for(auto func_it=unit->begin();func_it!=unit->end();func_it++){
+        std::queue<BasicBlock*> q;
+        std::set<BasicBlock*> visited;
+        q.push((*func_it)->getEntry());
+        visited.insert((*func_it)->getEntry());
+        while(!q.empty()){
+            auto curbb=q.front();
+            q.pop();
+
+            deleteset[curbb].clear();
+            std::set_difference(ueexpr[curbb].begin(),ueexpr[curbb].end(),laterin[curbb].begin(),laterin[curbb].end(),std::inserter(deleteset[curbb],deleteset[curbb].end()));
+            
+            for(auto succ_it=curbb->succ_begin();succ_it!=curbb->succ_end();succ_it++){
+                auto succ=*succ_it;
+                Edge e{curbb,succ};
+                insertset[e].clear();
+                std::set_difference(later[e].begin(),later[e].end(),laterin[succ].begin(),laterin[succ].end(),std::inserter(insertset[e],insertset[e].end()));           
+
+
+                if(visited.find(succ)==visited.end()){
+                    q.push(succ);
+                    visited.insert(succ);
+                }
+            }
+        }
+    }
+
+    //rewirte
+    for(auto it=insertset.begin();it!=insertset.end();it++){
+        auto src=it->first.src;
+        auto dst=it->first.dst;
+        auto& exprset=it->second;
+        if(src->getNumOfSucc()==1){
+            for(auto def : exprset){
+                auto inst=def->getDef();
+                src->insertBack(inst);
+            }
+        }
+        else if(dst->getNumOfPred()==1){
+            for(auto def : exprset){
+                auto inst=def->getDef();
+                dst->insertFront(inst);
+            }
+        }
+        else{
+            BasicBlock* bb = new BasicBlock(src->getParent());
+            for(auto def : exprset){
+                auto inst=def->getDef();
+                bb->insertBack(inst);
+            }
+            Instruction* br=new UncondBrInstruction(dst,bb);
+            bb->insertBack(br);
+            
+            src->addSucc(bb);
+            bb->addSucc(dst);
+            bb->addPred(src);
+            dst->addPred(bb);
+        }
+            
+    }
+
+    for(auto it=deleteset.begin();it!=deleteset.end();it++){
+        auto bb=it->first;
+        auto& exprset=it->second;
+        for(auto def : exprset){
+            //TODO：直接通过def找到实际的指令，这里的def和实际的操作数不相同
+            for(auto inst=bb->begin();inst!=bb->end();inst=inst->getNext()){
+                auto dst=inst->getDef();
+                auto dst_str=dst->toStr();
+                if(htable.count(dst_str) && htable[dst_str]==def){
+                    inst->replaceAllUsesWith(def);
+                    bb->remove(inst);
+                    break;
+                }
+            }
+        }
+    }
 }
 
 void LazyCodeMotion::printAnt(){
@@ -341,11 +417,71 @@ void LazyCodeMotion::printAnt(){
     }
 }
 
+void LazyCodeMotion::printLoal()
+{
+    //print local: deexpr, ueexpr, killexpr
+    auto func=(*unit->begin());
+    for(auto bb_it=func->begin();bb_it!=func->end();bb_it++){
+        auto curbb=*bb_it;
+        std::cout<<"deexpr of bb"<<curbb->getNo()<<": ";
+        for(auto expr : deexpr[curbb]){
+            std::cout<<expr->toStr()<<" ";
+        }
+        std::cout<<std::endl;
+        std::cout<<"ueexpr of bb"<<curbb->getNo()<<": ";
+        for(auto expr : ueexpr[curbb]){
+            std::cout<<expr->toStr()<<" ";
+        }
+        std::cout<<std::endl;
+        std::cout<<"killexpr of bb"<<curbb->getNo()<<": ";
+        for(auto expr : killexpr[curbb]){
+            std::cout<<expr->toStr()<<" ";
+        }
+        std::cout<<std::endl;
+    }
+}
+
+void LazyCodeMotion::printall()
+{
+    //print allexpr
+    for(auto it=allexpr.begin();it!=allexpr.end();it++){
+        for(auto expr : it->second){
+            std::cout<<expr->toStr()<<" ";
+        }
+        std::cout<<std::endl;
+    }
+
+}
+
+void LazyCodeMotion::printLater()
+{
+    //print laterin/later
+    for(auto bb_it=laterin.begin();bb_it!=laterin.end();bb_it++){
+        auto curbb=bb_it->first;
+        std::cout<<"laterin of bb"<<curbb->getNo()<<": ";
+        for(auto expr : laterin[curbb]){
+            std::cout<<expr->toStr()<<" ";
+        }
+        std::cout<<std::endl;
+    }
+    for(auto it=later.begin();it!=later.end();it++){
+        auto src=it->first.src;
+        auto dst=it->first.dst;
+        std::cout<<"later of edge ("<<src->getNo()<<","<<dst->getNo()<<"): ";
+        for(auto expr : later[it->first]){
+            std::cout<<expr->toStr()<<" ";
+        }
+        std::cout<<std::endl;
+    }
+}
+
 void LazyCodeMotion::pass()
 {
     collectAllexpr();
     computeLocal();
+    computeAvail();
     computeAnt();
     computeEarliest();
-
+    computeLater();
+    rewrite();
 }

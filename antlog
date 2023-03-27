@@ -1,291 +1,150 @@
-ueexpr of bb10: %t1 %t2 
-deexpr of bb10: %t1 %t2 
-killexpr of bb10: %t4 
-ueexpr of bb17: %t4 
-deexpr of bb17: %t4 
-killexpr of bb17: %t5 
-ueexpr of bb20: %t4 %t7 
-deexpr of bb20: %t4 %t5 %t7 
-killexpr of bb20: %t5 
-----------------------0----------------------
-antin of bb10: %t1 %t2 %t5 %t7 
-antout of bb10: %t1 %t2 %t4 %t5 %t7 
-antin of bb20: 
-antout of bb20: %t1 %t2 %t4 %t5 %t7 
-antin of bb17: 
-antout of bb17: %t1 %t2 %t4 %t5 %t7 
-antin of bb10: %t1 %t2 %t5 %t7 
-antout of bb10: 
-antin of bb20: 
-antout of bb20: %t1 %t2 %t4 %t5 %t7 
-antin of bb17: %t1 %t2 %t4 %t7 
-antout of bb17: %t1 %t2 %t4 %t5 %t7 
-antin of bb10: %t1 %t2 %t5 %t7 
-antout of bb10: 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: 
-antout of bb20: %t1 %t2 %t4 %t5 %t7 
-antin of bb17: %t1 %t2 %t4 %t7 
-antout of bb17: 
-antin of bb10: %t1 %t2 %t5 %t7 
-antout of bb10: 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t1 %t2 %t4 %t5 %t7 
-antin of bb17: %t1 %t2 %t4 %t7 
-antout of bb17: 
-antin of bb10: %t1 %t2 %t5 %t7 
-antout of bb10: 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t1 %t2 %t4 %t7 
-antin of bb17: %t1 %t2 %t4 %t7 
-antout of bb17: 
-antin of bb10: %t1 %t2 %t5 %t7 
-antout of bb10: 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t1 %t2 %t4 %t7 
-antin of bb17: %t1 %t2 %t4 %t7 
-antout of bb17: 
-antin of bb10: %t1 %t2 %t5 %t7 
-antout of bb10: 
-----------------------1----------------------
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t1 %t2 %t4 %t7 
-antin of bb17: %t1 %t2 %t4 %t7 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t1 %t2 %t4 %t7 
-antin of bb17: %t1 %t2 %t4 %t7 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t1 %t2 %t4 %t7 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t1 %t2 %t4 %t7 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t1 %t2 %t4 %t7 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t1 %t2 %t4 %t7 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t1 %t2 %t4 %t7 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t1 %t2 %t4 %t7 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t1 %t2 %t4 %t7 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t1 %t2 %t4 %t7 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t1 %t2 %t4 %t7 
-----------------------2----------------------
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 %t7 
-antout of bb10: %t1 %t2 %t4 %t7 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 %t7 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 %t7 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t1 %t2 %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 %t7 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 %t7 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 %t7 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 %t7 
-antout of bb10: %t4 
-----------------------3----------------------
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-----------------------4----------------------
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb31: 
-antout of bb31: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin/antout--------------
-antin of bb10: %t1 %t2 
-antout of bb10: %t4 
-antin of bb17: %t4 
-antout of bb17: 
-antin of bb20: %t4 %t7 
-antout of bb20: %t4 
+laterin of bb25: 
+laterin of bb15: %t4 %t5 
+laterin of bb12: %t4 %t5 
+laterin of bb6: 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: %t4 %t5 
+laterin of bb12: %t4 %t5 
+laterin of bb6: 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: %t4 %t5 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (15,12): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: %t4 %t5 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (15,12): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: %t4 %t5 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: %t4 %t5 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: %t4 %t5 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: %t4 %t5 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: %t4 %t5 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: %t4 %t5 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: %t4 %t5 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 
+laterin of bb25: 
+laterin of bb15: %t4 %t5 
+laterin of bb12: 
+laterin of bb6: 
+later of edge (6,12): 
+later of edge (6,15): %t4 %t5 
+later of edge (15,12): 
+later of edge (15,15): 
+later of edge (25,6): 

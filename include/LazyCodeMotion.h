@@ -6,10 +6,10 @@
 struct  Edge{
     BasicBlock *src;
     BasicBlock *dst;
-    bool operator<(const Edge &e) {
+    bool operator<(const Edge& e) const {
         return src->getNo() < e.src->getNo() || (src->getNo() == e.src->getNo() && dst->getNo() < e.dst->getNo());
     }
-    bool operator==(const Edge &e) {
+    bool operator==(const Edge& e) const {
         return src->getNo() == e.src->getNo() && dst->getNo() == e.dst->getNo();
     }
 };
@@ -30,18 +30,25 @@ class LazyCodeMotion  {
     std::map<Edge, std::set<Operand*>> earliest;
     std::map<Edge, std::set<Operand*>> later;
     std::unordered_map<BasicBlock*, std::set<Operand*>> laterin;
+
+    std::map<Edge, std::set<Operand*>> insertset;
+    std::unordered_map<BasicBlock*, std::set<Operand*>> deleteset;
     
     std::string getOpString (Instruction *inst);
     std::unordered_map<Function*,std::set<Operand*>> allexpr;
 public:
   LazyCodeMotion(Unit *unit, ValueNumbering *vn) : unit(unit),htable(vn->getmap()) {}
   void printAnt();
+  void printLoal();
+  void printall();
+  void printLater();
   void collectAllexpr();
   void computeLocal();
   void computeAvail();
   void computeAnt();
   void computeEarliest();
   void computeLater();
+  void rewrite();
   void pass();
 };
 
