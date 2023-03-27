@@ -25,7 +25,7 @@ class MachineOperand;
 
 bool isShifterOperandVal(unsigned bin_val);
 bool isSignedShifterOperandVal(signed val);
-bool isFloatShifterOperandVal(float val);
+bool is_Legal_VMOV_FloatImm(float val);
 
 class MachineOperand
 {
@@ -66,6 +66,7 @@ public:
     void setParent(MachineInstruction *p) { this->parent = p; };
     void printReg();
     void output();
+    std::string toStr();
     Type *getValType()
     {
         assert(valType->isInt() || valType->isFloat());
@@ -89,6 +90,9 @@ protected:
     void addUse(MachineOperand *ope) { use_list.push_back(ope); };
     // print execution code after printing opcode
     void printCond();
+    int getcond() { return cond; }
+
+public:
     enum instType
     {
         BINARY,
@@ -100,10 +104,9 @@ protected:
         STACK,
         ZEXT,
         VCVT,
-        VMRS
+        VMRS,
+        SMULL
     };
-
-public:
     enum condType
     {
         EQ,
@@ -123,11 +126,15 @@ public:
     std::vector<MachineOperand *> &getDef() { return def_list; };
     std::vector<MachineOperand *> &getUse() { return use_list; };
     MachineBlock *getParent() { return parent; };
+    void setParent(MachineBlock *block) { this->parent = block; }
     int getOpType() { return op; };
+    int getInstType() const { return type; };
 
-    bool isMul() const { return type == BINARY && op == 2; };
+    bool isMul() const;
+    bool isDiv() const;
     bool isLoad() const { return type == LOAD; };
-    bool isMov() const { return type == MOV && op == 0; };
+    bool isMov() const;
+    bool isVmov() const;
 };
 
 class BinaryMInstruction : public MachineInstruction
@@ -139,6 +146,8 @@ public:
         SUB,
         MUL,
         DIV,
+        AND,
+        RSB
     };
     BinaryMInstruction(MachineBlock *p, int op,
                        MachineOperand *dst, MachineOperand *src1, MachineOperand *src2,
@@ -153,7 +162,6 @@ public:
                      MachineOperand *dst, MachineOperand *src1, MachineOperand *src2 = nullptr,
                      int cond = MachineInstruction::NONE);
     void output();
-    bool is_1_src() { return use_list.size() == 1; };
 };
 
 class StoreMInstruction : public MachineInstruction
@@ -259,6 +267,18 @@ class VmrsMInstruction : public MachineInstruction
 {
 public:
     VmrsMInstruction(MachineBlock *p);
+    void output();
+};
+
+class SmullMInstruction : public MachineInstruction
+{
+public:
+    SmullMInstruction(MachineBlock *p,
+                      MachineOperand *dst1,
+                      MachineOperand *dst2,
+                      MachineOperand *src1,
+                      MachineOperand *src2,
+                      int cond = MachineInstruction::NONE);
     void output();
 };
 

@@ -4,12 +4,14 @@
 #include "MachineCode.h"
 #include "LiveVariableAnalysis.h"
 
+static std::set<MachineInstruction *> freeInsts; // def not use
+
 LinearScan::LinearScan(MachineUnit *unit)
 {
     this->unit = unit;
-    for (int i = 4; i < 11; i++)
+    for (int i = 10; i >= 4; i--)
         rregs.push_back(i);
-    for (int i = 5; i < 32; i++)
+    for (int i = 31; i >= 4; i--) // todo : 不能再多了？
         sregs.push_back(i);
 }
 
@@ -38,6 +40,9 @@ void LinearScan::pass()
                 genSpillCode();
         } while (!success);
     }
+    for (auto inst : freeInsts)
+        delete inst;
+    freeInsts.clear();
 }
 
 void LinearScan::makeDuChains()
@@ -74,8 +79,7 @@ void LinearScan::makeDuChains()
             if (t->isVReg())
                 liveVar[*t].insert(t);
         }
-        int no;
-        no = i = bb->getInsts().size() + i;
+        int no = i = bb->getInsts().size() + i;
         for (auto inst = bb->getInsts().rbegin(); inst != bb->getInsts().rend(); inst++)
         {
             (*inst)->setNo(no--);
@@ -85,10 +89,13 @@ void LinearScan::makeDuChains()
                 {
                     auto &uses = liveVar[*def];
                     du_chains[def].insert(uses.begin(), uses.end());
-                    auto &kill = all_uses[*def];
-                    std::set<MachineOperand *> res;
-                    set_difference(uses.begin(), uses.end(), kill.begin(), kill.end(), inserter(res, res.end()));
-                    liveVar[*def] = res;
+                    if ((*inst)->getCond() == MachineInstruction::NONE)
+                    {
+                        auto &kill = all_uses[*def];
+                        std::set<MachineOperand *> res;
+                        set_difference(uses.begin(), uses.end(), kill.begin(), kill.end(), inserter(res, res.end()));
+                        liveVar[*def] = res;
+                    }
                 }
             }
             for (auto &use : (*inst)->getUse())
@@ -117,12 +124,55 @@ void LinearScan::computeLiveIntervals()
 {
     makeDuChains();
     intervals.clear();
+    bool re_no = false; // 重新对指令标号
+    auto du_chains_copy = du_chains;
+    for (auto &du_chain : du_chains_copy)
+        if (du_chain.second.empty()) // def not use
+        {
+            du_chains.erase(du_chain.first);
+            du_chain.first->getParent()->getParent()->removeInst(du_chain.first->getParent());
+            freeInsts.insert(du_chain.first->getParent());
+            re_no = true;
+        }
+    if (re_no)
+    {
+        int i = 0;
+        std::map<MachineOperand, std::set<MachineOperand *>> liveVar;
+        std::map<MachineBlock *, bool> is_visited;
+        for (auto bb : func->getBlocks())
+            is_visited[bb] = false;
+        std::stack<MachineBlock *> st;
+        st.push(func->getEntry());
+        is_visited[func->getEntry()] = true;
+        while (!st.empty())
+        {
+            auto bb = st.top();
+            int no;
+            no = i = bb->getInsts().size() + i;
+            for (auto inst = bb->getInsts().rbegin(); inst != bb->getInsts().rend(); inst++)
+                (*inst)->setNo(no--);
+            bool next_found = false;
+            for (auto succ : bb->getSuccs())
+            {
+                if (!is_visited[succ])
+                {
+                    is_visited[succ] = true;
+                    st.push(succ);
+                    next_found = true;
+                    break;
+                }
+            }
+            if (!next_found)
+                st.pop();
+        }
+    }
     for (auto &du_chain : du_chains)
     {
         int t = -1;
         for (auto &use : du_chain.second)
             t = std::max(t, use->getParent()->getNo());
-        Interval *interval = new Interval({du_chain.first->getParent()->getNo(), t, false, 0, 0, du_chain.first->getValType(), {du_chain.first}, du_chain.second});
+        assert(t != -1); // def not use
+        Interval *interval = new Interval({du_chain.first->getParent()->getNo(), t, false, 0, 0, du_chain.first->getValType(), {du_chain.first}, {du_chain.second}});
         intervals.push_back(interval);
     }
     for (auto &interval : intervals)
@@ -212,6 +262,11 @@ void LinearScan::computeLiveIntervals()
             }
     }
     sort(intervals.begin(), intervals.end(), compareStart);
+    // print all intervals
+    //  for (auto &interval : intervals)
+    //  {
+    //      std::cout << (*interval->defs.begin())->toStr()<<"  interval:" << interval->start << " " << interval->end  << std::endl;
+    //  }
 }
 
 bool LinearScan::linearScanRegisterAllocation()
@@ -219,9 +274,9 @@ bool LinearScan::linearScanRegisterAllocation()
     active.clear();
     rregs.clear();
     sregs.clear();
-    for (int i = 4; i < 11; i++) // 为什么反着push就需要更多寄存器？
+    for (int i = 10; i >= 4; i--)
         rregs.push_back(i);
-    for (int i = 5; i < 32; i++)
+    for (int i = 31; i >= 4; i--)
         sregs.push_back(i);
     bool success = true;
     for (auto &interval : intervals)
@@ -259,6 +314,7 @@ bool LinearScan::linearScanRegisterAllocation()
             }
         }
     }
+    // printf("one iteration finished\n");
     return success;
 }
 
@@ -326,22 +382,28 @@ void LinearScan::expireOldIntervals(Interval *interval)
         if ((*inter)->end > interval->start)
             return;
         if ((*inter)->valType->isFloat())
-        {
-            auto insertPos = std::lower_bound(sregs.begin(), sregs.end(), (*inter)->real_reg);
-            sregs.insert(insertPos, (*inter)->real_reg);
-        }
+            sregs.push_back((*inter)->real_reg);
         else
-        {
-            auto insertPos = std::lower_bound(rregs.begin(), rregs.end(), (*inter)->real_reg);
-            rregs.insert(insertPos, (*inter)->real_reg);
-        }
+            rregs.push_back((*inter)->real_reg);
     }
 }
 
 void LinearScan::spillAtInterval(Interval *interval)
 {
+    //  printf("------------------\n");
+    //  printf("incoming: %s [%d,%d]\n",(*interval->defs.begin())->toStr().c_str(),interval->start,interval->end);
+    // for (auto &interval : active)
+    // {
+    //     std::cout << (*interval->defs.begin())->toStr()<<"  interval:" << interval->start << " " << interval->end  << std::endl;
+    // }
+
+    // Interval *toSpill = nullptr;
+
     if ((*active.rbegin())->end > interval->end)
     {
+
+        // toSpill = (*active.rbegin());
+
         (*active.rbegin())->spill = true;
         interval->real_reg = (*active.rbegin())->real_reg;
         active.pop_back();
@@ -351,5 +413,15 @@ void LinearScan::spillAtInterval(Interval *interval)
     else
     {
         interval->spill = true;
+
+        // toSpill = interval;
     }
+
+    // printf("spill at %s:[%d,%d]\n",(*toSpill->defs.begin())->toStr().c_str(),toSpill->start,toSpill->end);
+    // // print active
+    // for (auto &interval : active)
+    // {
+    //     std::cout << (*interval->defs.begin())->toStr()<<"  interval:" << interval->start << " " << interval->end  << std::endl;
+    // }
+    // printf("------------------\n");
 }

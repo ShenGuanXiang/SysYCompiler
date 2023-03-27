@@ -13,3 +13,8 @@ parser.h
 *.dot
 debug*
 *.log
+
+makefile
+Main.cpp
+oldignore
+token

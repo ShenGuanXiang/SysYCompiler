@@ -1,10 +1,275 @@
 #include "MachineCode.h"
 #include <queue>
+#include <sstream>
+#include <iomanip>
+#include <set>
 extern FILE *yyout;
 
 static std::vector<MachineOperand *> newMachineOperands; // 用来回收new出来的SymbolEntry
 
 extern bool mem2reg;
+
+static int cnt; // 当前已打印指令数量，每次打印LiteralPool都会清零
+
+// https://developer.arm.com/documentation/ka001136/latest
+static std::set<float> legal_float_imm = std::set<float>({
+    2.00000000,
+    2.12500000,
+    2.25000000,
+    2.37500000,
+    2.50000000,
+    2.62500000,
+    2.75000000,
+    2.87500000,
+    3.00000000,
+    3.12500000,
+    3.25000000,
+    3.37500000,
+    3.50000000,
+    3.62500000,
+    3.75000000,
+    3.87500000,
+    4.00000000,
+    4.25000000,
+    4.50000000,
+    4.75000000,
+    5.00000000,
+    5.25000000,
+    5.50000000,
+    5.75000000,
+    6.00000000,
+    6.25000000,
+    6.50000000,
+    6.75000000,
+    7.00000000,
+    7.25000000,
+    7.50000000,
+    7.75000000,
+    8.00000000,
+    8.50000000,
+    9.00000000,
+    9.50000000,
+    10.00000000,
+    10.50000000,
+    11.00000000,
+    11.50000000,
+    12.00000000,
+    12.50000000,
+    13.00000000,
+    13.50000000,
+    14.00000000,
+    14.50000000,
+    15.00000000,
+    15.50000000,
+    16.00000000,
+    17.00000000,
+    18.00000000,
+    19.00000000,
+    20.00000000,
+    21.00000000,
+    22.00000000,
+    23.00000000,
+    24.00000000,
+    25.00000000,
+    26.00000000,
+    27.00000000,
+    28.00000000,
+    29.00000000,
+    30.00000000,
+    31.00000000,
+    0.12500000,
+    0.13281250,
+    0.14062500,
+    0.14843750,
+    0.15625000,
+    0.16406250,
+    0.17187500,
+    0.17968750,
+    0.18750000,
+    0.19531250,
+    0.20312500,
+    0.21093750,
+    0.21875000,
+    0.22656250,
+    0.23437500,
+    0.24218750,
+    0.25000000,
+    0.26562500,
+    0.28125000,
+    0.29687500,
+    0.31250000,
+    0.32812500,
+    0.34375000,
+    0.35937500,
+    0.37500000,
+    0.39062500,
+    0.40625000,
+    0.42187500,
+    0.43750000,
+    0.45312500,
+    0.46875000,
+    0.48437500,
+    0.50000000,
+    0.53125000,
+    0.56250000,
+    0.59375000,
+    0.62500000,
+    0.65625000,
+    0.68750000,
+    0.71875000,
+    0.75000000,
+    0.78125000,
+    0.81250000,
+    0.84375000,
+    0.87500000,
+    0.90625000,
+    0.93750000,
+    0.96875000,
+    1.00000000,
+    1.06250000,
+    1.12500000,
+    1.18750000,
+    1.25000000,
+    1.31250000,
+    1.37500000,
+    1.43750000,
+    1.50000000,
+    1.56250000,
+    1.62500000,
+    1.68750000,
+    1.75000000,
+    1.81250000,
+    1.87500000,
+    1.93750000,
+    -2.00000000,
+    -2.12500000,
+    -2.25000000,
+    -2.37500000,
+    -2.50000000,
+    -2.62500000,
+    -2.75000000,
+    -2.87500000,
+    -3.00000000,
+    -3.12500000,
+    -3.25000000,
+    -3.37500000,
+    -3.50000000,
+    -3.62500000,
+    -3.75000000,
+    -3.87500000,
+    -4.00000000,
+    -4.25000000,
+    -4.50000000,
+    -4.75000000,
+    -5.00000000,
+    -5.25000000,
+    -5.50000000,
+    -5.75000000,
+    -6.00000000,
+    -6.25000000,
+    -6.50000000,
+    -6.75000000,
+    -7.00000000,
+    -7.25000000,
+    -7.50000000,
+    -7.75000000,
+    -8.00000000,
+    -8.50000000,
+    -9.00000000,
+    -9.50000000,
+    -10.00000000,
+    -10.50000000,
+    -11.00000000,
+    -11.50000000,
+    -12.00000000,
+    -12.50000000,
+    -13.00000000,
+    -13.50000000,
+    -14.00000000,
+    -14.50000000,
+    -15.00000000,
+    -15.50000000,
+    -16.00000000,
+    -17.00000000,
+    -18.00000000,
+    -19.00000000,
+    -20.00000000,
+    -21.00000000,
+    -22.00000000,
+    -23.00000000,
+    -24.00000000,
+    -25.00000000,
+    -26.00000000,
+    -27.00000000,
+    -28.00000000,
+    -29.00000000,
+    -30.00000000,
+    -31.00000000,
+    -0.12500000,
+    -0.13281250,
+    -0.14062500,
+    -0.14843750,
+    -0.15625000,
+    -0.16406250,
+    -0.17187500,
+    -0.17968750,
+    -0.18750000,
+    -0.19531250,
+    -0.20312500,
+    -0.21093750,
+    -0.21875000,
+    -0.22656250,
+    -0.23437500,
+    -0.24218750,
+    -0.25000000,
+    -0.26562500,
+    -0.28125000,
+    -0.29687500,
+    -0.31250000,
+    -0.32812500,
+    -0.34375000,
+    -0.35937500,
+    -0.37500000,
+    -0.39062500,
+    -0.40625000,
+    -0.42187500,
+    -0.43750000,
+    -0.45312500,
+    -0.46875000,
+    -0.48437500,
+    -0.50000000,
+    -0.53125000,
+    -0.56250000,
+    -0.59375000,
+    -0.62500000,
+    -0.65625000,
+    -0.68750000,
+    -0.71875000,
+    -0.75000000,
+    -0.78125000,
+    -0.81250000,
+    -0.84375000,
+    -0.87500000,
+    -0.90625000,
+    -0.93750000,
+    -0.96875000,
+    -1.00000000,
+    -1.06250000,
+    -1.12500000,
+    -1.18750000,
+    -1.25000000,
+    -1.31250000,
+    -1.37500000,
+    -1.43750000,
+    -1.50000000,
+    -1.56250000,
+    -1.62500000,
+    -1.68750000,
+    -1.75000000,
+    -1.81250000,
+    -1.87500000,
+    -1.93750000,
+});
 
 union VAL
 {
@@ -16,11 +281,13 @@ union VAL
 // 合法的第二操作数循环移位偶数位后可以用8bit表示
 bool isShifterOperandVal(unsigned bin_val)
 {
-    for (int i = 0; i < 32; i += 2)
+    int i = 0;
+    while (i < 32)
     {
         unsigned shift_val = ((bin_val) >> i) | ((bin_val) << (32 - i)); // 循环右移i位
         if ((shift_val & 0xFFFFFF00) == 0x00000000)
             return true;
+        i = i + 2;
     }
     return false;
 }
@@ -32,11 +299,17 @@ bool isSignedShifterOperandVal(signed signed_val)
     return signed_val >= 0 ? isShifterOperandVal(bin_val) : signed_val >= -255;
 }
 
-// TODO
-bool isFloatShifterOperandVal(float float_val)
+bool is_Legal_VMOV_FloatImm(float float_val)
 {
-    return false;
+    return legal_float_imm.find(float_val) != legal_float_imm.end();
 }
+
+// std::string Float2HexStr(float val)
+// {
+//     std::stringstream stream;
+//     stream << "0x" << std::setfill('0') << std::setw(8) << std::hex << *((unsigned int *)&val);
+//     return stream.str();
+// }
 
 MachineOperand::MachineOperand(int tp, double val, Type *valType)
 {
@@ -178,12 +451,68 @@ void MachineOperand::output()
         break;
     }
 }
+std::string MachineOperand::toStr()
+{
+    /* HINT：print operand
+     * Example:
+     * immediate num 1 -> print #1;
+     * register 1 -> print r1;
+     * label addr_a -> print addr_a; */
+    std::string operandstr;
+    switch (this->type)
+    {
+    case IMM:
+    {
+        if (valType->isFloat())
+        {
+            float float_val = (float)(this->val);
+            operandstr = "#" + std::to_string(reinterpret_cast<unsigned &>(float_val));
+        }
+        else
+        {
+            assert(valType->isInt());
+            operandstr = "#" + std::to_string((int)this->val);
+        }
+        break;
+    }
+    case VREG:
+    {
+        assert(valType->isInt() || valType->isFloat());
+        std::string str = valType->isFloat() ? "vs" : "vr";
+        operandstr = str + std::to_string(this->reg_no);
+        break;
+    }
+    case REG:
+    {
+        if (valType->isFloat())
+            operandstr = "s" + std::to_string(reg_no);
+        else if (valType->isInt() && reg_no == 13)
+            operandstr = "fp";
+        else if (valType->isInt())
+            operandstr = "r" + std::to_string(reg_no);
+        else
+            assert(0);
+        break;
+    }
+    case LABEL:
+    {
+        if (this->label.substr(0, 1) == "@")
+            operandstr = this->label;
+        else
+            operandstr = "addr_" + std::to_string(parent->getParent()->getParent()->getParent()->getLtorgNo()) + "_" + this->label;
+        break;
+    }
+    default:
+        break;
+    }
+    return operandstr;
+}
 
 bool MachineOperand::isIllegalShifterOperand()
 {
     assert(this->isImm());
     if (valType->isFloat())
-        return !isFloatShifterOperandVal((float)(this->getVal()));
+        return true;
     assert(valType->isInt());
     return !isSignedShifterOperandVal((int)(this->val));
 }
@@ -221,6 +550,26 @@ MachineInstruction::~MachineInstruction()
         parent->removeInst(this);
 }
 
+bool MachineInstruction::isMul() const
+{
+    return type == BINARY && op == BinaryMInstruction::MUL;
+}
+
+bool MachineInstruction::isDiv() const
+{
+    return type == BINARY && op == BinaryMInstruction::DIV;
+}
+
+bool MachineInstruction::isMov() const
+{
+    return type == MOV && op == MovMInstruction::MOV;
+}
+
+bool MachineInstruction::isVmov() const
+{
+    return type == MOV && op == MovMInstruction::VMOV;
+}
+
 BinaryMInstruction::BinaryMInstruction(
     MachineBlock *p, int op,
     MachineOperand *dst, MachineOperand *src1, MachineOperand *src2,
@@ -240,6 +589,41 @@ BinaryMInstruction::BinaryMInstruction(
 
 void BinaryMInstruction::output()
 {
+    if (this->use_list[1]->isImm() && this->use_list[1]->getVal() == 0)
+    {
+        if (this->op == BinaryMInstruction::RSB)
+        {
+            if (def_list[0]->getValType()->isFloat())
+                fprintf(yyout, "\tvneg.f32");
+            else
+                fprintf(yyout, "\tneg");
+            printCond();
+            fprintf(yyout, " ");
+            this->def_list[0]->output();
+            fprintf(yyout, ", ");
+            this->use_list[0]->output();
+            fprintf(yyout, "\n");
+            return;
+        }
+        else if (this->op == BinaryMInstruction::ADD || this->op == BinaryMInstruction::SUB)
+        {
+            if (*def_list[0] == *use_list[0])
+                return;
+            if (def_list[0]->getValType()->isFloat())
+                fprintf(yyout, "\tvmov.f32");
+            else
+                fprintf(yyout, "\tmov");
+            printCond();
+            fprintf(yyout, " ");
+            this->def_list[0]->output();
+            fprintf(yyout, ", ");
+            this->use_list[0]->output();
+            fprintf(yyout, "\n");
+            return;
+        }
+        else
+            assert(0);
+    }
     if (def_list[0]->getValType()->isFloat())
     {
         switch (this->op)
@@ -257,7 +641,7 @@ void BinaryMInstruction::output()
             fprintf(yyout, "\tvdiv.f32");
             break;
         default:
-            break;
+            assert(0);
         }
     }
     else
@@ -276,8 +660,14 @@ void BinaryMInstruction::output()
         case BinaryMInstruction::DIV:
             fprintf(yyout, "\tsdiv");
             break;
-        default:
+        case BinaryMInstruction::AND:
+            fprintf(yyout, "\tand");
             break;
+        case BinaryMInstruction::RSB:
+            fprintf(yyout, "\trsb");
+            break;
+        default:
+            assert(0);
         }
     }
     printCond();
@@ -313,7 +703,7 @@ void LoadMInstruction::output()
     // 强度削弱：小的立即数用MOV/MVN优化一下，arm汇编器会自动做?
     if ((this->use_list.size() == 1) && this->use_list[0]->isImm())
     {
-        if (this->def_list[0]->getValType()->isInt()) // todo：vldr s, floatImm
+        if (this->def_list[0]->getValType()->isInt())
         {
             unsigned temp;
             if (this->use_list[0]->getValType()->isInt())
@@ -331,7 +721,7 @@ void LoadMInstruction::output()
             }
             if (isShifterOperandVal(temp))
             {
-                fprintf(yyout, "\tmov");
+                fprintf(yyout, "\tmov"); // todo:movw
                 printCond();
                 fprintf(yyout, " ");
                 this->def_list[0]->output();
@@ -367,6 +757,35 @@ void LoadMInstruction::output()
                     return;
                 }
             }
+        }
+        else
+        {
+            assert(this->def_list[0]->getValType()->isFloat());
+            assert(this->use_list[0]->getValType()->isFloat());
+            // VAL val1;
+            // val1.float_val = (float)(this->use_list[0]->getVal());
+            // if (is_Legal_VMOV_FloatImm(val1.float_val))
+            // {
+            //     fprintf(yyout, "\tvmov.f32");
+            //     printCond();
+            //     fprintf(yyout, " ");
+            //     this->def_list[0]->output();
+            //     fprintf(yyout, ", ");
+            //     fprintf(yyout, "#%u\n", val1.unsigned_val);
+            //     return;
+            // }
+            // VAL val2;
+            // val2.unsigned_val = ~val1.unsigned_val;
+            // if (is_Legal_VMOV_FloatImm(val2.float_val))
+            // {
+            //     fprintf(yyout, "\tvmvn.f32");
+            //     printCond();
+            //     fprintf(yyout, " ");
+            //     this->def_list[0]->output();
+            //     fprintf(yyout, ", ");
+            //     fprintf(yyout, "#%u\n", val2.unsigned_val);
+            //     return;
+            // }
         }
     }
 
@@ -495,13 +914,13 @@ void MovMInstruction::output()
                 switch (this->op)
                 {
                 case MovMInstruction::MOVLSL:
-                    fprintf(yyout, "\tLSL");
+                    fprintf(yyout, "\tlsl");
                     break;
                 case MovMInstruction::MOVLSR:
-                    fprintf(yyout, "\tLSR");
+                    fprintf(yyout, "\tlsr");
                     break;
                 case MovMInstruction::MOVASR:
-                    fprintf(yyout, "\tASR");
+                    fprintf(yyout, "\tasr");
                     break;
                 default:
                     assert(0);
@@ -540,7 +959,8 @@ void MovMInstruction::output()
         //     break;
     case MovMInstruction::VMOV:
     {
-        fprintf(yyout, "\tvmov.f32");
+        fprintf(yyout, "\tvmov.f32"); // todo:到底用哪个
+        // fprintf(yyout, "\tvmov");
         break;
     }
     default:
@@ -556,6 +976,16 @@ void MovMInstruction::output()
     case MovMInstruction::MOVLSL:
         if ((int)this->use_list[1]->getVal())
             fprintf(yyout, ", LSL #%d", (int)this->use_list[1]->getVal());
+        break;
+
+    case MovMInstruction::MOVLSR:
+        if ((int)this->use_list[1]->getVal())
+            fprintf(yyout, ", LSR #%d", (int)this->use_list[1]->getVal());
+        break;
+
+    case MovMInstruction::MOVASR:
+        if ((int)this->use_list[1]->getVal())
+            fprintf(yyout, ", ASR #%d", (int)this->use_list[1]->getVal());
         break;
 
     default:
@@ -768,6 +1198,39 @@ void VmrsMInstruction::output()
     fprintf(yyout, "\tvmrs APSR_nzcv, FPSCR\n");
 }
 
+SmullMInstruction::SmullMInstruction(MachineBlock *p,
+                                     MachineOperand *dst1,
+                                     MachineOperand *dst2,
+                                     MachineOperand *src1,
+                                     MachineOperand *src2,
+                                     int cond)
+{
+    this->parent = p;
+    this->type = MachineInstruction::SMULL;
+    this->cond = cond;
+    this->def_list.push_back(dst1);
+    this->def_list.push_back(dst2);
+    this->use_list.push_back(src1);
+    this->use_list.push_back(src2);
+    dst1->setParent(this);
+    dst2->setParent(this);
+    src1->setParent(this);
+    src2->setParent(this);
+}
+
+void SmullMInstruction::output()
+{
+    fprintf(yyout, "\tsmull ");
+    this->def_list[0]->output();
+    fprintf(yyout, ", ");
+    this->def_list[1]->output();
+    fprintf(yyout, ", ");
+    this->use_list[0]->output();
+    fprintf(yyout, ", ");
+    this->use_list[1]->output();
+    fprintf(yyout, "\n");
+}
+
 void MachineBlock::insertBefore(MachineInstruction *pos, MachineInstruction *inst)
 {
     auto p = find(inst_list.begin(), inst_list.end(), pos);
@@ -795,19 +1258,24 @@ MachineBlock::~MachineBlock()
 
 MachineOperand *MachineBlock::insertLoadImm(MachineOperand *imm)
 {
-    // auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), imm->getValType());
-    // this->insertInst(new LoadMInstruction(this, internal_reg, imm));
-    // return new MachineOperand(*internal_reg);
-
     // ToDo:有些浮点字面常量可以直接vldr到s寄存器
     if (imm->getValType()->isFloat())
     {
+        if (is_Legal_VMOV_FloatImm((float)imm->getVal()))
+        {
+            MachineOperand *internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
+            this->insertInst(new MovMInstruction(this, MovMInstruction::VMOV, internal_reg, imm));
+            return new MachineOperand(*internal_reg);
+        }
         MachineOperand *internal_reg1 = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
         this->insertInst(new LoadMInstruction(this, internal_reg1, imm));
         MachineOperand *internal_reg2 = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
         internal_reg1 = new MachineOperand(*internal_reg1);
         this->insertInst(new MovMInstruction(this, MovMInstruction::VMOV, internal_reg2, internal_reg1));
         return new MachineOperand(*internal_reg2);
+        // MachineOperand *internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
+        // this->insertInst(new LoadMInstruction(this, internal_reg, imm));
+        // return new MachineOperand(*internal_reg);
     }
     assert(imm->getValType()->isInt());
     MachineOperand *internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
@@ -821,6 +1289,12 @@ std::pair<MachineOperand *, std::vector<MachineInstruction *>> MachineBlock::get
     std::vector<MachineInstruction *> insts;
     if (imm->getValType()->isFloat())
     {
+        if (is_Legal_VMOV_FloatImm((float)imm->getVal()))
+        {
+            MachineOperand *internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
+            insts.push_back(new MovMInstruction(this, MovMInstruction::VMOV, internal_reg, imm));
+            return std::make_pair(new MachineOperand(*internal_reg), insts);
+        }
         MachineOperand *internal_reg1 = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
         insts.push_back(new LoadMInstruction(this, internal_reg1, imm));
         MachineOperand *internal_reg2 = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
@@ -850,17 +1324,16 @@ void MachineBlock::output()
             fprintf(yyout, ", .L%d", (*i)->getNo());
     }
     fprintf(yyout, "\n");
-    int cnt = 0;
     for (auto iter : inst_list)
     {
         iter->output();
         cnt++;
-        if (cnt > 300)
+        if (cnt > 900)
         {
-            fprintf(yyout, "\tb .LiteralPool%d\n", parent->getParent()->getLtorgNo());
+            fprintf(yyout, "\tb .LiteralPool%d_end\n", parent->getParent()->getLtorgNo());
             fprintf(yyout, ".LTORG\n");
             parent->getParent()->printBridge();
-            fprintf(yyout, ".LiteralPool%d:\n", parent->getParent()->getLtorgNo() - 1);
+            fprintf(yyout, ".LiteralPool%d_end:\n", parent->getParent()->getLtorgNo() - 1);
             cnt = 0;
         }
     }
@@ -966,7 +1439,6 @@ void MachineFunction::output()
     for (auto offset : additional_args_offset)
         offset->setVal(offset->getVal() + 4 * (getSavedSRegs().size() + getSavedRRegs().size()));
     // Traverse all the block in block_list to print assembly code.
-    int cnt = 0;
     std::vector<MachineBlock *> empty_block_list, not_empty_block_list;
     for (auto iter : block_list)
         if (iter->getInsts().empty())
@@ -984,38 +1456,29 @@ void MachineFunction::output()
             else
             {
                 iter->output();
-                cnt += iter->getInsts().size();
                 // 回收栈帧
                 outputEnd();
+                if (cnt > 300)
+                {
+                    fprintf(yyout, ".LTORG\n");
+                    this->getParent()->printBridge();
+                    cnt = 0;
+                }
             }
         }
         else
         {
             iter->output();
-            cnt += iter->getInsts().size();
-        }
-        if (cnt > 300)
-        {
-            fprintf(yyout, "\tb .LiteralPool%d\n", parent->getLtorgNo());
-            fprintf(yyout, ".LTORG\n");
-            parent->printBridge();
-            fprintf(yyout, ".LiteralPool%d:\n", parent->getLtorgNo() - 1);
-            cnt = 0;
+            if (cnt > 300)
+            {
+                fprintf(yyout, ".LTORG\n");
+                this->getParent()->printBridge();
+                cnt = 0;
+            }
         }
     }
     if (lastBlock != nullptr)
-    {
         lastBlock->output();
-        cnt += lastBlock->getInsts().size();
-        if (cnt > 300)
-        {
-            fprintf(yyout, "\tb .LiteralPool%d\n", parent->getLtorgNo());
-            fprintf(yyout, ".LTORG\n");
-            parent->printBridge();
-            fprintf(yyout, ".LiteralPool%d:\n", parent->getLtorgNo() - 1);
-            cnt = 0;
-        }
-    }
     for (auto iter : empty_block_list)
         iter->output();
     outputEnd();
@@ -1152,24 +1615,18 @@ void MachineUnit::output()
     fprintf(yyout, "\t.arm\n");
     printGlobalDecl();
     fprintf(yyout, "\t.text\n");
-    int cnt = 0;
     for (auto iter : func_list)
     {
         iter->output();
-
-        // literal pool
-        for (auto bb : iter->getBlocks())
-            cnt += bb->getInsts().size();
         if (cnt > 300)
         {
-            fprintf(yyout, "\tb .LiteralPool%d\n", LtorgNo);
             fprintf(yyout, ".LTORG\n");
-            printBridge();
-            fprintf(yyout, ".LiteralPool%d:\n", LtorgNo - 1);
+            this->printBridge();
             cnt = 0;
         }
     }
-    printBridge();
+    if (cnt)
+        printBridge();
 }
 
 void MachineUnit::printBridge()

@@ -6,6 +6,7 @@ OPTTEST_PATH ?= testopt
 OBJ_PATH ?= $(BUILD_PATH)/obj
 BINARY ?= $(BUILD_PATH)/compiler
 SYSLIB_PATH ?= sysyruntimelibrary
+TIMING ?= 1
 
 INC = $(addprefix -I, $(INC_PATH))
 SRC = $(shell find $(SRC_PATH)  -name "*.cpp")
@@ -56,7 +57,7 @@ run:app
 	@opt -dot-cfg debug.ll
 
 gdb:app
-	@gdb $(BINARY)
+	@gdb $(BINARY) 
 
 $(OBJ_PATH)/lexer.o:$(SRC_PATH)/lexer.cpp
 	@mkdir -p $(OBJ_PATH)
@@ -99,6 +100,8 @@ test:app
 	@rm asmnew.log
 	@touch asmnew.log
 	@success=0
+	@TOTAL_COMPILE_TIME=0	#加了超时的
+	@TOTAL_EXEC_TIME=0
 	@for file in $(sort $(TESTCASE))
 	do
 		ASM=$${file%.*}.s
@@ -109,8 +112,12 @@ test:app
 		OUT=$${file%.*}.out
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
-		timeout 5s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2
-		RETURN_VALUE=$$?
+		@compile_start=$$(date +%s.%3N); \
+		timeout 5s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
+		RETURN_VALUE=$$?; \
+		compile_end=$$(date +%s.%3N); \
+		compile_time=$$(echo "$$compile_end - $$compile_start" | bc)
+		TOTAL_COMPILE_TIME=$$(echo "$$TOTAL_COMPILE_TIME + $$compile_time" | bc)
 		if [ $$RETURN_VALUE = 124 ]; then
 			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Timeout\033[0m" && echo "FAIL: $${FILE}\tCompile Timeout" >> asmnew.log
 			continue
@@ -119,9 +126,7 @@ test:app
 			continue
 			fi
 		fi
-		@compile_start=$$(date +%s.%3N); \
-		arm-linux-gnueabihf-gcc -mcpu=cortex-a72 -march=armv7 -o $${BIN} $${ASM} $(SYSLIB_PATH)/libsysy.a >>$${LOG} 2>&1; \
-		compile_end=$$(date +%s.%3N)
+		arm-linux-gnueabihf-gcc -mcpu=cortex-a72 -march=armv7 -o $${BIN} $${ASM} $(SYSLIB_PATH)/libsysy.a >>$${LOG} 2>&1
 		if [ $$? != 0 ]; then
 			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mAssemble Error\033[0m" && echo "FAIL: $${FILE}\tAssemble Error" >> asmnew.log
 		else
@@ -132,7 +137,9 @@ test:app
 				timeout 20s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} >$${RES} 2>>$${LOG}; \
 			fi; \
 			RETURN_VALUE=$$?; \
-			exec_end=$$(date +%s.%3N)
+			exec_end=$$(date +%s.%3N); \
+			exec_time=$$(echo "$$exec_end - $$exec_start" | bc)
+			TOTAL_EXEC_TIME=$$(echo "$$TOTAL_EXEC_TIME + $$exec_time" | bc)
 			FINAL=`tail -c 1 $${RES}`
 			[ $${FINAL} ] && echo "\n$${RETURN_VALUE}" >> $${RES} || echo "$${RETURN_VALUE}" >> $${RES}
 			if [ "$${RETURN_VALUE}" = "124" ]; then
@@ -145,8 +152,12 @@ test:app
 						echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mWrong Answer\033[0m" && echo "FAIL: $${FILE}\tWrong Answer" >> asmnew.log
 					else
 						success=$$((success + 1))
-						echo -n "\033[1;32mPASS:\033[0m $${FILE}"
-						awk "BEGIN {printf \"\t compilation: %.3fs \t execution: %.3fs\n\", ( $$compile_end - $$compile_start ), ( $$exec_end - $$exec_start )}"
+						if [ "$(TIMING)" = "1" ]; then
+							echo -n "\033[1;32mPASS:\033[0m $${FILE}"
+							awk "BEGIN {printf \"\t compile: %.3fs \t execute: %.3fs\n\", ( $$compile_time ), ( $$exec_time )}"
+						else
+							echo "\033[1;32mPASS:\033[0m $${FILE}"
+						fi
 					fi
 				fi
 			fi
@@ -154,6 +165,7 @@ test:app
 	done
 	echo "\033[1;33mTotal: $(TESTCASE_NUM)\t\033[1;32mAccept: $${success}\t\033[1;31mFail: $$(($(TESTCASE_NUM) - $${success}))\033[0m" && echo "Total: $(TESTCASE_NUM)\tAccept: $${success}\tFail: $$(($(TESTCASE_NUM) - $${success}))" >> asmnew.log
 	[ $(TESTCASE_NUM) = $${success} ] && echo "\033[5;32mAll Accepted. Congratulations!\033[0m" && echo "All Accepted. Congratulations!" >> asmnew.log
+	awk "BEGIN {printf \"TOTAL TIME: compile: %.3fs \t execute: %.3fs\n\", $$TOTAL_COMPILE_TIME, $$TOTAL_EXEC_TIME}"
 	:
 	diff asmlast.log asmnew.log > asmchange.log
 

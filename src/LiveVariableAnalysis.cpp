@@ -2,6 +2,8 @@
 #include "Unit.h"
 #include "MachineCode.h"
 #include <algorithm>
+#include <stack>
+#include <map>
 
 // void LiveVariableAnalysis::pass(Unit *unit)
 // {
@@ -81,10 +83,8 @@ void MachineFunction::AnalyzeLiveVariable()
     {
         for (auto inst = block->getInsts().begin(); inst != block->getInsts().end(); inst++)
         {
-            auto uses = (*inst)->getUse();
-            std::set<MachineOperand *> temp(uses.begin(), uses.end());
-            set_difference(temp.begin(), temp.end(),
-                           Def[block].begin(), Def[block].end(), inserter(LiveUse[block], LiveUse[block].end()));
+            std::set<MachineOperand *> uses((*inst)->getUse().begin(), (*inst)->getUse().end());
+            set_difference(uses.begin(), uses.end(), Def[block].begin(), Def[block].end(), inserter(LiveUse[block], LiveUse[block].end()));
             auto defs = (*inst)->getDef();
             for (auto &d : defs)
                 Def[block].insert(all_uses[*d].begin(), all_uses[*d].end());
@@ -93,19 +93,53 @@ void MachineFunction::AnalyzeLiveVariable()
 
     for (auto &block : getBlocks())
         block->getLiveIn().clear();
+
+    // 后序dfs，CFG有环则无可避免多次迭代，这里的预处理作用是加速
+    std::vector<MachineBlock *> dfnList;
+    std::map<MachineBlock *, bool> is_visited, in_stk;
+    for (auto &block : getBlocks())
+    {
+        is_visited[block] = false;
+        in_stk[block] = false;
+    }
+    std::stack<MachineBlock *> st;
+    st.push(getEntry());
+    in_stk[getEntry()] = true;
+    while (!st.empty())
+    {
+        auto mBB = st.top();
+        bool all_visited = true;
+        for (auto succ : mBB->getSuccs())
+        {
+            if (!is_visited[succ] && !in_stk[succ])
+            {
+                st.push(succ);
+                in_stk[succ] = true;
+                all_visited = false;
+                break;
+            }
+        }
+        if (all_visited)
+        {
+            st.pop();
+            is_visited[mBB] = true;
+            in_stk[mBB] = false;
+            dfnList.push_back(mBB);
+        }
+    }
+
     bool change = true;
     while (change)
     {
         change = false;
-        for (auto &block : getBlocks())
+        for (auto block : dfnList)
         {
             block->getLiveOut().clear();
             auto old = block->getLiveIn();
             for (auto &succ : block->getSuccs())
                 block->getLiveOut().insert(succ->getLiveIn().begin(), succ->getLiveIn().end());
             block->getLiveIn() = LiveUse[block];
-            set_difference(block->getLiveOut().begin(), block->getLiveOut().end(),
-                           Def[block].begin(), Def[block].end(), inserter(block->getLiveIn(), block->getLiveIn().end()));
+            set_difference(block->getLiveOut().begin(), block->getLiveOut().end(), Def[block].begin(), Def[block].end(), inserter(block->getLiveIn(), block->getLiveIn().end()));
             if (old != block->getLiveIn())
                 change = true;
         }

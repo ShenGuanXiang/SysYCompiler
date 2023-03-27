@@ -810,6 +810,12 @@ void BinaryInstruction::genMachineCode(AsmBuilder *builder)
     {
         if (opcode == ADD)
             std::swap(src1, src2);
+        else if (opcode == SUB && ((src1->getValType()->isInt() && !src1->isIllegalShifterOperand()) || src1->getVal() == 0))
+        {
+            std::swap(src1, src2);
+            cur_block->insertInst(new BinaryMInstruction(cur_block, BinaryMInstruction::RSB, dst, src1, src2));
+            return;
+        }
         else
             src1 = cur_block->insertLoadImm(src1);
     }
@@ -861,7 +867,27 @@ void CmpInstruction::genMachineCode(AsmBuilder *builder)
     MachineOperand *src2 = genMachineOperand(use_list[1]);
     MachineInstruction *cur_inst = nullptr;
     if (src1->isImm())
-        src1 = cur_block->insertLoadImm(src1);
+    {
+        if (!src2->isImm() && !src1->isIllegalShifterOperand())
+        {
+            if (opcode == CmpInstruction::E || opcode == CmpInstruction::NE)
+                std::swap(src1, src2);
+            else
+            {
+                assert(src2->getValType()->isInt());
+                if (opcode == CmpInstruction::L || opcode == CmpInstruction::LE)
+                    opcode = opcode + 2;
+                else
+                {
+                    assert(opcode == CmpInstruction::G || opcode == CmpInstruction::GE);
+                    opcode = opcode - 2;
+                }
+                std::swap(src1, src2);
+            }
+        }
+        else
+            src1 = cur_block->insertLoadImm(src1);
+    }
     if (src2->isImm() && src2->isIllegalShifterOperand())
         src2 = cur_block->insertLoadImm(src2);
     cur_inst = new CmpMInstruction(cur_block, src1, src2);
@@ -887,6 +913,7 @@ void CmpInstruction::genMachineCode(AsmBuilder *builder)
         MachineOperand *falseOperand = genMachineImm(0, TypeSystem::boolType);
         cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, trueOperand, nullptr, opcode);
         cur_block->insertInst(cur_inst);
+        dst = new MachineOperand(*dst); // todo : 需要考虑活性变量分析、活跃期计算等问题
         if (opcode == CmpInstruction::E || opcode == CmpInstruction::NE)
             cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, falseOperand, nullptr, 1 - opcode);
         else
