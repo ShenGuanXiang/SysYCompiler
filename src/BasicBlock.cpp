@@ -119,6 +119,7 @@ BasicBlock::~BasicBlock()
     {
         Instruction *t = inst;
         inst = inst->getNext();
+        //what may cause the segment fault problem here?
         delete t;
     }
     delete head;

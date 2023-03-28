@@ -36,14 +36,14 @@ class LazyCodeMotion  {
     
     std::string getOpString (Instruction *inst);
     std::unordered_map<Function*,std::set<Operand*>> allexpr;
+    void printAnt();
+    void printLoal();
+    void printall();
+    void printLater();
+    void collectAllexpr();
+    void computeLocal();
 public:
   LazyCodeMotion(Unit *unit, ValueNumbering *vn) : unit(unit),htable(vn->getmap()) {}
-  void printAnt();
-  void printLoal();
-  void printall();
-  void printLater();
-  void collectAllexpr();
-  void computeLocal();
   void computeAvail();
   void computeAnt();
   void computeEarliest();

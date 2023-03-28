@@ -1,150 +1,19 @@
-laterin of bb25: 
-laterin of bb15: %t4 %t5 
-laterin of bb12: %t4 %t5 
-laterin of bb6: 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: %t4 %t5 
-laterin of bb12: %t4 %t5 
-laterin of bb6: 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: %t4 %t5 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (15,12): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: %t4 %t5 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (15,12): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: %t4 %t5 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: %t4 %t5 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: %t4 %t5 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: %t4 %t5 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: %t4 %t5 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: %t4 %t5 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: %t4 %t5 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
-laterin of bb25: 
-laterin of bb15: %t4 %t5 
-laterin of bb12: 
-laterin of bb6: 
-later of edge (6,12): 
-later of edge (6,15): %t4 %t5 
-later of edge (15,12): 
-later of edge (15,15): 
-later of edge (25,6): 
+edge: 25->6
+edge: 6->12
+edge: 15->12
+edge: 6->15
+edge: 15->15
+edge: 25->6
+edge: 6->12
+edge: 15->12
+edge: 6->15
+edge: 15->15
+delete set
+15: %t4 %t5 
+12: 
+6: 
+insert set
+6->12: 
+6->15: %t4 %t5 
+15->12: 
+15->15: 

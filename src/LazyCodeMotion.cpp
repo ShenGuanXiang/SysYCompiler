@@ -278,18 +278,23 @@ void LazyCodeMotion::computeLater()
                 for(auto pred_it=curbb->pred_begin();pred_it!=curbb->pred_end();pred_it++){
                     auto pred=*pred_it;
                     Edge e{pred,curbb};
-                    if(temp_laterin.empty())
+                    //print edge
+                    std::cout<<"edge: "<<e.src->getNo()<<"->"<<e.dst->getNo()<<std::endl;
+
+                    if(pred_it==curbb->pred_begin())
                         temp_laterin.insert(later[e].begin(),later[e].end());
                     else{
                         std::set<Operand*> intersect;
                         std::set_intersection(temp_laterin.begin(),temp_laterin.end(),later[e].begin(),later[e].end(),std::inserter(intersect,intersect.end()));
+                        temp_laterin.clear();
                         temp_laterin.insert(intersect.begin(),intersect.end());
                     }
-                    if(temp_laterin!=laterin[curbb]){
-                        laterin[curbb].clear();
-                        laterin[curbb].insert(temp_laterin.begin(),temp_laterin.end());
-                        changed=true;
-                    }
+                }
+
+                if(temp_laterin!=laterin[curbb]){
+                    laterin[curbb].clear();
+                    laterin[curbb].insert(temp_laterin.begin(),temp_laterin.end());
+                    changed=true;
                 }
 
 
@@ -329,17 +334,16 @@ void LazyCodeMotion::rewrite()
         while(!q.empty()){
             auto curbb=q.front();
             q.pop();
-
             deleteset[curbb].clear();
             std::set_difference(ueexpr[curbb].begin(),ueexpr[curbb].end(),laterin[curbb].begin(),laterin[curbb].end(),std::inserter(deleteset[curbb],deleteset[curbb].end()));
             
             for(auto succ_it=curbb->succ_begin();succ_it!=curbb->succ_end();succ_it++){
                 auto succ=*succ_it;
+
                 Edge e{curbb,succ};
                 insertset[e].clear();
                 std::set_difference(later[e].begin(),later[e].end(),laterin[succ].begin(),laterin[succ].end(),std::inserter(insertset[e],insertset[e].end()));           
-
-
+                
                 if(visited.find(succ)==visited.end()){
                     q.push(succ);
                     visited.insert(succ);
@@ -347,57 +351,115 @@ void LazyCodeMotion::rewrite()
             }
         }
     }
-
+    //print delete set, insert set
+    std::cout<<"delete set"<<std::endl;
+    for(auto it=deleteset.begin();it!=deleteset.end();it++){
+        std::cout<<it->first->getNo()<<": ";
+        for(auto def : it->second){
+            std::cout<<def->toStr()<<" ";
+        }
+        std::cout<<std::endl;
+    }
+    std::cout<<"insert set"<<std::endl;
+    for(auto it=insertset.begin();it!=insertset.end();it++){
+        auto e=it->first;
+        //print e
+        std::cout<<e.src->getNo()<<"->"<<e.dst->getNo()<<": ";
+        for(auto def : it->second){
+            std::cout<<def->toStr()<<" ";
+        }
+        std::cout<<std::endl;
+    }
     //rewirte
     for(auto it=insertset.begin();it!=insertset.end();it++){
-        auto src=it->first.src;
-        auto dst=it->first.dst;
-        auto& exprset=it->second;
+        if(it->second.empty()) continue;
+        BasicBlock* src=it->first.src;
+        BasicBlock* dst=it->first.dst;
+        std::set<Operand*>& exprset=it->second;
         if(src->getNumOfSucc()==1){
             for(auto def : exprset){
-                auto inst=def->getDef();
-                src->insertBack(inst);
+                auto inst = def->getDef();
+                inst->getParent()->remove(inst);
+                Instruction* i=src->begin();
+                while(i->getInstType()==Instruction::PHI) i=i->getNext();
+                src->insertBefore(i,inst);
             }
         }
         else if(dst->getNumOfPred()==1){
             for(auto def : exprset){
-                auto inst=def->getDef();
-                dst->insertFront(inst);
+                auto inst = def->getDef();
+                inst->getParent()->remove(inst);
+                //llvm ir has only one br instruction at the end of basic block
+                dst->insertBefore(inst,dst->rbegin());
             }
         }
         else{
-            BasicBlock* bb = new BasicBlock(src->getParent());
-            for(auto def : exprset){
-                auto inst=def->getDef();
-                bb->insertBack(inst);
-            }
-            Instruction* br=new UncondBrInstruction(dst,bb);
-            bb->insertBack(br);
             
+            BasicBlock* bb = new BasicBlock(src->getParent());
+            //insert expression and br
+            for(auto def : exprset){
+                auto inst = def->getDef();
+                inst->getParent()->remove(inst);
+                bb->insertBack(inst);
+                inst->setParent(bb);
+            }
+            new UncondBrInstruction(dst,bb);
+            
+
+            //refactor cfg
             src->addSucc(bb);
             bb->addSucc(dst);
             bb->addPred(src);
             dst->addPred(bb);
+            src->removeSucc(dst);
+            dst->removePred(src);
+
+            //refactor br
+            Instruction* srcbr=src->rbegin();
+            if(srcbr->getInstType()==Instruction::COND){
+                CondBrInstruction* condbr = dynamic_cast<CondBrInstruction*>(srcbr);
+                if(condbr->getTrueBranch()==dst)
+                    condbr->setTrueBranch(bb);
+                else condbr->setFalseBranch(bb);
+            }
+            else
+                dynamic_cast<UncondBrInstruction*>(srcbr)->setBranch(bb);
+
+            //refactor phi
+            for(auto inst=dst->begin();inst!=dst->end();inst=inst->getNext()){
+                if(inst->getInstType()!=Instruction::PHI) break;
+                PhiInstruction* phi = dynamic_cast<PhiInstruction*>(inst);
+                auto& phiargs = phi->getSrcs();
+                for(auto arg : phiargs){
+                    if(arg.first==src){
+                        phiargs.insert({bb,arg.second});
+                        phiargs.erase(arg.first);
+                        break;
+                    }
+                }
+            }
+            
         }
             
     }
 
-    for(auto it=deleteset.begin();it!=deleteset.end();it++){
-        auto bb=it->first;
-        auto& exprset=it->second;
-        for(auto def : exprset){
-            //TODO：直接通过def找到实际的指令，这里的def和实际的操作数不相同
-            for(auto inst=bb->begin();inst!=bb->end();inst=inst->getNext()){
-                auto dst=inst->getDef();
-                auto dst_str=dst->toStr();
-                if(htable.count(dst_str) && htable[dst_str]==def){
-                    inst->replaceAllUsesWith(def);
-                    bb->remove(inst);
-                    break;
-                }
-            }
-        }
-    }
+    // for(auto it=deleteset.begin();it!=deleteset.end();it++){
+    //     if(it->second.empty()) continue;
+    //     auto bb=it->first;
+    //     auto& exprset=it->second;
+    //     for(auto def : exprset){
+    //         //TODO：直接通过def找到实际的指令，这里的def和实际的操作数不相同
+    //         for(auto inst=bb->begin();inst!=bb->end();inst=inst->getNext()){
+    //             auto dst=inst->getDef();
+    //             auto dst_str=dst->toStr();
+    //             if(htable.count(dst_str) && htable[dst_str]==def || dst==def){
+    //                 inst->replaceAllUsesWith(def);
+    //                 bb->remove(inst);
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 void LazyCodeMotion::printAnt(){
@@ -482,6 +544,16 @@ void LazyCodeMotion::pass()
     computeAvail();
     computeAnt();
     computeEarliest();
+    //print earliest
+    for(auto it=earliest.begin();it!=earliest.end();it++){
+        auto src=it->first.src;
+        auto dst=it->first.dst;
+        std::cout<<"earliest of edge ("<<src->getNo()<<","<<dst->getNo()<<"): ";
+        for(auto expr : earliest[it->first]){
+            std::cout<<expr->toStr()<<" ";
+        }
+        std::cout<<std::endl;
+    }
     computeLater();
     rewrite();
 }
