@@ -96,11 +96,10 @@ int main(int argc, char *argv[])
         Mem2Reg m2r(&unit);
         m2r.pass();
         // todo:其它中间代码优化
-        // 自动内联
+        // 函数自动内联
         // 常量传播
         // 强度削弱
-        // 公共子表达式消除，还有bug
-        ValueNumbering dvn(&unit);
+        ValueNumbering dvn(&unit); // 公共子表达式消除
         dvn.pass3();
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
@@ -117,15 +116,16 @@ int main(int argc, char *argv[])
         if (optimize)
         {
             // todo: 汇编代码优化
-            MulDivMod2Bit mdm2b(&mUnit);
-            mdm2b.pass();
-            
             ValueNumberingASM vnasm(&mUnit);
             vnasm.pass();
+
+            MulDivMod2Bit mdm2b(&mUnit);
+            mdm2b.pass();
+
+            // vnasm.pass();
         }
         LinearScan linearScan(&mUnit);
         linearScan.pass();
-        fprintf(stderr, "linearScan ok\n");
         if (optimize)
         {
             // todo: 汇编代码优化

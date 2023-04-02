@@ -6,10 +6,11 @@ OPTTEST_PATH ?= testopt
 OBJ_PATH ?= $(BUILD_PATH)/obj
 BINARY ?= $(BUILD_PATH)/compiler
 SYSLIB_PATH ?= sysyruntimelibrary
+TIMING ?= 1
 
 INC = $(addprefix -I, $(INC_PATH))
 SRC = $(shell find $(SRC_PATH)  -name "*.cpp")
-CFLAGS = -O0 -g -Wall -std=c++11 $(INC)
+CFLAGS = -O2 -g -Wall -std=c++17 $(INC)
 FLEX ?= $(SRC_PATH)/lexer.l
 LEXER ?= $(addsuffix .cpp, $(basename $(FLEX)))
 BISON ?= $(SRC_PATH)/parser.y
@@ -43,10 +44,10 @@ $(PARSER):$(BISON)
 
 $(OBJ_PATH)/%.o:$(SRC_PATH)/%.cpp
 	@mkdir -p $(OBJ_PATH)
-	@g++ $(CFLAGS) -c -o $@ $<
+	@clang++ $(CFLAGS) -c -o $@ $<
 
 $(BINARY):$(OBJ)
-	@g++ -O0 -g -o $@ $^
+	@clang++ -O0 -g -o $@ $^
 
 app:$(LEXER) $(PARSER) $(BINARY)
 
@@ -60,7 +61,7 @@ gdb:app
 
 $(OBJ_PATH)/lexer.o:$(SRC_PATH)/lexer.cpp
 	@mkdir -p $(OBJ_PATH)
-	@g++ $(CFLAGS) -c -o $@ $<
+	@clang++ $(CFLAGS) -c -o $@ $<
 
 $(TEST_PATH)/%.toks:$(TEST_PATH)/%.sy
 	@$(BINARY) $< -o $@ -t
@@ -99,6 +100,8 @@ test:app
 	@rm asmnew.log
 	@touch asmnew.log
 	@success=0
+	@TOTAL_COMPILE_TIME=0	#加了超时的
+	@TOTAL_EXEC_TIME=0
 	@for file in $(sort $(TESTCASE))
 	do
 		ASM=$${file%.*}.s
@@ -109,8 +112,12 @@ test:app
 		OUT=$${file%.*}.out
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
-		timeout 5s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2
-		RETURN_VALUE=$$?
+		@compile_start=$$(date +%s.%3N); \
+		timeout 5s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
+		RETURN_VALUE=$$?; \
+		compile_end=$$(date +%s.%3N); \
+		compile_time=$$(echo "$$compile_end - $$compile_start" | bc)
+		TOTAL_COMPILE_TIME=$$(echo "$$TOTAL_COMPILE_TIME + $$compile_time" | bc)
 		if [ $$RETURN_VALUE = 124 ]; then
 			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Timeout\033[0m" && echo "FAIL: $${FILE}\tCompile Timeout" >> asmnew.log
 			continue
@@ -119,16 +126,20 @@ test:app
 			continue
 			fi
 		fi
-		arm-linux-gnueabihf-gcc -mcpu=cortex-a72 -o $${BIN} $${ASM} $(SYSLIB_PATH)/libsysy.a >>$${LOG} 2>&1
+		arm-linux-gnueabihf-gcc -mcpu=cortex-a72 -march=armv7 -o $${BIN} $${ASM} $(SYSLIB_PATH)/libsysy.a >>$${LOG} 2>&1
 		if [ $$? != 0 ]; then
 			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mAssemble Error\033[0m" && echo "FAIL: $${FILE}\tAssemble Error" >> asmnew.log
 		else
-			if [ -f "$${IN}" ]; then
-				timeout 20s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} <$${IN} >$${RES} 2>>$${LOG}
-			else
-				timeout 20s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} >$${RES} 2>>$${LOG}
-			fi
-			RETURN_VALUE=$$?
+			@exec_start=$$(date +%s.%3N); \
+			if [ -f "$${IN}" ]; then \
+				timeout 20s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} <$${IN} >$${RES} 2>>$${LOG}; \
+			else \
+				timeout 20s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} >$${RES} 2>>$${LOG}; \
+			fi; \
+			RETURN_VALUE=$$?; \
+			exec_end=$$(date +%s.%3N); \
+			exec_time=$$(echo "$$exec_end - $$exec_start" | bc)
+			TOTAL_EXEC_TIME=$$(echo "$$TOTAL_EXEC_TIME + $$exec_time" | bc)
 			FINAL=`tail -c 1 $${RES}`
 			[ $${FINAL} ] && echo "\n$${RETURN_VALUE}" >> $${RES} || echo "$${RETURN_VALUE}" >> $${RES}
 			if [ "$${RETURN_VALUE}" = "124" ]; then
@@ -141,7 +152,12 @@ test:app
 						echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mWrong Answer\033[0m" && echo "FAIL: $${FILE}\tWrong Answer" >> asmnew.log
 					else
 						success=$$((success + 1))
-						echo "\033[1;32mPASS:\033[0m $${FILE}"
+						if [ "$(TIMING)" = "1" ]; then
+							echo -n "\033[1;32mPASS:\033[0m $${FILE}"
+							awk "BEGIN {printf \"\t compile: %.3fs \t execute: %.3fs\n\", ( $$compile_time ), ( $$exec_time )}"
+						else
+							echo "\033[1;32mPASS:\033[0m $${FILE}"
+						fi
 					fi
 				fi
 			fi
@@ -149,6 +165,7 @@ test:app
 	done
 	echo "\033[1;33mTotal: $(TESTCASE_NUM)\t\033[1;32mAccept: $${success}\t\033[1;31mFail: $$(($(TESTCASE_NUM) - $${success}))\033[0m" && echo "Total: $(TESTCASE_NUM)\tAccept: $${success}\tFail: $$(($(TESTCASE_NUM) - $${success}))" >> asmnew.log
 	[ $(TESTCASE_NUM) = $${success} ] && echo "\033[5;32mAll Accepted. Congratulations!\033[0m" && echo "All Accepted. Congratulations!" >> asmnew.log
+	awk "BEGIN {printf \"TOTAL TIME: compile: %.3fs \t execute: %.3fs\n\", $$TOTAL_COMPILE_TIME, $$TOTAL_EXEC_TIME}"
 	:
 	diff asmlast.log asmnew.log > asmchange.log
 
@@ -181,6 +198,14 @@ clean-test:
 clean-all:clean-test clean-app
 
 clean:clean-all
+
+count:clean-all
+	@echo "Code Lines Count:"
+	@echo "=================="
+	@echo "Header Files:"
+	@find include/ -name "*.h" | xargs grep -v '^$$' | wc -l
+	@echo "Source Files:"
+	@find src/ \( -name "*.cpp" -o -name "*.l" -o -name "*.y" \) | xargs cat | grep -v '^$$' | wc -l
 
 .ONESHELL:
 testll:app

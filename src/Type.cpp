@@ -226,6 +226,25 @@ bool convertible(Type *from, Type *to)
                                                                                                                    : false;
 }
 
+ArrayType *arrTypeLike(ArrayType *old)
+{
+    if (old->isIntArray())
+    {
+        if (old->isConst())
+            return new ConstIntArrayType();
+        else
+            return new IntArrayType();
+    }
+    else
+    {
+        assert(old->isFloatArray());
+        if (old->isConst())
+            return new ConstFloatArrayType();
+        else
+            return new FloatArrayType();
+    }
+}
+
 void clearTypes()
 {
     for (auto type : newTypes)

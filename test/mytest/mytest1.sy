@@ -1,9 +1,0 @@
-// Use complex expression in assign structure
-int main () {
-    int a;
-    a = -4;
-    int b = -2;
-    putint(a/b);
-
-    return 0;
-}

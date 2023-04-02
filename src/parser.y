@@ -581,7 +581,7 @@ VarDef
         }
         Id* new_Id = new Id(se_var_list);
         new_Id->setIndices(dynamic_cast<IndicesNode*>($2));
-        $$ = new DeclStmt(new_Id, nullptr, false, true);
+        $$ = new DeclStmt(new_Id, nullptr);
         delete []$1;
     }
     | ID ArrayConstIndices ASSIGN InitVal {
@@ -602,7 +602,7 @@ VarDef
         }
         Id* new_Id = new Id(se_var_list);
         new_Id->setIndices(dynamic_cast<IndicesNode*>($2));
-        $$ = new DeclStmt(new_Id, dynamic_cast<InitNode*>($4), false, true);
+        $$ = new DeclStmt(new_Id, dynamic_cast<InitNode*>($4));
         delete []$1;
     }
     ;
@@ -645,7 +645,7 @@ ConstDef
         }
         Id* new_Id = new Id(se_var_list);
         new_Id->setIndices(dynamic_cast<IndicesNode*>($2));
-        $$ = new DeclStmt(new_Id, dynamic_cast<InitNode*>($4), true, true);
+        $$ = new DeclStmt(new_Id, dynamic_cast<InitNode*>($4));
         delete []$1;
     }
     ;
@@ -763,7 +763,8 @@ FuncFParam
         if($1==TypeSystem::intType){
             arrayType = new IntArrayType();
         }
-        else if($1==TypeSystem::floatType){
+        else {
+            assert($1==TypeSystem::floatType);
             arrayType = new FloatArrayType();
         }
         arrayType->SetDim(arrayIdx);

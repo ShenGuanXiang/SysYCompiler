@@ -28,7 +28,7 @@ public:
         std::set<MachineOperand *> defs;
         std::set<MachineOperand *> uses;
     };
-    
+
 private:
     MachineUnit *unit;
     MachineFunction *func;

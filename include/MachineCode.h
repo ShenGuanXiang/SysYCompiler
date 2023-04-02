@@ -25,12 +25,11 @@ class MachineOperand;
 
 bool isShifterOperandVal(unsigned bin_val);
 bool isSignedShifterOperandVal(signed val);
-bool isFloatShifterOperandVal(float val);
+bool is_Legal_VMOV_FloatImm(float val);
 
 class MachineOperand
 {
 private:
-    MachineInstruction* def = nullptr;
     MachineInstruction *parent;
     int type;          // {IMM, VREG, REG, LABEL}
     double val;        // value of immediate number
@@ -74,8 +73,6 @@ public:
         return this->valType;
     };
     bool isIllegalShifterOperand(); // 第二操作数应符合8位图格式
-    void setMDef(MachineInstruction* inst) { def = inst; };
-    MachineInstruction* getMDef() { return def; };
 };
 
 class MachineInstruction
@@ -93,7 +90,7 @@ protected:
     void addUse(MachineOperand *ope) { use_list.push_back(ope); };
     // print execution code after printing opcode
     void printCond();
-    int getcond() { return cond;}
+    int getcond() { return cond; }
 
 public:
     enum instType
@@ -129,16 +126,15 @@ public:
     std::vector<MachineOperand *> &getDef() { return def_list; };
     std::vector<MachineOperand *> &getUse() { return use_list; };
     MachineBlock *getParent() { return parent; };
-    void setParent(MachineBlock* block) { this->parent = block; }
+    void setParent(MachineBlock *block) { this->parent = block; }
     int getOpType() { return op; };
     int getInstType() const { return type; };
 
-
-    bool isMul() const { return type == BINARY && op == 2; };
-    bool isDiv() const { return type == BINARY && op == 3; };
-    bool isMod() const { return type == BINARY && op == 4; };
+    bool isMul() const;
+    bool isDiv() const;
     bool isLoad() const { return type == LOAD; };
-    bool isMov() const { return type == MOV && op == 0; };
+    bool isMov() const;
+    bool isVmov() const;
 };
 
 class BinaryMInstruction : public MachineInstruction
@@ -166,7 +162,6 @@ public:
                      MachineOperand *dst, MachineOperand *src1, MachineOperand *src2 = nullptr,
                      int cond = MachineInstruction::NONE);
     void output();
-    bool is_1_src() { return use_list.size() == 1; };
 };
 
 class StoreMInstruction : public MachineInstruction
@@ -275,16 +270,16 @@ public:
     void output();
 };
 
-class SmullMInstruction : public MachineInstruction {
-   public:
-    SmullMInstruction(MachineBlock* p,
-                       MachineOperand* dst,
-                       MachineOperand* dst1,
-                       MachineOperand* src1,
-                       MachineOperand* src2,
-                       int cond = MachineInstruction::NONE);
+class SmullMInstruction : public MachineInstruction
+{
+public:
+    SmullMInstruction(MachineBlock *p,
+                      MachineOperand *dst1,
+                      MachineOperand *dst2,
+                      MachineOperand *src1,
+                      MachineOperand *src2,
+                      int cond = MachineInstruction::NONE);
     void output();
-    int latency();
 };
 
 class MachineBlock
@@ -333,7 +328,6 @@ public:
     std::set<MachineBlock *> &getSDoms() { return SDoms; };
     MachineBlock *&getIDom() { return IDom; };
     ~MachineBlock();
-    void remove(MachineInstruction* ins);
 };
 
 class MachineFunction
