@@ -31,21 +31,32 @@ public:
     //pass3 is implemented using DVNT, dominator-based
     //we only use dvnt, so pass1 and pass2 are removed
 };
-
+struct rplInfo{
+    MachineInstruction* inst; // instrucion that defines the replaced operand
+    std::vector<std::pair<MachineOperand**,MachineOperand*>>rpl; // places where the operand is used and the old machine operand
+};
 class ValueNumberingASM
 {
     MachineUnit* munit;
     std::unordered_map<std::string,MachineOperand*> htable;
+    std::unordered_map<std::string,MachineOperand*> rhtable;// redundant expression using regiter
     std::string getOpString(MachineInstruction *inst);
     std::unordered_map<MachineBlock*,std::vector<MachineBlock*>>domtree;
     std::set<MachineOperand> defset;
     std::set<MachineOperand> redef;
+
+    std::map<MachineOperand,rplInfo> rpltable; //the replaced operand -> rplinfo
+    std::map<MachineOperand,int> usescnt; 
+    std::vector<MachineInstruction*>torm;
+    bool r0redef=false;
 public:
     ValueNumberingASM(MachineUnit* munit) : munit(munit){};
+    void addrpl(MachineOperand* from,MachineOperand* to,MachineOperand** place);
     void findredef(MachineBlock* bb);
     void dumpTable();
     void computeDomTree(MachineFunction* func);
     void dvnt(MachineBlock* bb);
+    void rollbackrpl();
     void pass();
 };
 
