@@ -1,7 +1,10 @@
 #include "ValueNumbering.h"
 #include "Instruction.h"
+#include "SymbolTable.h"
 
 #include <vector>
+#include <queue>
+
 std::string ValueNumbering::getOpString(Instruction *inst)
 {
     std::string instString = "";
@@ -198,6 +201,18 @@ std::string ValueNumberingASM::getOpString(MachineInstruction *minst)
     //忽略带有条件的指令，这种指令不能被消除，但是其操作数应该被替换
     if(minst->getCond() != MachineInstruction::NONE)
         return instString;
+    
+    //overlook minst that uses r0/s0 if r0/s0 is redefined or other redefined registers
+    for(auto use:minst->getUse())
+        if(use->isReg() && redef.count(*use))
+            return instString;
+
+    //minst without dst is not expression
+    if(minst->getDef().empty())
+        return instString;
+    
+    if(minst->getDef()[0]->isReg() && redef.count(*minst->getDef()[0]))
+        return instString;
 
     switch (minst->getInstType())
     {
@@ -268,82 +283,79 @@ void ValueNumberingASM::pass()
         auto entry = (*it_mfunc)->getEntry();
         domtree.clear();
         computeDomTree(*it_mfunc);
-        r0redef=false;
         findredef(entry);
-        rhtable.clear();
         dvnt(entry);
     }
-    rollbackrpl();
     for(auto i : torm){
         auto mbb=i->getParent();
         mbb->remove(i);
     }
 }
+/*
+后端cse：
+1. 被重定义的寄存器作为dst的指令，既不记录也不消除（getopstring返回空）
+2. 寄存器作为dst的指令，不能被消除
+3. 被重定义的vr只可能因为消除ph时产生，不能将其删除，只能在其后添加mov指令。
+4. 在3中，如果这条指令本身就是mov/loadimm，那么就什么都不做了
+*/
 void ValueNumberingASM::dvnt(MachineBlock* bb)
 {
     std::unordered_map<std::string, MachineOperand *> prehtable; 
     prehtable = htable;// store curent htable, to restore after processing children
+
     for(auto it_minst=bb->begin();it_minst!=bb->end();it_minst++)
     {
-        
         auto inst=*it_minst;
 
         for(auto& use : inst->getUse())
-            if(htable.count(use->toStr())){
-                auto mop=new MachineOperand(*htable[use->toStr()]);
-                addrpl(use,mop,&use);
-                use=mop;
+            if(htable.count(use->toStr()) && !redef.count(*use)){
+                use=new MachineOperand(*htable[use->toStr()]);
                 use->setParent(inst);
             }
-            else if(rhtable.count(use->toStr())){
-                auto mop=new MachineOperand(*rhtable[use->toStr()]);
-                addrpl(use,mop,&use);
-                use=mop;
-                use->setParent(inst);
-            }
-                
-                
+
         std::string instString = getOpString(inst);
+
         if(instString=="") continue;
-        if(inst->getDef()[0]->isReg()) continue;
-        int withreg=-1;
+
         for(auto use : inst->getUse()){
             auto usestr=use->toStr();
             if(htable.count(usestr))
                 instString+=","+htable[usestr]->toStr();
             else
                 instString+=","+usestr;
-            if(withreg==-1 && use->isReg())
-                withreg=use->getReg();
         }
-        if(withreg!=-1 && withreg==0) continue;
-        
-        //only fp inst could be removed
 
         auto dst=inst->getDef()[0];
-        if(redef.count(*dst)) continue;
 
+        //redundant mov/loadimm whose dse is redefined can only be removed by inserting mov, unnecessary to remove
         
-        if(withreg!=-1){
-            if(rhtable.count(instString)){
-                auto src = rhtable[instString];
-                rhtable[dst->toStr()]=src;
-                rpltable[*dst].inst=inst;
-                torm.push_back(inst);
+        if(htable.count(instString)){
+
+            if(inst->getDef()[0]->isReg()||
+            (inst->getInstType()==MachineInstruction::MOV && redef.count(*dst)) ||
+            (inst->getInstType()==MachineInstruction::LOAD && redef.count(*dst) && (inst->getUse().size() == 1) && inst->getUse()[0]->isImm()) ||
+            (inst->getInstType()==MachineInstruction::LOAD && redef.count(*dst) && (inst->getUse().size() == 1) && inst->getUse()[0]->isLabel())
+            ){
+                continue;
             }
-            else 
-                rhtable[instString]=dst;
-        }
-        else{
-            if(htable.count(instString)){
-                auto src=htable[instString];
-                htable[dst->toStr()]=src;
-                rpltable[*dst].inst=inst;
-                torm.push_back(inst);
+
+            auto src=htable[instString];
+            htable[dst->toStr()]=src;
+
+            if(redef.count(*dst)){
+                MachineInstruction* mov;
+                if(dst->getValType()->isFloat())
+                    mov = new MovMInstruction(bb,MovMInstruction::VMOV, dst, src);
+                else
+                    mov = new MovMInstruction(bb,MovMInstruction::MOV, dst, src);
+                bb->insertAfter(inst,mov);
+                it_minst++;
             }
-            else 
-                htable[instString]=dst;
+            else
+                torm.push_back(inst);
         }
+        else 
+            htable[instString]=dst;
     }
     for(auto mb : domtree[bb])
         dvnt(mb);
@@ -351,28 +363,6 @@ void ValueNumberingASM::dvnt(MachineBlock* bb)
     htable=prehtable;
 }
 
-void ValueNumberingASM::rollbackrpl()
-{
-    for(auto it=rpltable.begin();it!=rpltable.end();it++){
-        auto origin_mop = it->first;
-        auto definst=it->second.inst;
-        auto& rpls=it->second.rpl;
-        if(usescnt[origin_mop]==0 || rpls.empty()) continue;
-
-        for(auto it_rpl=rpls.begin();it_rpl!=rpls.end();it_rpl++)
-            *(it_rpl->first)=it_rpl->second;
-        auto bb=definst->getParent();
-        MachineOperand* src = new MachineOperand(*rpls[0].second);
-        MachineOperand* dst=new MachineOperand(*definst->getDef()[0]);
-        MachineInstruction* mov;
-        if(dst->getValType()->isFloat())
-            mov = new MovMInstruction(bb,MovMInstruction::VMOV, dst, src);
-        else
-            mov = new MovMInstruction(bb,MovMInstruction::MOV, dst, src);
-        bb->insertAfter(definst,mov);
-    }
-        
-}
 
 void ValueNumberingASM::dumpTable(){
     printf("------\n");
@@ -380,38 +370,58 @@ void ValueNumberingASM::dumpTable(){
         std::cout<<it->first<<" "<<it->second->toStr()<<std::endl;
     printf("------\n");
 }
-void ValueNumberingASM::addrpl(MachineOperand *from, MachineOperand *to, MachineOperand **place)
-{
-    assert(rpltable.count(*from));
-    rpltable[*from].rpl.push_back({place, to});
-    usescnt[*from]--;
-}
-void ValueNumberingASM::findredef(MachineBlock *bb)
-{
-    std::set<MachineOperand> curset;
-    std::copy(defset.begin(),defset.end(),std::inserter(curset,curset.end()));
-    for(auto it_minst=bb->begin();it_minst!=bb->end();it_minst++)
-    {
-        if((*it_minst)->isBranch() && (*it_minst)->getOpType()==::BranchMInstruction::BL)
-            r0redef=true;
-        
-        for(auto use : (*it_minst)->getUse()){
-            if(usescnt.count(*use))
-                usescnt[*use]++;
-            else usescnt[*use]=1;
-        }
 
-        auto inst=*it_minst;
-        if(inst->getDef().size()==0) continue;
-        
-        auto def=inst->getDef()[0];
-       // if(def->isReg()) continue;
-        if(defset.count(*def))
-            redef.insert(*def);
-        else defset.insert(*def);
+void ValueNumberingASM::findredef(MachineBlock *entry)
+{
+    //bfs from the entry
+    std::queue<MachineBlock*> q;
+    std::unordered_set<MachineBlock*> visited;
+    int defr0cnt=0,defs0cnt=0;
+    MachineOperand* r0=new MachineOperand(MachineOperand::REG,0,new ConstIntType(32));
+    MachineOperand* s0=new MachineOperand(MachineOperand::REG,0,new ConstFloatType(32));
+    q.push(entry);
+    visited.insert(entry);
+    while(!q.empty()){
+        auto bb=q.front();
+        q.pop();
+        for(auto it_minst=bb->begin();it_minst!=bb->end();it_minst++){
+            auto inst=*it_minst;
+            auto def=inst->getDef();
+            if(def.empty()) continue;
+            auto dst=def[0];
+            
+            if(inst->getInstType()==MachineInstruction::BRANCH && inst->getOpType()==BranchMInstruction::BL){
+                if(defr0cnt>1 && defs0cnt>1) continue;
+                assert(dst->isLabel());
+                auto funcName=dst->getLabel().substr(1);
+                auto funcEntry=dynamic_cast<IdentifierSymbolEntry*>(globals->lookup(funcName,true,{}));
+                auto retType=dynamic_cast<FunctionType*>(funcEntry->getType())->getRetType();
+                if(retType->isFloat()){
+                    defs0cnt++;
+                    if(defs0cnt>1){
+                        redef.insert(*s0);
+                    }
+                }
+                else if(retType->isInt()){
+                    defr0cnt++;
+                    if(defr0cnt>1){
+                        redef.insert(*r0);
+                    }
+                } 
+            }
+
+            if(getOpString(inst)=="") continue;
+
+            if(defset.count(*dst))
+                redef.insert(*dst);
+            else
+                defset.insert(*dst);
+            
+        }
+        for(auto succ : bb->getSuccs())
+            if(visited.count(succ)==0){
+                q.push(succ);
+                visited.insert(succ);
+            }
     }
-    for(auto mb : domtree[bb])
-        findredef(mb);
-    defset.clear();
-    std::copy(curset.begin(),curset.end(),std::inserter(defset,defset.end()));
 }
