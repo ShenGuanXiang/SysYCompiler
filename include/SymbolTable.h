@@ -66,7 +66,7 @@ public:
     SymbolTable();
     SymbolTable(SymbolTable *prev);
     bool install(std::string name, SymbolEntry *entry);
-    SymbolEntry *lookup(std::string name, bool isFunc = false, std::vector<Type *> ParamsType = std::vector<Type *>{});
+    SymbolEntry *lookup(std::string name, bool isFunc = false, std::vector<Type *> ParamsType = std::vector<Type *>());
     SymbolTable *getPrev() { return prev; };
     int getLevel() { return level; };
     static int getLabel() { return counter++; };

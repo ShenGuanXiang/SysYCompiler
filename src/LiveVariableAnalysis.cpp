@@ -74,20 +74,23 @@ void MachineFunction::AnalyzeLiveVariable()
             auto uses = inst->getUse();
             for (auto &use : uses)
             {
-                if (!use->isLabel())
+                if (use->isReg() || use->isVReg())
                     all_uses[*use].insert(use);
             }
         }
     }
     for (auto &block : getBlocks())
     {
-        for (auto inst = block->getInsts().begin(); inst != block->getInsts().end(); inst++)
+        for (auto &inst : block->getInsts())
         {
-            std::set<MachineOperand *> uses((*inst)->getUse().begin(), (*inst)->getUse().end());
+            std::set<MachineOperand *> uses(inst->getUse().begin(), inst->getUse().end());
             set_difference(uses.begin(), uses.end(), Def[block].begin(), Def[block].end(), inserter(LiveUse[block], LiveUse[block].end()));
-            auto defs = (*inst)->getDef();
+            auto defs = inst->getDef();
             for (auto &d : defs)
-                Def[block].insert(all_uses[*d].begin(), all_uses[*d].end());
+            {
+                if (d->isReg() || d->isVReg())
+                    Def[block].insert(all_uses[*d].begin(), all_uses[*d].end());
+            }
         }
     }
 

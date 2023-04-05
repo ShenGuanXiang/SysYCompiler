@@ -422,7 +422,7 @@ static std::set<BasicBlock *> ComputeLiveInBlocks(AllocaInstruction *alloca, All
         auto bb = workList.front();
         workList.pop();
         for (auto pred = bb->pred_begin(); pred != bb->pred_end(); pred++)
-            if (!is_visited[*pred] && (DefBlocks.find(*pred) == DefBlocks.end() || !StoreBeforeLoad(*pred, alloca)))
+            if (!is_visited[*pred] && (!DefBlocks.count(*pred) || !StoreBeforeLoad(*pred, alloca)))
             {
                 LiveInBlocks.insert(*pred);
                 workList.push(*pred);
@@ -446,7 +446,7 @@ void Mem2Reg::InsertPhi(Function *func)
         assert(alloca->getDef()->getType()->isPTR());
 
         // 筛1：如果alloca出的空间从未被使用，直接删除
-        if (alloca->getDef()->getUses().size() == 0)
+        if (alloca->getDef()->usersNum() == 0)
         {
             alloca->getParent()->remove(alloca);
             freeInsts.insert(alloca);

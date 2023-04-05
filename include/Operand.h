@@ -20,14 +20,18 @@ private:
 public:
     Operand(SymbolEntry *se) : se(se)
     {
-        defs = std::set<Instruction *>{};
-        uses = std::set<Instruction *>{};
+        defs = std::set<Instruction *>();
+        uses = std::set<Instruction *>();
     };
     void setDef(Instruction *inst) { defs = std::set<Instruction *>{inst}; };
     void addDef(Instruction *inst) { defs.insert(inst); }; // 特例是消除PHI产生的add ..., ..., 0，会有多个Def
     void removeDef(Instruction *inst) { defs.erase(inst); };
     void addUse(Instruction *inst) { uses.insert(inst); };
-    void removeUse(Instruction *inst) { uses.erase(inst); };
+    void removeUse(Instruction *inst)
+    {
+        uses.erase(inst);
+        // fprintf(stderr, "after removeUse: users of op %s : %d\n", this->toStr().c_str(), this->usersNum());
+    };
     int usersNum() const { return uses.size(); };
     int defsNum() const { return defs.size(); };
     // bool operator==(const Operand &) const;

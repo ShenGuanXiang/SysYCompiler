@@ -46,7 +46,7 @@ void MulDivMod2Bit::pass()
             for (auto inst : bb->getInsts())
                 for (auto def : inst->getDef())
                 {
-                    if (defs.find(*def) != defs.end())
+                    if (defs.count(*def))
                         multi_def.insert(*def);
                     else
                         defs.insert(*def);
@@ -81,17 +81,22 @@ void MulDivMod2Bit::pass()
 void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
 {
     auto insts = bb->getInsts();
+    std::set<MachineOperand> multi_def_ops = std::set<MachineOperand>();
     for (auto inst : insts)
     {
         for (auto def : inst->getDef())
-            assert(!op2val.count(*def));
+            if (op2val.count(*def))
+            {
+                assert(multi_def_ops.count(*def));
+                op2val.erase(*def);
+            };
 
-        // 存值，只处理无条件赋值&SSA的虚拟寄存器的情况
+        // 存值，只处理无条件赋值&(SSA||当前块定义)的情况
         if (inst->isLoad())
         {
             // 暂不考虑一次load多个寄存器的情况
-            if (inst->getUse().size() == 1 && inst->getDef()[0]->getValType()->isInt() && inst->getCond() == MachineInstruction::NONE &&
-                inst->getDef()[0]->isVReg() && inst->getUse()[0]->isImm() && multi_def.find(*inst->getDef()[0]) == multi_def.end())
+            if (inst->getUse().size() == 1 && inst->getDef()[0]->getValType()->isInt() &&
+                inst->getCond() == MachineInstruction::NONE && inst->getUse()[0]->isImm())
             {
                 if (inst->getUse()[0]->getValType()->isInt())
                     op2val[*inst->getDef()[0]] = (int)inst->getUse()[0]->getVal();
@@ -102,13 +107,25 @@ void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
                     val.float_val = (float)inst->getUse()[0]->getVal();
                     op2val[*inst->getDef()[0]] = val.signed_val;
                 }
+                if (multi_def.count(*inst->getDef()[0]))
+                    multi_def_ops.insert(*inst->getDef()[0]);
+            }
+            if (inst->getUse().size() == 2 && op2val.count(*inst->getUse()[1]) && isSignedShifterOperandVal(op2val[*inst->getUse()[1]]))
+            {
+                inst->getUse()[1] = new MachineOperand(MachineOperand::IMM, op2val[*inst->getUse()[1]]);
+                inst->getUse()[1]->setParent(inst);
             }
         }
         else if (inst->isMov() || inst->isVmov())
         {
             // 暂不考虑带移位的情况
-            if (inst->getUse().size() == 1 && inst->getDef()[0]->getValType()->isInt() && inst->getCond() == MachineInstruction::NONE &&
-                inst->getDef()[0]->isVReg() && inst->getUse()[0]->isImm() && multi_def.find(*inst->getDef()[0]) == multi_def.end())
+            if (inst->getDef()[0]->getValType()->isInt() && op2val.count(*inst->getUse()[0]) && isSignedShifterOperandVal(op2val[*inst->getUse()[0]]))
+            {
+                inst->getUse()[0] = new MachineOperand(MachineOperand::IMM, op2val[*inst->getUse()[0]]);
+                inst->getUse()[0]->setParent(inst);
+            }
+            if (inst->getUse().size() == 1 && inst->getDef()[0]->getValType()->isInt() &&
+                inst->getCond() == MachineInstruction::NONE && inst->getUse()[0]->isImm())
             {
                 if (inst->getUse()[0]->getValType()->isInt())
                     op2val[*inst->getDef()[0]] = (int)inst->getUse()[0]->getVal();
@@ -119,13 +136,125 @@ void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
                     val.float_val = (float)inst->getUse()[0]->getVal();
                     op2val[*inst->getDef()[0]] = val.signed_val;
                 }
+                if (multi_def.count(*inst->getDef()[0]))
+                    multi_def_ops.insert(*inst->getDef()[0]);
+            }
+            else if (inst->getUse().size() == 1 && inst->getDef()[0]->getValType()->isInt() &&
+                     inst->getCond() == MachineInstruction::NONE && op2val.count(*inst->getUse()[0]))
+            {
+                op2val[*inst->getDef()[0]] = op2val[*inst->getUse()[0]];
+                if (multi_def.count(*inst->getDef()[0]))
+                    multi_def_ops.insert(*inst->getDef()[0]);
+            }
+        }
+
+        else if (inst->isAdd() && inst->getDef()[0]->getValType()->isInt())
+        {
+            if (op2val.count(*inst->getUse()[0]) && (op2val.count(*inst->getUse()[1]) || inst->getUse()[1]->isImm()))
+            {
+                assert(!inst->getUse()[0]->isImm());
+                int val1 = op2val[*inst->getUse()[0]];
+                int val2 = op2val.count(*inst->getUse()[1]) ? op2val[*inst->getUse()[1]] : inst->getUse()[1]->getVal();
+                auto dst = new MachineOperand(*inst->getDef()[0]);
+                auto ldrInst = new LoadMInstruction(bb, dst, new MachineOperand(MachineOperand::IMM, val1 + val2));
+                op2val[*dst] = val1 + val2;
+                bb->insertBefore(inst, ldrInst);
+                bb->removeInst(inst);
+                freeInsts.insert(inst);
+            }
+            else if (op2val.count(*inst->getUse()[0]) && op2val[*inst->getUse()[0]] == 0)
+            {
+                auto dst = new MachineOperand(*inst->getDef()[0]);
+                auto MovInst = new MovMInstruction(bb, MovMInstruction::MOV, dst, new MachineOperand(*inst->getUse()[1]));
+                bb->insertBefore(inst, MovInst);
+                bb->removeInst(inst);
+                freeInsts.insert(inst);
+            }
+            else if ((op2val.count(*inst->getUse()[1]) && op2val[*inst->getUse()[1]] == 0) || (inst->getUse()[1]->isImm() && inst->getUse()[1]->getVal() == 0))
+            {
+                auto dst = new MachineOperand(*inst->getDef()[0]);
+                auto MovInst = new MovMInstruction(bb, MovMInstruction::MOV, dst, new MachineOperand(*inst->getUse()[0]));
+                bb->insertBefore(inst, MovInst);
+                bb->removeInst(inst);
+                freeInsts.insert(inst);
+            }
+        }
+
+        else if (inst->isSub() && inst->getDef()[0]->getValType()->isInt())
+        {
+            if (op2val.count(*inst->getUse()[0]) && (op2val.count(*inst->getUse()[1]) || inst->getUse()[1]->isImm()))
+            {
+                assert(!inst->getUse()[0]->isImm());
+                int val1 = op2val[*inst->getUse()[0]];
+                int val2 = op2val.count(*inst->getUse()[1]) ? op2val[*inst->getUse()[1]] : inst->getUse()[1]->getVal();
+                auto dst = new MachineOperand(*inst->getDef()[0]);
+                auto ldrInst = new LoadMInstruction(bb, dst, new MachineOperand(MachineOperand::IMM, val1 - val2));
+                op2val[*dst] = val1 - val2;
+                bb->insertBefore(inst, ldrInst);
+                bb->removeInst(inst);
+                freeInsts.insert(inst);
+            }
+            else if (op2val.count(*inst->getUse()[0]) && op2val[*inst->getUse()[0]] == 0)
+            {
+                auto dst = new MachineOperand(*inst->getDef()[0]);
+                auto NegInst = new BinaryMInstruction(bb, BinaryMInstruction::RSB, dst, new MachineOperand(*inst->getUse()[1]), new MachineOperand(MachineOperand::IMM, 0));
+                bb->insertBefore(inst, NegInst);
+                bb->removeInst(inst);
+                freeInsts.insert(inst);
+            }
+            else if ((op2val.count(*inst->getUse()[1]) && op2val[*inst->getUse()[1]] == 0) || (inst->getUse()[1]->isImm() && inst->getUse()[1]->getVal() == 0))
+            {
+                auto dst = new MachineOperand(*inst->getDef()[0]);
+                auto MovInst = new MovMInstruction(bb, MovMInstruction::MOV, dst, new MachineOperand(*inst->getUse()[0]));
+                bb->insertBefore(inst, MovInst);
+                bb->removeInst(inst);
+                freeInsts.insert(inst);
+            }
+        }
+
+        else if (inst->isRsb() && inst->getDef()[0]->getValType()->isInt())
+        {
+            if (op2val.count(*inst->getUse()[0]) && (op2val.count(*inst->getUse()[1]) || inst->getUse()[1]->isImm()))
+            {
+                assert(!inst->getUse()[0]->isImm());
+                int val1 = op2val[*inst->getUse()[0]];
+                int val2 = op2val.count(*inst->getUse()[1]) ? op2val[*inst->getUse()[1]] : inst->getUse()[1]->getVal();
+                auto dst = new MachineOperand(*inst->getDef()[0]);
+                auto ldrInst = new LoadMInstruction(bb, dst, new MachineOperand(MachineOperand::IMM, val2 - val1));
+                op2val[*dst] = val2 - val1;
+                bb->insertBefore(inst, ldrInst);
+                bb->removeInst(inst);
+                freeInsts.insert(inst);
+            }
+            else if (op2val.count(*inst->getUse()[0]) && op2val[*inst->getUse()[0]] == 0)
+            {
+                auto dst = new MachineOperand(*inst->getDef()[0]);
+                auto MovInst = new MovMInstruction(bb, MovMInstruction::MOV, dst, new MachineOperand(*inst->getUse()[1]));
+                bb->insertBefore(inst, MovInst);
+                bb->removeInst(inst);
+                freeInsts.insert(inst);
+            }
+            else if ((op2val.count(*inst->getUse()[1]) && isSignedShifterOperandVal(op2val[*inst->getUse()[1]])) || (inst->getUse()[1]->isImm() && isSignedShifterOperandVal(inst->getUse()[1]->getVal())))
+            {
+                inst->getUse()[1] = new MachineOperand(MachineOperand::IMM, op2val.count(*inst->getUse()[1]) ? op2val[*inst->getUse()[1]] : inst->getUse()[1]->getVal());
+                inst->getUse()[1]->setParent(inst);
             }
         }
 
         // mul2lsl
         else if (inst->isMul())
         {
-            if (op2val.count(*inst->getUse()[0]))
+            if (op2val.count(*inst->getUse()[0]) && op2val.count(*inst->getUse()[1]))
+            {
+                assert(inst->getDef()[0]->getValType()->isInt());
+                auto dst = new MachineOperand(*inst->getDef()[0]);
+                auto ldrInst = new LoadMInstruction(bb, dst, new MachineOperand(MachineOperand::IMM, op2val[*inst->getUse()[0]] * op2val[*inst->getUse()[1]]));
+                op2val[*dst] = op2val[*inst->getUse()[0]] * op2val[*inst->getUse()[1]];
+                bb->insertBefore(inst, ldrInst);
+                bb->removeInst(inst);
+                freeInsts.insert(inst);
+            }
+            else if (op2val.count(*inst->getUse()[0]))
             {
                 assert(inst->getDef()[0]->getValType()->isInt());
                 int m = op2val[*inst->getUse()[0]];
@@ -208,7 +337,17 @@ void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
         // div2asr
         else if (inst->isDiv())
         {
-            if (op2val.count(*inst->getUse()[1]))
+            if (op2val.count(*inst->getUse()[0]) && op2val.count(*inst->getUse()[1]))
+            {
+                assert(inst->getDef()[0]->getValType()->isInt());
+                auto dst = new MachineOperand(*inst->getDef()[0]);
+                auto ldrInst = new LoadMInstruction(bb, dst, new MachineOperand(MachineOperand::IMM, op2val[*inst->getUse()[0]] / op2val[*inst->getUse()[1]]));
+                op2val[*dst] = op2val[*inst->getUse()[0]] / op2val[*inst->getUse()[1]];
+                bb->insertBefore(inst, ldrInst);
+                bb->removeInst(inst);
+                freeInsts.insert(inst);
+            }
+            else if (op2val.count(*inst->getUse()[1]))
             {
                 assert(inst->getDef()[0]->getValType()->isInt());
                 int d = op2val[*inst->getUse()[1]];
@@ -272,6 +411,9 @@ void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
     }
 
     // todo: 取模，取模会翻译为多条汇编指令
+
+    for (auto op : multi_def_ops)
+        op2val.erase(op);
 
     for (auto it_child = domtree[bb].begin(); it_child != domtree[bb].end(); it_child++)
         dfs(*it_child, op2val);

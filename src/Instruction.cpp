@@ -423,20 +423,6 @@ FuncCallInstruction::FuncCallInstruction(Operand *dst, std::vector<Operand *> pa
         it->addUse(this);
     }
     func_se = funcse;
-    auto caller = dynamic_cast<IdentifierSymbolEntry *>(parent->getParent()->getSymPtr());
-    if (func_se->isLibFunc())
-        for (auto kv : func_se->getOccupiedRegs())
-            caller->addOccupiedReg(kv.first, kv.second);
-    else
-    {
-        if (!dynamic_cast<FunctionType *>(funcse->getType())->getRetType()->isVoid())
-            caller->addOccupiedReg(0, Const2Var(dynamic_cast<FunctionType *>(funcse->getType())->getRetType()));
-        auto paramsType = dynamic_cast<FunctionType *>(funcse->getType())->getParamsType();
-        for (int i = 0; i < std::min((int)paramsType.size(), 4); i++)
-            caller->addOccupiedReg(i, paramsType[i]->isARRAY() ? TypeSystem::intType : Const2Var(paramsType[i]));
-        for (auto kv : func_se->getOccupiedRegs())
-            caller->addOccupiedReg(kv.first, kv.second);
-    }
 }
 
 void FuncCallInstruction::output() const
@@ -777,7 +763,7 @@ void BinaryInstruction::genMachineCode(AsmBuilder *builder)
      * So you need to insert LOAD/MOV instruction to load immediate num into register.
      * As to other instructions, such as MUL, CMP, you need to deal with this situation, too.*/
 
-    // 与0相加的强度削弱，todo：单独一次pass，替换所有使用
+    // 与0相加的强度削弱
     if (opcode == ADD)
     {
         if (src1->isImm() && src1->getVal() == 0)
@@ -953,7 +939,7 @@ void RetInstruction::genMachineCode(AsmBuilder *builder)
      * 3. Generate bx instruction */
     auto cur_block = builder->getBlock();
     MachineInstruction *cur_inst = nullptr;
-    // Generate mov instruction to save return value in r0
+    // Generate mov instruction to save return value in r0/s0
     if (!use_list.empty())
     {
         auto src = genMachineOperand(use_list[0]);
@@ -961,6 +947,13 @@ void RetInstruction::genMachineCode(AsmBuilder *builder)
             src = cur_block->insertLoadImm(src);
         auto dst = new MachineOperand(MachineOperand::REG, 0, src->getValType());
         cur_inst = new MovMInstruction(cur_block, src->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src);
+        cur_block->insertInst(cur_inst);
+        cur_inst = new DummyMInstruction(cur_block, std::vector<MachineOperand *>(), {new MachineOperand(*dst)});
+        cur_block->insertInst(cur_inst);
+    }
+    else
+    {
+        cur_inst = new DummyMInstruction(cur_block, std::vector<MachineOperand *>(), std::vector<MachineOperand *>());
         cur_block->insertInst(cur_inst);
     }
 }
@@ -1014,6 +1007,7 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
 {
     auto cur_block = builder->getBlock();
     MachineInstruction *cur_inst = nullptr;
+    auto BL = new BranchMInstruction(cur_block, BranchMInstruction::BL, new MachineOperand(func_se->toStr()));
     // 传递参数
     for (int i = (int)use_list.size() - 1; i != -1; i--)
     {
@@ -1022,6 +1016,8 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
         if (i < 4)
         {
             auto dst = new MachineOperand(MachineOperand::REG, i, arg->getValType());
+            BL->addUse(new MachineOperand(*dst));
+            BL->addDef(new MachineOperand(*dst));
             if (arg->isImm() && arg->getValType()->isInt())
             {
                 cur_inst = new LoadMInstruction(cur_block, dst, arg);
@@ -1048,10 +1044,24 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
             cur_block->insertInst(cur_inst);
         }
     }
+    BL->addUse(genMachineReg(11)); // fp
+    BL->addDef(genMachineReg(14)); // lr
+    for (auto kv : func_se->getOccupiedRegs())
+    {
+        auto new_def = new MachineOperand(MachineOperand::REG, kv.first, kv.second);
+        bool addDef = true;
+        for (auto def : BL->getDef())
+            if (*def == *new_def)
+            {
+                addDef = false;
+                break;
+            }
+        if (addDef)
+            BL->addDef(new_def);
+    }
     // 生成跳转指令进入callee函数，保存pc到lr，callee要保存lr
-    cur_inst = new BranchMInstruction(cur_block, BranchMInstruction::BL, new MachineOperand(func_se->toStr()));
+    cur_inst = BL;
     cur_block->insertInst(cur_inst);
-    cur_block->getParent()->addSavedRegs(14); // lr
     // 传递是否需要8 bytes aligned
     if (func_se->need8BytesAligned())
         dynamic_cast<IdentifierSymbolEntry *>(cur_block->getParent()->getSymPtr())->set8BytesAligned();
@@ -1071,12 +1081,24 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
         cur_block->insertInst(cur_inst);
     }
     // 如果函数执行结果被用到，还需要保存 R0 寄存器中的返回值。
-    if (def_list[0]->getType() != TypeSystem::voidType) // TODO：这个判断并不精准，返回值非void不代表一定用到,后续可以通过死代码消除删除无用指令
+    if (def_list[0]->getType() != TypeSystem::voidType)
     {
         auto dst = genMachineOperand(def_list[0]);
         auto src = new MachineOperand(MachineOperand::REG, 0, dst->getValType()); // r0/s0
-        cur_inst = new MovMInstruction(cur_block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src);
-        cur_block->insertInst(cur_inst);
+        bool addDef = true;
+        for (auto def : BL->getDef())
+            if (*def == *src)
+            {
+                addDef = false;
+                break;
+            }
+        if (addDef)
+            BL->addDef(new MachineOperand(*src));
+        if (def_list[0]->usersNum() != 0)
+        {
+            cur_inst = new MovMInstruction(cur_block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src);
+            cur_block->insertInst(cur_inst);
+        }
     }
 }
 
@@ -1168,6 +1190,32 @@ void GepInstruction::genMachineCode(AsmBuilder *builder)
     if (dst->getParent() == nullptr)                                                                        // 只有取函数参数数组第一个元素时会走到这里
         insts.push_back(new MovMInstruction(cur_block, MovMInstruction::MOV, dst, genMachineOperand(arr))); // TODO：这条指令是冗余的，MOV的目标数都可以被替换
 
+    // coalesce: delete redundant mov inst for param(after mem2reg)
+    if (arr->getEntry()->isVariable() && ((IdentifierSymbolEntry *)(arr->getEntry()))->isParam())
+    {
+        assert(insts[0]->isMov() && *insts[0]->getDef()[0] == *dst && (insts[0]->getUse()[0]->isReg() || insts[0]->getUse()[0]->isVReg()));
+        for (size_t i = 1; i < insts.size(); i++)
+        {
+            if (*insts[i]->getDef()[0] == *dst)
+            {
+                for (size_t j = 1; j <= i; j++)
+                {
+                    for (size_t k = 0; k != insts[j]->getUse().size(); k++)
+                        if (*insts[j]->getUse()[k] == *dst)
+                        {
+                            insts[j]->getUse()[k] = new MachineOperand(*insts[0]->getUse()[0]);
+                            insts[j]->getUse()[k]->setParent(insts[j]);
+                        }
+                }
+                auto to_del = insts[0];
+                insts.erase(insts.begin());
+                delete to_del;
+                break;
+            }
+        }
+    }
+
+    // convert to SSA
     for (size_t i = 0; i < insts.size() - 1; i++)
     {
         if (insts[i]->getDef()[0]->getReg() == dst->getReg())

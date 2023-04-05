@@ -86,8 +86,6 @@ protected:
     // Instruction operand list, sorted by appearance order in assembly instruction
     std::vector<MachineOperand *> def_list;
     std::vector<MachineOperand *> use_list;
-    void addDef(MachineOperand *ope) { def_list.push_back(ope); };
-    void addUse(MachineOperand *ope) { use_list.push_back(ope); };
     // print execution code after printing opcode
     void printCond();
     int getcond() { return cond; }
@@ -95,6 +93,7 @@ protected:
 public:
     enum instType
     {
+        DUMMY,
         BINARY,
         LOAD,
         STORE,
@@ -125,16 +124,43 @@ public:
     int getCond() { return cond; };
     std::vector<MachineOperand *> &getDef() { return def_list; };
     std::vector<MachineOperand *> &getUse() { return use_list; };
+    void addDef(MachineOperand *ope)
+    {
+        def_list.push_back(ope);
+        if (ope->getParent() == nullptr)
+            ope->setParent(this);
+    };
+    void addUse(MachineOperand *ope)
+    {
+        use_list.push_back(ope);
+        if (ope->getParent() == nullptr)
+            ope->setParent(this);
+    };
     MachineBlock *getParent() { return parent; };
     void setParent(MachineBlock *block) { this->parent = block; }
     int getOpType() { return op; };
     int getInstType() const { return type; };
 
+    bool isDummy() const { return type == DUMMY; };
+    bool isAdd() const;
+    bool isSub() const;
+    bool isRsb() const;
     bool isMul() const;
     bool isDiv() const;
     bool isLoad() const { return type == LOAD; };
     bool isMov() const;
     bool isVmov() const;
+    bool isBL() const;
+};
+
+// 放在函数开头和结尾，分别假装定义函数参数对应的物理寄存器和使用函数返回值r0/s0，从而便于生存期等处理，防止被误判为死代码消除
+class DummyMInstruction : public MachineInstruction
+{
+public:
+    DummyMInstruction(MachineBlock *p,
+                      std::vector<MachineOperand *> defs, std::vector<MachineOperand *> uses,
+                      int cond = MachineInstruction::NONE);
+    void output(){};
 };
 
 class BinaryMInstruction : public MachineInstruction
@@ -211,10 +237,6 @@ public:
 class CmpMInstruction : public MachineInstruction
 {
 public:
-    enum opType
-    {
-        CMP
-    };
     CmpMInstruction(MachineBlock *p,
                     MachineOperand *src1, MachineOperand *src2,
                     int cond = MachineInstruction::NONE);
@@ -304,6 +326,7 @@ public:
     {
         this->parent = p;
         this->no = no;
+        this->IDom = nullptr;
     };
     void insertInst(MachineInstruction *inst) { this->inst_list.push_back(inst); };
     void removeInst(MachineInstruction *inst)
@@ -341,6 +364,7 @@ private:
     SymbolEntry *sym_ptr;
     MachineBlock *entry;
     std::vector<MachineOperand *> additional_args_offset;
+    bool largeStack;
 
 public:
     std::vector<MachineBlock *> &getBlocks() { return block_list; };
@@ -357,6 +381,8 @@ public:
         this->stack_size += size;
         return this->stack_size;
     };
+    bool hasLargeStack() { return largeStack; };
+    void setLargeStack() { largeStack = true; };
     void insertBlock(MachineBlock *block) { this->block_list.push_back(block); };
     void removeBlock(MachineBlock *block) { this->block_list.erase(std::find(block_list.begin(), block_list.end(), block)); };
     void addSavedRegs(int regno, bool is_sreg = false);

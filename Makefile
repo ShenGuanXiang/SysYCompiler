@@ -6,7 +6,7 @@ OPTTEST_PATH ?= testopt
 OBJ_PATH ?= $(BUILD_PATH)/obj
 BINARY ?= $(BUILD_PATH)/compiler
 SYSLIB_PATH ?= sysyruntimelibrary
-TIMING ?= 1
+TIMING ?= 0
 
 INC = $(addprefix -I, $(INC_PATH))
 SRC = $(shell find $(SRC_PATH)  -name "*.cpp")
@@ -47,7 +47,7 @@ $(OBJ_PATH)/%.o:$(SRC_PATH)/%.cpp
 	@clang++ $(CFLAGS) -c -o $@ $<
 
 $(BINARY):$(OBJ)
-	@clang++ -O0 -g -o $@ $^
+	@clang++ -O2 -g -o $@ $^
 
 app:$(LEXER) $(PARSER) $(BINARY)
 
@@ -113,7 +113,7 @@ test:app
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
 		@compile_start=$$(date +%s.%3N); \
-		timeout 5s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
+		timeout 3s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
 		RETURN_VALUE=$$?; \
 		compile_end=$$(date +%s.%3N); \
 		compile_time=$$(echo "$$compile_end - $$compile_start" | bc)

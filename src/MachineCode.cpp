@@ -465,8 +465,9 @@ std::string MachineOperand::toStr()
     {
         if (valType->isFloat())
         {
-            float float_val = (float)(this->val);
-            operandstr = "#" + std::to_string(reinterpret_cast<unsigned &>(float_val));
+            VAL val;
+            val.float_val = (float)(this->val);
+            operandstr = "#" + std::to_string(reinterpret_cast<unsigned &>(val.signed_val));
         }
         else
         {
@@ -550,6 +551,21 @@ MachineInstruction::~MachineInstruction()
         parent->removeInst(this);
 }
 
+bool MachineInstruction::isAdd() const
+{
+    return type == BINARY && op == BinaryMInstruction::ADD;
+}
+
+bool MachineInstruction::isSub() const
+{
+    return type == BINARY && op == BinaryMInstruction::SUB;
+}
+
+bool MachineInstruction::isRsb() const
+{
+    return type == BINARY && op == BinaryMInstruction::RSB;
+}
+
 bool MachineInstruction::isMul() const
 {
     return type == BINARY && op == BinaryMInstruction::MUL;
@@ -568,6 +584,32 @@ bool MachineInstruction::isMov() const
 bool MachineInstruction::isVmov() const
 {
     return type == MOV && op == MovMInstruction::VMOV;
+}
+
+bool MachineInstruction::isBL() const
+{
+    return type == BRANCH && op == BranchMInstruction::BL;
+}
+
+DummyMInstruction::DummyMInstruction(
+    MachineBlock *p,
+    std::vector<MachineOperand *> defs, std::vector<MachineOperand *> uses,
+    int cond)
+{
+    this->parent = p;
+    this->type = MachineInstruction::DUMMY;
+    this->op = -1;
+    this->cond = cond;
+    for (auto def : defs)
+    {
+        this->def_list.push_back(def);
+        def->setParent(this);
+    }
+    for (auto use : uses)
+    {
+        this->use_list.push_back(use);
+        use->setParent(this);
+    }
 }
 
 BinaryMInstruction::BinaryMInstruction(
@@ -1344,6 +1386,7 @@ MachineFunction::MachineFunction(MachineUnit *p, SymbolEntry *sym_ptr)
     this->parent = p;
     this->sym_ptr = sym_ptr;
     this->stack_size = 0;
+    this->largeStack = false;
 };
 
 void MachineFunction::addSavedRegs(int regno, bool is_sreg)
@@ -1391,7 +1434,7 @@ void MachineFunction::outputStart()
     inst->output();
     delete inst;
     // fp = sp
-    fprintf(yyout, "\tmov fp, sp\n");
+    fprintf(yyout, "\tmov fp, sp\n"); // to do：判断一下，没用过fp的话这句就省了
     if (dynamic_cast<IdentifierSymbolEntry *>(sym_ptr)->need8BytesAligned() &&
         (4 * (rregs.size() + sregs.size() + std::max(0, (int)dynamic_cast<FunctionType *>(sym_ptr->getType())->getParamsType().size() - 4)) + stack_size) % 8)
         stack_size += 4;
@@ -1401,7 +1444,6 @@ void MachineFunction::outputStart()
         if (!isShifterOperandVal(stack_size))
         {
             auto reg_no = (*saved_rregs.begin());
-            assert(reg_no < 11);
             auto inst = new LoadMInstruction(nullptr, new MachineOperand(MachineOperand::REG, reg_no), new MachineOperand(MachineOperand::IMM, stack_size));
             inst->output(); // fprintf(yyout, "\tldr r%d, =%d\n", reg_no, stack_size);
             delete inst;
@@ -1416,7 +1458,23 @@ void MachineFunction::outputEnd()
 {
     // recycle stack space
     if (stack_size)
-        fprintf(yyout, "\tmov sp, fp\n");
+    {
+        if (hasLargeStack())
+            fprintf(yyout, "\tmov sp, fp\n");
+        else
+        {
+            if (!isShifterOperandVal(stack_size))
+            {
+                auto reg_no = (*saved_rregs.begin());
+                auto inst = new LoadMInstruction(nullptr, new MachineOperand(MachineOperand::REG, reg_no), new MachineOperand(MachineOperand::IMM, stack_size));
+                inst->output(); // fprintf(yyout, "\tldr r%d, =%d\n", reg_no, stack_size);
+                delete inst;
+                fprintf(yyout, "\tadd sp, sp, r%d\n", reg_no);
+            }
+            else
+                fprintf(yyout, "\tadd sp, sp, #%d\n", stack_size);
+        }
+    }
     // Restore saved registers
     auto inst = new StackMInstruction(nullptr, StackMInstruction::POP, getSavedSRegs());
     inst->output();

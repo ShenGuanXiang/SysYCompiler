@@ -204,7 +204,7 @@ UnaryExpr
             delete [](char*)$1;
             assert(se != nullptr);
         }
-        //实参类型隐式转化
+        // 实参类型隐式转化
         if($3 != nullptr)
         {
             std::vector<ExprNode *> RParams = dynamic_cast<FuncCallParamsNode *>$3->getParams();

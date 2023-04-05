@@ -42,7 +42,7 @@ public:
         return def_list[0];
     };
     virtual std::vector<Operand *> &getUses() { return use_list; };
-    void replaceAllUsesWith(Operand *); // Mem2Reg
+    void replaceAllUsesWith(Operand *); // replace all uses of the def
     enum
     {
         BINARY,
@@ -59,9 +59,10 @@ public:
         PHI,
         GEP
     };
-    //getting opcode/instruction type to construct string key for lvn
+    // getting opcode/instruction type to construct string key for lvn
     unsigned getInstType() const { return instType; };
     unsigned getOpcode() const { return opcode; };
+
 protected:
     unsigned instType;
     unsigned opcode;
@@ -71,7 +72,6 @@ protected:
     std::vector<Operand *> def_list; // size <= 1;
     std::vector<Operand *> use_list;
     // std::vector<Operand *> operands;
-    
 };
 
 // meaningless instruction, used as the head node of the instruction list.
@@ -211,6 +211,7 @@ private:
 public:
     FuncCallInstruction(Operand *dst, std::vector<Operand *> params, IdentifierSymbolEntry *funcse, BasicBlock *insert_bb);
     void output() const;
+    IdentifierSymbolEntry *getFuncSe() { return func_se; };
     void genMachineCode(AsmBuilder *);
 };
 

@@ -21,12 +21,20 @@ public:
     {
         int start;
         int end;
-        bool spill;   // whether this vreg should be spilled to memory
         int disp;     // displacement in stack
-        int real_reg; // the real register mapped from virtual register if the vreg is not spilled to memory
+        int real_reg; // the real register mapped from virtual register if the vreg is not spilled to memory, else -1
         Type *valType;
         std::set<MachineOperand *> defs;
         std::set<MachineOperand *> uses;
+    };
+    struct DU
+    {
+        std::set<MachineOperand *> defs;
+        std::set<MachineOperand *> uses;
+        bool operator<(const DU &another) const
+        {
+            return (defs < another.defs || (defs == another.defs && uses < another.uses));
+        }
     };
 
 private:
@@ -34,9 +42,12 @@ private:
     MachineFunction *func;
     std::vector<int> rregs;
     std::vector<int> sregs; // 浮点可分配寄存器号
-    std::map<MachineOperand *, std::set<MachineOperand *>> du_chains;
-    std::vector<Interval *> intervals, active;
+    std::map<MachineOperand, std::set<DU>> du_chains;
+    std::vector<Interval *> intervals, active, regIntervals;
+    void releaseAllRegs();
+    bool isInterestingReg(MachineOperand *);
     void expireOldIntervals(Interval *interval);
+    void insertActiveRegIntervals(Interval *interval);
     void spillAtInterval(Interval *interval);
     void makeDuChains();
     void computeLiveIntervals();

@@ -24,11 +24,11 @@ extern void clearMachineOperands();
 int yyparse();
 
 char outfile[256] = "a.out";
-bool dump_tokens;
-bool dump_ast;
-bool dump_ir;
-bool dump_asm;
-bool optimize;
+bool dump_tokens = false;
+bool dump_ast = false;
+bool dump_ir = false;
+bool dump_asm = false;
+bool optimize = false;
 
 int main(int argc, char *argv[])
 {
@@ -97,10 +97,11 @@ int main(int argc, char *argv[])
         m2r.pass();
         // todo:其它中间代码优化
         // 函数自动内联
+        ValueNumbering dvn(&unit);
+        dvn.pass3(); // 公共子表达式消除
+        // 代数化简
         // 常量传播
         // 强度削弱
-        ValueNumbering dvn(&unit); // 公共子表达式消除
-        dvn.pass3();
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
@@ -117,18 +118,20 @@ int main(int argc, char *argv[])
         {
             // todo: 汇编代码优化
             ValueNumberingASM vnasm(&mUnit);
-            vnasm.pass();
+            vnasm.pass(); // 后端cse
 
             MulDivMod2Bit mdm2b(&mUnit);
-            mdm2b.pass();
+            mdm2b.pass(); // 强度削弱
 
-            // vnasm.pass();
+            vnasm.pass();
+            // 窥孔优化
         }
         LinearScan linearScan(&mUnit);
         linearScan.pass();
         if (optimize)
         {
             // todo: 汇编代码优化
+            // 窥孔优化
         }
         fprintf(stderr, "asm generated\n");
         mUnit.output();

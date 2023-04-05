@@ -85,62 +85,6 @@ bool IdentifierSymbolEntry::isLibFunc()
     return false;
 }
 
-void IdentifierSymbolEntry::decl_code()
-{
-    if (type->isFunc())
-    {
-        fprintf(yyout, "declare %s @%s(",
-                dynamic_cast<FunctionType *>(type)->getRetType()->toStr().c_str(), name.c_str());
-        fprintf(stderr, "declare %s @%s(",
-                dynamic_cast<FunctionType *>(type)->getRetType()->toStr().c_str(), name.c_str());
-        std::vector<Type *> paramslist = dynamic_cast<FunctionType *>(type)->getParamsType();
-        for (auto it = paramslist.begin(); it != paramslist.end(); it++)
-        {
-            if (it != paramslist.begin())
-            {
-                fprintf(yyout, ", ");
-                fprintf(stderr, ", ");
-            }
-            fprintf(yyout, "%s", (*it)->toStr().c_str());
-            fprintf(stderr, "%s", (*it)->toStr().c_str());
-        }
-        fprintf(yyout, ")\n");
-        fprintf(stderr, ")\n");
-    }
-    else if (type->isARRAY())
-    {
-        fprintf(yyout, "@%s = dso_local global ", this->toStr().c_str());
-        fprintf(stderr, "@%s = dso_local global ", this->toStr().c_str());
-        if (this->isAllZero())
-        {
-            fprintf(yyout, "%s zeroinitializer", type->toStr().c_str());
-            fprintf(stderr, "%s zeroinitializer", type->toStr().c_str());
-        }
-        else
-        {
-            fprintf(yyout, "%s", DeclArray((ArrayType *)type, getArrVals()).c_str());
-            fprintf(stderr, "%s", DeclArray((ArrayType *)type, getArrVals()).c_str());
-        }
-        fprintf(yyout, ", align 4\n");
-        fprintf(stderr, ", align 4\n");
-    }
-    else
-    {
-        if (type->isConst()) // 常量折叠
-            ;
-        else if (type->isInt())
-        {
-            fprintf(yyout, "@%s = dso_local global %s %d, align 4\n", name.c_str(), type->toStr().c_str(), (int)value);
-            fprintf(stderr, "@%s = dso_local global %s %d, align 4\n", name.c_str(), type->toStr().c_str(), (int)value);
-        }
-        else if (type->isFloat())
-        {
-            fprintf(yyout, "@%s = dso_local global %s %s, align 4\n", name.c_str(), type->toStr().c_str(), Double2HexStr(value).c_str());
-            fprintf(stderr, "@%s = dso_local global %s %s, align 4\n", name.c_str(), type->toStr().c_str(), Double2HexStr(value).c_str());
-        }
-    }
-}
-
 SymbolEntry::SymbolEntry(Type *type, int kind)
 {
     this->type = type;
@@ -149,7 +93,7 @@ SymbolEntry::SymbolEntry(Type *type, int kind)
     newSymbolEntries.push_back(this);
 }
 
-ConstantSymbolEntry::ConstantSymbolEntry(Type *type, double value) : SymbolEntry(type, SymbolEntry::CONSTANT)
+ConstantSymbolEntry::ConstantSymbolEntry(Type *type, double value) : SymbolEntry(Var2Const(type), SymbolEntry::CONSTANT)
 {
     this->value = value;
 }
@@ -178,6 +122,8 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
         {
             occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(3, TypeSystem::intType));
         }
         else if (name == "getfloat" || name == "putfloat")
         {
@@ -185,6 +131,7 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
             occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(3, TypeSystem::intType));
         }
         else if (name == "getfarray" || name == "putfarray")
         {
@@ -192,6 +139,8 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
             occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
         }
+        else
+            assert(0);
     }
     func_se = nullptr;
     label = -1;
