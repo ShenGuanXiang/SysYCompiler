@@ -31,7 +31,10 @@ public:
     //pass3 is implemented using DVNT, dominator-based
     //we only use dvnt, so pass1 and pass2 are removed
 };
-
+struct rplInfo{
+    MachineInstruction* inst; // instrucion that defines the replaced operand
+    std::vector<std::pair<MachineOperand**,MachineOperand*>>rpl; // places where the operand is used and the old machine operand
+};
 class ValueNumberingASM
 {
     MachineUnit* munit;
@@ -40,6 +43,8 @@ class ValueNumberingASM
     std::unordered_map<MachineBlock*,std::vector<MachineBlock*>>domtree;
     std::set<MachineOperand> defset;
     std::set<MachineOperand> redef;
+
+    std::vector<MachineInstruction*>torm;
 public:
     ValueNumberingASM(MachineUnit* munit) : munit(munit){};
     void findredef(MachineBlock* bb);

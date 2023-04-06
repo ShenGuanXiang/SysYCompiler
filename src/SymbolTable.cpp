@@ -255,6 +255,10 @@ SymbolEntry *SymbolTable::lookup(std::string name, bool isFunc, std::vector<Type
                 assert((count == 1) && (!it->second->getType()->isFunc())); // 不支持同一作用域下变量和函数重名
                 return it->second;
             }
+            else if(isFunc && paramsType.empty())
+            {//used for get a function's return type via function's name
+                return it->second;
+            }
             else
             {
                 for (int i = 0; i < count; i++, it++)
