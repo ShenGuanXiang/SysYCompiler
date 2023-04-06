@@ -5,7 +5,7 @@
 #include <stack>
 
 extern FILE *yyout;
-static std::vector<SymbolEntry *> newSymbolEntries; // 用来回收new出来的SymbolEntry
+static std::vector<SymbolEntry *> newSymbolEntries = std::vector<SymbolEntry *>(); // 用来回收new出来的SymbolEntry
 
 // llvm的16进制float格式 reference: https://groups.google.com/g/llvm-dev/c/IlqV3TbSk6M/m/27dAggZOMb0J
 std::string Double2HexStr(double val)
@@ -116,7 +116,7 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
     this->scope = scope;
     addr = nullptr;
     this->is8BytesAligned = type->isFunc() && isLibFunc() && name != "getint" && name != "putint" && name != "getch" && name != "putch" && name != "getarray" && name != "putarray";
-    if (type->isFunc() && isLibFunc()) // todo 库函数到底哪些寄存器
+    if (type->isFunc() && isLibFunc())
     {
         if (name == "getint" || name == "putint" || name == "getch" || name == "putch" || name == "getarray" || name == "putarray")
         {
@@ -125,7 +125,7 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
             occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(3, TypeSystem::intType));
         }
-        else if (name == "getfloat" || name == "putfloat")
+        else if (name == "getfloat" || name == "putfloat" || name == "getfarray")
         {
             occupiedRegs.insert(std::make_pair(0, TypeSystem::floatType));
             occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
@@ -133,11 +133,12 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
             occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(3, TypeSystem::intType));
         }
-        else if (name == "getfarray" || name == "putfarray")
+        else if (name == "putfarray")
         {
             occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(3, TypeSystem::intType));
         }
         else
             assert(0);
@@ -231,8 +232,7 @@ bool match(std::vector<Type *> paramsType, std::vector<Type *> paramsType_found)
 
 /*
     Description: lookup the symbol entry of an identifier in the symbol table
-    Parameters:
-        name: identifier name
+    name: identifier name
     Return: pointer to the symbol entry of the identifier
 
     hint:
@@ -304,6 +304,9 @@ SymbolTable *globals = &t;
 
 void clearSymbolEntries()
 {
-    for (auto se : newSymbolEntries)
+    for (auto &se : newSymbolEntries)
+    {
         delete se;
+        se = nullptr;
+    }
 }

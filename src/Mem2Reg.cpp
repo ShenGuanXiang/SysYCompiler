@@ -195,6 +195,7 @@ void Instruction::replaceAllUsesWith(Operand *replVal)
                 }
                 use->removeUse(userInst);
                 use = replVal;
+                replVal->removeUse(userInst);
                 replVal->addUse(userInst);
             }
     }
@@ -210,7 +211,7 @@ static bool isAllocaPromotable(AllocaInstruction *alloca)
         return false; // toDo ：数组拟采用sroa、向量化优化
     }
     auto users = alloca->getDef()->getUses();
-    for (auto user : users)
+    for (auto &user : users)
     {
         // store:不允许alloc的结果作为store的左操作数；不允许store dst的类型和alloc dst的类型不符
         if (user->isStore())
@@ -273,7 +274,7 @@ static bool rewriteSingleStoreAlloca(AllocaInstruction *alloca, AllocaInfo &Info
     Info.UsingBlocks.clear();
 
     auto AllocaUsers = alloca->getDef()->getUses();
-    for (auto UserInst : AllocaUsers)
+    for (auto &UserInst : AllocaUsers)
     {
         if (UserInst == OnlyStore)
             continue;
@@ -331,7 +332,7 @@ static bool promoteSingleBlockAlloca(AllocaInstruction *alloca)
     LoadsByIndexTy LoadsByIndex;
 
     auto AllocaUsers = alloca->getDef()->getUses();
-    for (auto UserInst : AllocaUsers)
+    for (auto &UserInst : AllocaUsers)
     {
         if (UserInst->isStore())
             StoresByIndex.push_back(std::make_pair(getInstructionIndex(UserInst), dynamic_cast<StoreInstruction *>(UserInst)));
@@ -526,11 +527,6 @@ static void SimplifyInstruction()
 // https://roife.github.io/2022/02/07/mem2reg/
 void Mem2Reg::Rename(Function *func)
 {
-    // std::map<BasicBlock *, std::set<BasicBlock *>> DT_succ; // DominatorTree
-    // // 将IDom反向得到DominatorTree
-    // for (auto kv : IDom)
-    //     DT_succ[*kv.second.begin()].insert(kv.first);
-
     using RenamePassData = std::pair<BasicBlock *, std::map<Operand *, Operand *>>; //(bb, addr2val)
 
     // bfs
@@ -588,14 +584,7 @@ void Mem2Reg::Rename(Function *func)
             }
         }
         for (auto succ = BB->succ_begin(); succ != BB->succ_end(); succ++)
-        // for (auto succ : DT_succ[BB])
         {
-            // workList.push(std::make_pair(succ, IncomingVals));
-            // for (auto phi = succ->begin(); phi != succ->end() && phi->isPHI(); phi = phi->getNext())
-            // {
-            //     if (IncomingVals.count(dynamic_cast<PhiInstruction *>(phi)->getAddr()))
-            //         dynamic_cast<PhiInstruction *>(phi)->addEdge(BB, IncomingVals[dynamic_cast<PhiInstruction *>(phi)->getAddr()]);
-            // }
             workList.push(std::make_pair(*succ, IncomingVals));
             for (auto phi = (*succ)->begin(); phi != (*succ)->end() && phi->isPHI(); phi = phi->getNext())
             {

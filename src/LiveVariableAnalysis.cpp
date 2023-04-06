@@ -112,7 +112,7 @@ void MachineFunction::AnalyzeLiveVariable()
     {
         auto mBB = st.top();
         bool all_visited = true;
-        for (auto succ : mBB->getSuccs())
+        for (auto &succ : mBB->getSuccs())
         {
             if (!is_visited[succ] && !in_stk[succ])
             {
@@ -135,7 +135,7 @@ void MachineFunction::AnalyzeLiveVariable()
     while (change)
     {
         change = false;
-        for (auto block : dfnList)
+        for (auto &block : dfnList)
         {
             block->getLiveOut().clear();
             auto old = block->getLiveIn();

@@ -20,8 +20,6 @@ Instruction::Instruction(unsigned instType, BasicBlock *insert_bb)
 
 Instruction::~Instruction()
 {
-    if (parent != nullptr)
-        parent->remove(this);
     std::set<Operand *> freeOps;
     for (auto def : def_list) // size of def_list = 1
     {
@@ -41,6 +39,8 @@ Instruction::~Instruction()
                 freeOps.insert(use);
         }
     }
+    if (parent != nullptr)
+        parent->remove(this);
     for (auto op : freeOps)
     {
         if (op != nullptr)
@@ -1188,7 +1188,7 @@ void GepInstruction::genMachineCode(AsmBuilder *builder)
         }
     }
     if (dst->getParent() == nullptr)                                                                        // 只有取函数参数数组第一个元素时会走到这里
-        insts.push_back(new MovMInstruction(cur_block, MovMInstruction::MOV, dst, genMachineOperand(arr))); // TODO：这条指令是冗余的，MOV的目标数都可以被替换
+        insts.push_back(new MovMInstruction(cur_block, MovMInstruction::MOV, dst, genMachineOperand(arr))); // 这条指令是冗余的，MOV的目标数都会被替换(寄存器分配时coalesce)
 
     // coalesce: delete redundant mov inst for param(after mem2reg)
     if (arr->getEntry()->isVariable() && ((IdentifierSymbolEntry *)(arr->getEntry()))->isParam())

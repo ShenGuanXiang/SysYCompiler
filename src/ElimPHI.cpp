@@ -68,21 +68,34 @@ void ElimPHI::pass()
             auto &restInsts = kv.second;
             std::vector<Instruction *> seq;
             auto insts = restInsts;
-            for (auto inst : insts) // delete inst like a <- a
-            {
-                if (inst->getDef() == inst->getUses()[0])
-                    restInsts.erase(std::find(restInsts.begin(), restInsts.end(), inst));
-            }
+            // 为了后面判断重定义、计算生存期、coalesce等不出错，先不删了
+            // for (auto inst : insts) // delete inst like a <- a
+            // {
+            //     if (inst->getDef() == inst->getUses()[0])
+            //         restInsts.erase(std::find(restInsts.begin(), restInsts.end(), inst));
+            // }
             while (restInsts.size())
             {
-                std::set<Operand *> uses;
+                std::map<Operand *, std::set<Instruction *>> use2insts;
                 for (auto inst : restInsts)
-                    uses.insert(inst->getUses()[0]);
+                    use2insts[inst->getUses()[0]].insert(inst);
                 bool found = false;
                 auto Insts = restInsts;
                 for (auto inst : Insts)
                 {
-                    if (uses.count(inst->getDef()) == 0) // inst is not live-in of pcopy
+                    bool live_in = false;
+                    if (use2insts.count(inst->getDef()))
+                    {
+                        for (auto userInst : use2insts[inst->getDef()])
+                        {
+                            if (userInst->getDef() != inst->getDef()) // inst is still live-in of pcopy
+                            {
+                                live_in = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!live_in)
                     {
                         seq.push_back(inst);
                         restInsts.erase(std::find(restInsts.begin(), restInsts.end(), inst));
@@ -101,9 +114,8 @@ void ElimPHI::pass()
                 block->insertBefore(inst, block->rbegin()); // 跳过branch指令
         }
     }
-    for (auto i : freeList){
+    for (auto i : freeList)
         delete i;
-    }
     freeList.clear();
     SimplifyCFG sc(unit);
     sc.pass();

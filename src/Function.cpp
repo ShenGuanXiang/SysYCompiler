@@ -135,12 +135,6 @@ void Function::genMachineCode(AsmBuilder *builder)
     cur_func->setEntry(bb2mbb[entry]);
     assert(entry->predEmpty());
 
-    for (auto &param : param_list)
-    {
-        auto id_se = dynamic_cast<IdentifierSymbolEntry *>(param);
-        fprintf(stderr, "users of param %s : %d\n", id_se->toStr().c_str(), id_se->getParamOpe()->usersNum());
-    }
-
     // load params to reg
     if (mem2reg)
     {
@@ -148,7 +142,20 @@ void Function::genMachineCode(AsmBuilder *builder)
         {
             auto id_se = dynamic_cast<IdentifierSymbolEntry *>(param);
             Type *type = param->getType()->isPTR() ? TypeSystem::intType : param->getType();
-            if (id_se->getParamOpe()->usersNum() == 0)
+            if (id_se->getParamOpe()->usersNum() == 0 || id_se->getLabel() == -1)
+                // todo: 不写后一个条件有奇怪的bug，比如这个例子：
+                // int f(float a, float b, int c, int d, float e, float g, float h)
+                // {
+                //   getfloat();
+                //   putint(c);
+                //   putfloat(e);
+                //   return 0;
+                // }
+                //
+                // int main()
+                // {
+                //   return f(65,66,67,68,69,70,71);
+                // }
                 continue;
             else if (!id_se->paramMem2RegAble() && id_se->getParamNo() < 4)
             {

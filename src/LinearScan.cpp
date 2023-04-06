@@ -58,9 +58,9 @@ void LinearScan::releaseAllRegs()
     rregs.clear();
     sregs.clear();
     rregs.push_back(14);
-    for (int i = 11; i >= 0; i--) // todo : 尝试分配r11(fp)
+    for (int i = 11; i >= 0; i--)
         rregs.push_back(i);
-    for (int i = 31; i >= 4; i--)
+    for (int i = 31; i >= 4; i--) // 参数也放进去容易导致 'non-contiguous register range -- vpush/vpop'
         sregs.push_back(i);
 }
 
@@ -161,27 +161,101 @@ void LinearScan::makeDuChains()
                 st.pop();
         }
         //*****************************************************************************
-        // 删除未使用的虚拟寄存器
+        // 删除未使用的虚拟寄存器定义
         for (auto &du_chain : du_chains)
         {
             auto du_iter = du_chain.second.begin();
             while (du_iter != du_chain.second.end())
             {
                 auto du = *du_iter;
-                if (du.uses.empty()) // def not use
+                assert(du.defs.size() == 1);
+                auto def = *du.defs.begin();
+                if (du.uses.empty() && // def not use
+                    !def->getParent()->isBL() && !def->getParent()->isDummy() &&
+                    def->getParent()->getDef().size() == 1) // todo：定义多个的还没删
                 {
-                    assert(du.defs.size() == 1);
-                    auto def = *du.defs.begin();
-                    if (!def->getParent()->isBL() && !def->getParent()->isDummy())
+                    change = true;
+                    for (auto &inst_use : def->getParent()->getUse())
                     {
-                        if (def->getParent()->getDef().size() == 1) // todo：定义多个的还没删
+                        if (du_chains.count(*inst_use))
                         {
-                            change = true;
-                            def->getParent()->getParent()->removeInst(def->getParent());
-                            freeInsts.insert(def->getParent());
-                            du_iter = du_chain.second.erase(du_iter);
+                            std::vector<LinearScan::DU> v;
+                            v.assign(du_chains[*inst_use].begin(), du_chains[*inst_use].end());
+                            du_chains[*inst_use].clear();
+                            for (auto affected_du_iter = v.begin(); affected_du_iter != v.end(); affected_du_iter++)
+                            {
+                                auto use_iter = std::find((*affected_du_iter).uses.begin(), (*affected_du_iter).uses.end(), inst_use);
+                                if (use_iter != (*affected_du_iter).uses.end())
+                                    (*affected_du_iter).uses.erase(use_iter);
+                                du_chains[*inst_use].insert(*affected_du_iter);
+                            }
+                        }
+                    }
+                    def->getParent()->getParent()->removeInst(def->getParent());
+                    freeInsts.insert(def->getParent());
+                    du_iter = du_chain.second.erase(du_iter);
+                    continue;
+                }
+                du_iter++;
+            }
+        }
+        //*****************************************************************************
+        // coalesce： 删除一些mov，但会延长生命期
+        for (auto &du_chain : du_chains)
+        {
+            auto du_iter = du_chain.second.begin();
+            while (du_iter != du_chain.second.end())
+            {
+                auto du = *du_iter;
+                assert(du.defs.size() == 1);
+                auto def = *du.defs.begin();
+                if ((def->getParent()->isMov() || def->getParent()->isVmov()) &&
+                    def->getParent()->getUse().size() == 1 && def->getParent()->getCond() == MachineInstruction::NONE)
+                {
+                    auto src = def->getParent()->getUse()[0];
+                    if ((def->isVReg() && (src->isVReg() || isInterestingReg(src)) &&
+                         ((def->getValType()->isInt() && src->getValType()->isInt()) ||
+                          (def->getValType()->isFloat() && src->getValType()->isFloat()))) ||
+                        *def == *src)
+                    {
+                        assert(du_chains.count(*src));
+                        if (du_chains[*def].size() > 1 || du_chains[*src].size() > 1)
+                        {
+                            du_iter++;
                             continue;
                         }
+                        change = true;
+                        std::vector<LinearScan::DU> v;
+                        v.assign(du_chains[*src].begin(), du_chains[*src].end());
+                        du_chains[*src].clear();
+                        std::vector<MachineOperand *> newOps;
+                        for (auto use : du.uses)
+                        {
+                            auto inst = use->getParent();
+                            for (auto iter = inst->getUse().begin(); iter != inst->getUse().end(); iter++)
+                            {
+                                if (*iter == use)
+                                {
+                                    *iter = new MachineOperand(*src);
+                                    (*iter)->setParent(inst);
+                                    newOps.push_back(*iter);
+                                }
+                            }
+                        }
+                        for (size_t i = 0; i != v.size(); i++)
+                        {
+                            if (v[i].uses.find(src) != v[i].uses.end())
+                            {
+                                for (auto newOp : newOps)
+                                    v[i].uses.insert(newOp);
+                                v[i].uses.erase(src);
+                            }
+                            du_chains[*src].insert(v[i]);
+                        }
+                        def->getParent()->getParent()->removeInst(def->getParent());
+                        freeInsts.insert(def->getParent());
+                        du_iter = du_chain.second.erase(du_iter);
+                        continue;
                     }
                 }
                 du_iter++;
@@ -189,7 +263,7 @@ void LinearScan::makeDuChains()
         }
     } while (change);
     //**********************************************************************************
-    // 生存期合并
+    // 合并相同MachineOperand的多个def
     for (auto &du_chain : du_chains)
     {
         bool change;
@@ -264,13 +338,13 @@ void LinearScan::computeLiveIntervals()
                 bool in = false;
                 bool out = false;
                 for (auto &use : uses)
-                    if (liveIn.count(use))
+                    if (liveIn.find(use) != liveIn.end())
                     {
                         in = true;
                         break;
                     }
                 for (auto &use : uses)
-                    if (liveOut.count(use))
+                    if (liveOut.find(use) != liveOut.end())
                     {
                         out = true;
                         break;

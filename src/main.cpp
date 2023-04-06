@@ -14,8 +14,8 @@
 using namespace std;
 
 Ast ast;
-Unit unit;
-MachineUnit mUnit;
+Unit *unit = new Unit();
+MachineUnit *mUnit = new MachineUnit();
 extern FILE *yyin;
 extern FILE *yyout;
 extern void clearSymbolEntries();
@@ -84,59 +84,64 @@ int main(int argc, char *argv[])
         fprintf(stderr, "ast output ok\n");
     }
     // ast.typeCheck();
-    ast.genCode(&unit);
+    ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
     if (dump_ir && !optimize)
     {
-        unit.output();
+        unit->output();
         fprintf(stderr, "ir output ok\n");
     }
     if (optimize)
     {
-        Mem2Reg m2r(&unit);
+        // Global2Local
+        Mem2Reg m2r(unit);
         m2r.pass();
         // todo:其它中间代码优化
         // 函数自动内联
-        ValueNumbering dvn(&unit);
+        ValueNumbering dvn(unit);
         dvn.pass3(); // 公共子表达式消除
         // 代数化简
         // 常量传播
-        // 强度削弱
+        // 死代码删除
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
-            unit.output();
+            unit->output();
             fprintf(stderr, "opt ir output ok\n");
         }
-        ElimPHI ep(&unit);
+        ElimPHI ep(unit);
         ep.pass();
     }
     if (dump_asm)
     {
-        unit.genMachineCode(&mUnit);
+        unit->genMachineCode(mUnit);
         if (optimize)
         {
             // todo: 汇编代码优化
-            ValueNumberingASM vnasm(&mUnit);
+            ValueNumberingASM vnasm(mUnit);
             vnasm.pass(); // 后端cse
 
-            MulDivMod2Bit mdm2b(&mUnit);
+            MulDivMod2Bit mdm2b(mUnit);
             mdm2b.pass(); // 强度削弱
 
             vnasm.pass();
             // 窥孔优化
         }
-        LinearScan linearScan(&mUnit);
+        LinearScan linearScan(mUnit);
         linearScan.pass();
         if (optimize)
         {
             // todo: 汇编代码优化
             // 窥孔优化
+            // 控制流优化
+            // 死代码消除
         }
         fprintf(stderr, "asm generated\n");
-        mUnit.output();
+        mUnit->output();
         fprintf(stderr, "asm output ok\n");
     }
+    delete mUnit;
+    delete unit;
     clearSymbolEntries();
     clearTypes();
     clearMachineOperands();

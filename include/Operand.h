@@ -2,7 +2,8 @@
 #define __OPERAND_H__
 
 #include "SymbolTable.h"
-#include <set>
+#include <vector>
+#include <algorithm>
 #include <assert.h>
 
 class Instruction;
@@ -27,11 +28,7 @@ public:
     void addDef(Instruction *inst) { defs.insert(inst); }; // 特例是消除PHI产生的add ..., ..., 0，会有多个Def
     void removeDef(Instruction *inst) { defs.erase(inst); };
     void addUse(Instruction *inst) { uses.insert(inst); };
-    void removeUse(Instruction *inst)
-    {
-        uses.erase(inst);
-        // fprintf(stderr, "after removeUse: users of op %s : %d\n", this->toStr().c_str(), this->usersNum());
-    };
+    void removeUse(Instruction *inst) { uses.erase(inst); };
     int usersNum() const { return uses.size(); };
     int defsNum() const { return defs.size(); };
     // bool operator==(const Operand &) const;

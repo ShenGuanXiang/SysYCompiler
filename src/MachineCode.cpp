@@ -5,11 +5,11 @@
 #include <set>
 extern FILE *yyout;
 
-static std::vector<MachineOperand *> newMachineOperands; // 用来回收new出来的SymbolEntry
+static std::vector<MachineOperand *> newMachineOperands = std::vector<MachineOperand *>(); // 用来回收new出来的SymbolEntry
 
 extern bool mem2reg;
 
-static int cnt; // 当前已打印指令数量，每次打印LiteralPool都会清零
+static int cnt = 0; // 当前已打印指令数量，每次打印LiteralPool都会清零
 
 // https://developer.arm.com/documentation/ka001136/latest
 static std::set<float> legal_float_imm = std::set<float>({
@@ -315,9 +315,17 @@ MachineOperand::MachineOperand(int tp, double val, Type *valType)
 {
     this->type = tp;
     if (tp == MachineOperand::IMM)
+    {
         this->val = val;
+        this->reg_no = -1;
+    }
     else
+    {
+        assert(tp == MachineOperand::REG || tp == MachineOperand::VREG);
+        this->val = 0;
         this->reg_no = (int)val;
+    }
+    this->label = "";
     // 约定MachineOperand的valType是int/float/bool
     assert(!valType->isARRAY());
     assert(!valType->isPTR());
@@ -329,8 +337,11 @@ MachineOperand::MachineOperand(int tp, double val, Type *valType)
 MachineOperand::MachineOperand(std::string label)
 {
     this->type = MachineOperand::LABEL;
+    this->val = 0;
+    this->reg_no = -1;
     this->label = label;
     this->valType = TypeSystem::intType;
+    this->parent = nullptr;
     newMachineOperands.push_back(this);
 }
 
@@ -763,7 +774,7 @@ void LoadMInstruction::output()
             }
             if (isShifterOperandVal(temp))
             {
-                fprintf(yyout, "\tmov"); // todo:movw
+                fprintf(yyout, "\tmov");
                 printCond();
                 fprintf(yyout, " ");
                 this->def_list[0]->output();
@@ -1699,6 +1710,9 @@ void MachineUnit::printBridge()
 
 void clearMachineOperands()
 {
-    for (auto mope : newMachineOperands)
+    for (auto &mope : newMachineOperands)
+    {
         delete mope;
+        mope = nullptr;
+    }
 }

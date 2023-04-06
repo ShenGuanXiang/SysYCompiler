@@ -12,13 +12,13 @@ extern FILE *yyout;
 int Node::counter = 0;
 IRBuilder *Node::builder = nullptr;
 static int height = 0;
-static std::vector<WhileStmt *> whileStack;
-static Operand *arrayAddr;
+static std::vector<WhileStmt *> whileStack = std::vector<WhileStmt *>();
+static Operand *arrayAddr = nullptr;
 static Type *arrayType = nullptr;
-static std::vector<int> d;
-std::vector<int> cur_dim;
-ArrayType *cur_type;
-std::vector<ExprNode *> vec_val;
+static std::vector<int> d = std::vector<int>();
+std::vector<int> cur_dim = std::vector<int>();
+ArrayType *cur_type = nullptr;
+std::vector<ExprNode *> vec_val = std::vector<ExprNode *>();
 
 static void get_vec_val(InitNode *cur_node)
 {
@@ -365,6 +365,8 @@ void Ast::genCode(Unit *unit)
     Node::setIRBuilder(builder);
     assert(root != nullptr);
     root->genCode();
+    delete builder;
+    Node::setIRBuilder(nullptr);
 }
 
 void Id::genCode()

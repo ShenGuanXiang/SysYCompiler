@@ -1,6 +1,5 @@
 #include "Operand.h"
 #include <sstream>
-#include <algorithm>
 #include <string.h>
 
 extern FILE *yyout;

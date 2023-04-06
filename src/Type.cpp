@@ -18,7 +18,7 @@ Type *TypeSystem::constIntType = &commonConstInt;
 Type *TypeSystem::constFloatType = &commonConstFloat;
 Type *TypeSystem::constBoolType = &commonConstBool;
 
-static std::vector<Type *> newTypes; // 用来回收new出来的Type
+static std::vector<Type *> newTypes = std::vector<Type *>(); // 用来回收new出来的Type
 
 FunctionType::FunctionType(Type *returnType, std::vector<Type *> paramsType) : Type(Type::FUNC), returnType(returnType), paramsType(paramsType)
 {
@@ -247,6 +247,9 @@ ArrayType *arrTypeLike(ArrayType *old)
 
 void clearTypes()
 {
-    for (auto type : newTypes)
+    for (auto &type : newTypes)
+    {
         delete type;
+        type = nullptr;
+    }
 }
