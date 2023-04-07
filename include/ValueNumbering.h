@@ -39,7 +39,7 @@ class ValueNumberingASM
 {
     MachineUnit* munit;
     std::unordered_map<std::string,MachineOperand*> htable;
-    std::string getOpString(MachineInstruction *inst);
+    std::string getOpString(MachineInstruction *inst,bool lvn=false);
     std::unordered_map<MachineBlock*,std::vector<MachineBlock*>>domtree;
     std::set<MachineOperand> defset;
     std::set<MachineOperand> redef;
@@ -51,6 +51,7 @@ public:
     void dumpTable();
     void computeDomTree(MachineFunction* func);
     void dvnt(MachineBlock* bb);
+    void lvn(MachineBlock* bb);
     void pass();
 };
 

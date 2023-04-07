@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
         // todo:其它中间代码优化
         // 函数自动内联
         ValueNumbering dvn(unit);
-        dvn.pass3(); // 公共子表达式消除
+       // dvn.pass3(); // 公共子表达式消除
         // 代数化简
         // 常量传播
         // 死代码删除
@@ -119,16 +119,17 @@ int main(int argc, char *argv[])
         {
             // todo: 汇编代码优化
             ValueNumberingASM vnasm(mUnit);
-            vnasm.pass(); // 后端cse
+           // vnasm.pass(); // 后端cse
 
             MulDivMod2Bit mdm2b(mUnit);
             mdm2b.pass(); // 强度削弱
-
-            vnasm.pass();
+            //vnasm.pass();
             // 窥孔优化
         }
         LinearScan linearScan(mUnit);
         linearScan.pass();
+        ValueNumberingASM vnasm(mUnit);
+        vnasm.pass(); // 后端cse
         if (optimize)
         {
             // todo: 汇编代码优化
