@@ -203,20 +203,20 @@ std::string ValueNumberingASM::getOpString(MachineInstruction *minst,bool lvn)
 {
 
     std::string instString = "";
+    if (minst->getDef().empty() || minst->getDef().size() > 1)
+        return instString;
 
     if(!lvn){
         // 忽略带有条件的指令，这种指令不能被消除，但是其操作数应该被替换
         if (minst->getCond() != MachineInstruction::NONE)
             return instString;
 
-        // minst without dst is not expression
-        if (minst->getDef().empty() || minst->getDef().size() > 1)
-            return instString;
 
-        // overlook minst that uses r0/s0 if r0/s0 is redefined or other redefined registers
+        // overlook minst that uses redefined operand
         for (auto use : minst->getUse())
             if (redef.count(*use))
                 return instString;
+                
         if (redef.count(*minst->getDef()[0]))
             return instString;
     }
