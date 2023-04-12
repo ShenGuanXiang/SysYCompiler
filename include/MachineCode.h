@@ -64,7 +64,6 @@ public:
     std::string getLabel() { return this->label; };
     MachineInstruction *getParent() { return this->parent; };
     void setParent(MachineInstruction *p) { this->parent = p; };
-    void printReg();
     void output();
     std::string toStr();
     Type *getValType()
@@ -151,6 +150,7 @@ public:
     bool isMov() const;
     bool isVmov() const;
     bool isBL() const;
+    bool isZext() const { return type == ZEXT; };
 };
 
 // 放在函数开头和结尾，分别假装定义函数参数对应的物理寄存器和使用函数返回值r0/s0，从而便于生存期等处理，防止被误判为死代码消除
@@ -160,7 +160,7 @@ public:
     DummyMInstruction(MachineBlock *p,
                       std::vector<MachineOperand *> defs, std::vector<MachineOperand *> uses,
                       int cond = MachineInstruction::NONE);
-    void output(){};
+    void output();
 };
 
 class BinaryMInstruction : public MachineInstruction
@@ -346,7 +346,6 @@ public:
     void insertBefore(MachineInstruction *pos, MachineInstruction *inst);
     void insertAfter(MachineInstruction *pos, MachineInstruction *inst);
     MachineOperand *insertLoadImm(MachineOperand *imm);
-    std::pair<MachineOperand *, std::vector<MachineInstruction *>> getLoadImmInsts(MachineOperand *imm);
     void output();
     std::set<MachineBlock *> &getSDoms() { return SDoms; };
     MachineBlock *&getIDom() { return IDom; };
@@ -379,6 +378,7 @@ public:
     int AllocSpace(int size)
     {
         this->stack_size += size;
+        assert(stack_size % 4 == 0);
         return this->stack_size;
     };
     bool hasLargeStack() { return largeStack; };

@@ -84,7 +84,7 @@ void IdentifierSymbolEntry::decl_code()
         {
             fprintf(yyout, "@%s = dso_local global ", this->toStr().c_str());
             fprintf(stderr, "@%s = dso_local global ", this->toStr().c_str());
-            if (this->isAllZero())
+            if (this->getNonZeroCnt() == 0)
             {
                 fprintf(yyout, "%s zeroinitializer", type->toStr().c_str());
                 fprintf(stderr, "%s zeroinitializer", type->toStr().c_str());
@@ -109,8 +109,8 @@ void IdentifierSymbolEntry::decl_code()
         }
         else if (type->isFloat())
         {
-            fprintf(yyout, "@%s = dso_local global %s %s, align 4\n", name.c_str(), type->toStr().c_str(), Double2HexStr(value).c_str());
-            fprintf(stderr, "@%s = dso_local global %s %s, align 4\n", name.c_str(), type->toStr().c_str(), Double2HexStr(value).c_str());
+            fprintf(yyout, "@%s = dso_local global %s %s, align 4\n", name.c_str(), type->toStr().c_str(), Double2HexStr((double(float(value)))).c_str());
+            fprintf(stderr, "@%s = dso_local global %s %s, align 4\n", name.c_str(), type->toStr().c_str(), Double2HexStr((double(float(value)))).c_str());
         }
     }
 }

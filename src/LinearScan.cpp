@@ -4,7 +4,7 @@
 #include "MachineCode.h"
 #include "LiveVariableAnalysis.h"
 
-static std::set<MachineInstruction *> freeInsts; // def not use
+static std::set<MachineInstruction *> freeInsts; // def not use & coalesced mov insts
 static std::set<LinearScan::Interval *> freeIntervals;
 
 LinearScan::LinearScan(MachineUnit *unit)
@@ -57,11 +57,16 @@ void LinearScan::releaseAllRegs()
 {
     rregs.clear();
     sregs.clear();
+
     rregs.push_back(14);
-    for (int i = 11; i >= 0; i--)
+    for (int i = 12; i >= 0; i--) // todo：r12现在还叫不准
         rregs.push_back(i);
     for (int i = 31; i >= 4; i--) // 参数也放进去容易导致 'non-contiguous register range -- vpush/vpop'
         sregs.push_back(i);
+    // for (int i = 10; i >= 4; i--)
+    //     rregs.push_back(i);
+    // for (int i = 31; i >= 16; i--)
+    //     sregs.push_back(i);
 }
 
 bool LinearScan::isInterestingReg(MachineOperand *reg)
@@ -203,13 +208,14 @@ void LinearScan::makeDuChains()
         // coalesce： 删除一些mov，但会延长生命期
         for (auto &du_chain : du_chains)
         {
-            auto du_iter = du_chain.second.begin();
-            while (du_iter != du_chain.second.end())
+            auto du_chain_second_copy = du_chain.second;
+            auto du_iter = du_chain_second_copy.begin();
+            while (du_iter != du_chain_second_copy.end())
             {
                 auto du = *du_iter;
                 assert(du.defs.size() == 1);
                 auto def = *du.defs.begin();
-                if ((def->getParent()->isMov() || def->getParent()->isVmov()) &&
+                if ((def->getParent()->isMov() || def->getParent()->isVmov() || def->getParent()->isZext()) &&
                     def->getParent()->getUse().size() == 1 && def->getParent()->getCond() == MachineInstruction::NONE)
                 {
                     auto src = def->getParent()->getUse()[0];
@@ -219,15 +225,100 @@ void LinearScan::makeDuChains()
                         *def == *src)
                     {
                         assert(du_chains.count(*src));
-                        if (du_chains[*def].size() > 1 || du_chains[*src].size() > 1)
+                        if (def->getParent()->isZext())
+                            assert(du_chains[*src].size() == 2);
+                        else if (du_chains[*def].size() > 1 || du_chains[*src].size() > 1)
                         {
-                            du_iter++;
-                            continue;
+                            bool eliminable = true;
+                            for (auto &du : du_chains[*def])
+                                if ((*du.defs.begin())->getParent()->getParent() != (*(*du_chains[*def].begin()).defs.begin())->getParent()->getParent() || (*du.defs.begin())->getParent()->getCond() != MachineInstruction::NONE)
+                                {
+                                    eliminable = false;
+                                    break;
+                                }
+                            for (auto &du : du_chains[*src])
+                                if ((*du.defs.begin())->getParent()->getParent() != (*(*du_chains[*src].begin()).defs.begin())->getParent()->getParent() || (*du.defs.begin())->getParent()->getCond() != MachineInstruction::NONE)
+                                {
+                                    eliminable = false;
+                                    break;
+                                }
+                            if (!eliminable)
+                            {
+                                du_iter++;
+                                continue;
+                            }
+                            else
+                            {
+                                std::vector<MachineOperand *> oldOps, newOps;
+                                for (auto &inst : def->getParent()->getParent()->getInsts())
+                                {
+                                    if (inst->getNo() <= def->getParent()->getNo())
+                                        continue;
+                                    bool redef = false;
+                                    for (auto it = inst->getUse().begin(); it != inst->getUse().end(); it++)
+                                        if (**it == *def)
+                                        {
+                                            oldOps.push_back(*it);
+                                            *it = new MachineOperand(*src);
+                                            (*it)->setParent(inst);
+                                            newOps.push_back(*it);
+                                        }
+                                    for (auto inst_def : inst->getDef())
+                                        if (*inst_def == *def || *inst_def == *src)
+                                            redef = true;
+                                    if (redef)
+                                        break;
+                                }
+                                if (!oldOps.empty() && !(*def == *src))
+                                    change = true;
+                                if (oldOps.size() < du.uses.size())
+                                {
+                                    std::vector<LinearScan::DU> v_def;
+                                    v_def.assign(du_chains[*def].begin(), du_chains[*def].end());
+                                    du_chains[*def].clear();
+                                    for (auto oldOp : oldOps)
+                                    {
+                                        int cnt = 0;
+                                        for (size_t i = 0; i != v_def.size(); i++)
+                                        {
+                                            if (v_def[i].uses.find(oldOp) != v_def[i].uses.end())
+                                            {
+                                                assert(cnt == 0);
+                                                cnt++;
+                                                v_def[i].uses.erase(oldOp);
+                                            }
+                                        }
+                                    }
+                                    for (size_t i = 0; i != v_def.size(); i++)
+                                        du_chains[*def].insert(v_def[i]);
+                                }
+                                else
+                                {
+                                    assert(oldOps.size() == du.uses.size());
+                                    def->getParent()->getParent()->removeInst(def->getParent());
+                                    freeInsts.insert(def->getParent());
+                                    du_chain.second.erase(du);
+                                }
+                                std::vector<LinearScan::DU> v_src;
+                                v_src.assign(du_chains[*src].begin(), du_chains[*src].end());
+                                du_chains[*src].clear();
+                                int cnt = 0;
+                                for (size_t i = 0; i != v_src.size(); i++)
+                                {
+                                    if (v_src[i].uses.find(src) != v_src[i].uses.end())
+                                    {
+                                        assert(cnt == 0);
+                                        cnt++;
+                                        for (auto newOp : newOps)
+                                            v_src[i].uses.insert(newOp);
+                                    }
+                                    du_chains[*src].insert(v_src[i]);
+                                }
+                                du_iter++;
+                                continue;
+                            }
                         }
                         change = true;
-                        std::vector<LinearScan::DU> v;
-                        v.assign(du_chains[*src].begin(), du_chains[*src].end());
-                        du_chains[*src].clear();
                         std::vector<MachineOperand *> newOps;
                         for (auto use : du.uses)
                         {
@@ -242,6 +333,9 @@ void LinearScan::makeDuChains()
                                 }
                             }
                         }
+                        std::vector<LinearScan::DU> v;
+                        v.assign(du_chains[*src].begin(), du_chains[*src].end());
+                        du_chains[*src].clear();
                         for (size_t i = 0; i != v.size(); i++)
                         {
                             if (v[i].uses.find(src) != v[i].uses.end())
@@ -254,7 +348,8 @@ void LinearScan::makeDuChains()
                         }
                         def->getParent()->getParent()->removeInst(def->getParent());
                         freeInsts.insert(def->getParent());
-                        du_iter = du_chain.second.erase(du_iter);
+                        du_chain.second.erase(du);
+                        du_iter++;
                         continue;
                     }
                 }
@@ -496,7 +591,14 @@ void LinearScan::genSpillCode()
                     block->insertBefore(pos, ldr);
                     offset = new MachineOperand(*internal_reg);
                 }
-                block->insertBefore(pos, new LoadMInstruction(block, new MachineOperand(*use), new MachineOperand(MachineOperand::REG, 11), offset));
+                if (use->getValType()->isFloat() && !offset->isImm())
+                {
+                    auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
+                    block->insertBefore(pos, new BinaryMInstruction(block, BinaryMInstruction::ADD, internal_reg, new MachineOperand(MachineOperand::REG, 11), offset));
+                    block->insertBefore(pos, new LoadMInstruction(block, new MachineOperand(*use), new MachineOperand(*internal_reg)));
+                }
+                else
+                    block->insertBefore(pos, new LoadMInstruction(block, new MachineOperand(*use), new MachineOperand(MachineOperand::REG, 11), offset));
             }
         }
 
@@ -515,7 +617,15 @@ void LinearScan::genSpillCode()
                     offset = new MachineOperand(*internal_reg);
                     pos = ldr;
                 }
-                block->insertAfter(pos, new StoreMInstruction(block, new MachineOperand(*def), new MachineOperand(MachineOperand::REG, 11), offset));
+                if (def->getValType()->isFloat() && !offset->isImm())
+                {
+                    auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
+                    auto add = new BinaryMInstruction(block, BinaryMInstruction::ADD, internal_reg, new MachineOperand(MachineOperand::REG, 11), offset);
+                    block->insertAfter(pos, add);
+                    block->insertAfter(add, new StoreMInstruction(block, new MachineOperand(*def), new MachineOperand(*internal_reg)));
+                }
+                else
+                    block->insertAfter(pos, new StoreMInstruction(block, new MachineOperand(*def), new MachineOperand(MachineOperand::REG, 11), offset));
             }
         }
     }

@@ -148,7 +148,7 @@ void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
             }
         }
 
-        else if (inst->isAdd() && inst->getDef()[0]->getValType()->isInt())
+        else if (inst->isAdd() && inst->getDef()[0]->getValType()->isInt() && inst->getUse().size() == 2)
         {
             if (op2val.count(*inst->getUse()[0]) && (op2val.count(*inst->getUse()[1]) || inst->getUse()[1]->isImm()))
             {
@@ -162,13 +162,32 @@ void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
                 bb->removeInst(inst);
                 freeInsts.insert(inst);
             }
-            else if (op2val.count(*inst->getUse()[0]) && op2val[*inst->getUse()[0]] == 0)
+            else if (op2val.count(*inst->getUse()[0]))
             {
-                auto dst = new MachineOperand(*inst->getDef()[0]);
-                auto MovInst = new MovMInstruction(bb, MovMInstruction::MOV, dst, new MachineOperand(*inst->getUse()[1]));
-                bb->insertBefore(inst, MovInst);
-                bb->removeInst(inst);
-                freeInsts.insert(inst);
+                if (op2val[*inst->getUse()[0]] == 0)
+                {
+                    auto dst = new MachineOperand(*inst->getDef()[0]);
+                    auto MovInst = new MovMInstruction(bb, MovMInstruction::MOV, dst, new MachineOperand(*inst->getUse()[1]));
+                    bb->insertBefore(inst, MovInst);
+                    bb->removeInst(inst);
+                    freeInsts.insert(inst);
+                }
+                else if (isSignedShifterOperandVal(op2val[*inst->getUse()[0]]))
+                {
+                    auto dst = new MachineOperand(*inst->getDef()[0]);
+                    auto AddInst = new BinaryMInstruction(bb, BinaryMInstruction::ADD, dst, new MachineOperand(*inst->getUse()[1]), new MachineOperand(MachineOperand::IMM, op2val[*inst->getUse()[0]]));
+                    bb->insertBefore(inst, AddInst);
+                    bb->removeInst(inst);
+                    freeInsts.insert(inst);
+                }
+                else if (isSignedShifterOperandVal(-op2val[*inst->getUse()[0]]))
+                {
+                    auto dst = new MachineOperand(*inst->getDef()[0]);
+                    auto SubInst = new BinaryMInstruction(bb, BinaryMInstruction::SUB, dst, new MachineOperand(*inst->getUse()[1]), new MachineOperand(MachineOperand::IMM, -op2val[*inst->getUse()[0]]));
+                    bb->insertBefore(inst, SubInst);
+                    bb->removeInst(inst);
+                    freeInsts.insert(inst);
+                }
             }
             else if ((op2val.count(*inst->getUse()[1]) && op2val[*inst->getUse()[1]] == 0) || (inst->getUse()[1]->isImm() && inst->getUse()[1]->getVal() == 0))
             {
@@ -178,9 +197,25 @@ void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
                 bb->removeInst(inst);
                 freeInsts.insert(inst);
             }
+            else if (op2val.count(*inst->getUse()[1]))
+            {
+                if (isSignedShifterOperandVal(op2val[*inst->getUse()[1]]))
+                {
+                    inst->getUse()[1] = new MachineOperand(MachineOperand::IMM, op2val[*inst->getUse()[1]]);
+                    inst->getUse()[1]->setParent(inst);
+                }
+                else if (isSignedShifterOperandVal(-op2val[*inst->getUse()[1]]))
+                {
+                    auto dst = new MachineOperand(*inst->getDef()[0]);
+                    auto SubInst = new BinaryMInstruction(bb, BinaryMInstruction::SUB, dst, new MachineOperand(*inst->getUse()[0]), new MachineOperand(MachineOperand::IMM, -op2val[*inst->getUse()[1]]));
+                    bb->insertBefore(inst, SubInst);
+                    bb->removeInst(inst);
+                    freeInsts.insert(inst);
+                }
+            }
         }
 
-        else if (inst->isSub() && inst->getDef()[0]->getValType()->isInt())
+        else if (inst->isSub() && inst->getDef()[0]->getValType()->isInt() && inst->getUse().size() == 2)
         {
             if (op2val.count(*inst->getUse()[0]) && (op2val.count(*inst->getUse()[1]) || inst->getUse()[1]->isImm()))
             {
@@ -194,13 +229,24 @@ void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
                 bb->removeInst(inst);
                 freeInsts.insert(inst);
             }
-            else if (op2val.count(*inst->getUse()[0]) && op2val[*inst->getUse()[0]] == 0)
+            else if (op2val.count(*inst->getUse()[0]))
             {
-                auto dst = new MachineOperand(*inst->getDef()[0]);
-                auto NegInst = new BinaryMInstruction(bb, BinaryMInstruction::RSB, dst, new MachineOperand(*inst->getUse()[1]), new MachineOperand(MachineOperand::IMM, 0));
-                bb->insertBefore(inst, NegInst);
-                bb->removeInst(inst);
-                freeInsts.insert(inst);
+                if (op2val[*inst->getUse()[0]] == 0)
+                {
+                    auto dst = new MachineOperand(*inst->getDef()[0]);
+                    auto NegInst = new BinaryMInstruction(bb, BinaryMInstruction::RSB, dst, new MachineOperand(*inst->getUse()[1]), new MachineOperand(MachineOperand::IMM, 0));
+                    bb->insertBefore(inst, NegInst);
+                    bb->removeInst(inst);
+                    freeInsts.insert(inst);
+                }
+                else if (isSignedShifterOperandVal(op2val[*inst->getUse()[0]]))
+                {
+                    auto dst = new MachineOperand(*inst->getDef()[0]);
+                    auto RsbInst = new BinaryMInstruction(bb, BinaryMInstruction::RSB, dst, new MachineOperand(*inst->getUse()[1]), new MachineOperand(MachineOperand::IMM, op2val[*inst->getUse()[0]]));
+                    bb->insertBefore(inst, RsbInst);
+                    bb->removeInst(inst);
+                    freeInsts.insert(inst);
+                }
             }
             else if ((op2val.count(*inst->getUse()[1]) && op2val[*inst->getUse()[1]] == 0) || (inst->getUse()[1]->isImm() && inst->getUse()[1]->getVal() == 0))
             {
@@ -209,6 +255,22 @@ void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
                 bb->insertBefore(inst, MovInst);
                 bb->removeInst(inst);
                 freeInsts.insert(inst);
+            }
+            else if (op2val.count(*inst->getUse()[1]))
+            {
+                if (isSignedShifterOperandVal(op2val[*inst->getUse()[1]]))
+                {
+                    inst->getUse()[1] = new MachineOperand(MachineOperand::IMM, op2val[*inst->getUse()[1]]);
+                    inst->getUse()[1]->setParent(inst);
+                }
+                else if (isSignedShifterOperandVal(-op2val[*inst->getUse()[1]]))
+                {
+                    auto dst = new MachineOperand(*inst->getDef()[0]);
+                    auto AddInst = new BinaryMInstruction(bb, BinaryMInstruction::ADD, dst, new MachineOperand(*inst->getUse()[0]), new MachineOperand(MachineOperand::IMM, -op2val[*inst->getUse()[1]]));
+                    bb->insertBefore(inst, AddInst);
+                    bb->removeInst(inst);
+                    freeInsts.insert(inst);
+                }
             }
         }
 

@@ -125,7 +125,11 @@ BasicBlock::~BasicBlock()
     for (auto &bb : pred)
         bb->removeSucc(this);
     for (auto &bb : succ)
+    {
+        for (auto i = bb->begin(); i != bb->end() && i->isPHI(); i = i->getNext())
+            dynamic_cast<PhiInstruction *>(i)->removeEdge(this);
         bb->removePred(this);
+    }
     if (parent != nullptr)
         parent->remove(this);
 }

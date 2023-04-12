@@ -132,8 +132,10 @@ int main(int argc, char *argv[])
         if (optimize)
         {
             // todo: 汇编代码优化
+            // 公共子表达式删除
             // 窥孔优化
             // 控制流优化
+            // 相对fp偏移非法但相对sp偏移不非法，转化一下
             // 死代码消除
         }
         fprintf(stderr, "asm generated\n");

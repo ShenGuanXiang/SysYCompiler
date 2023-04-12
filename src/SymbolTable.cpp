@@ -36,10 +36,10 @@ std::string DeclArray(ArrayType *type, std::vector<double> initializer)
     auto dims = type->fetch();
     if (dims.size() == 1)
     {
-        decl = type->toStr() + " [" + type_str + " " + (elemType->isFloat() ? Double2HexStr(initializer[0]) : std::to_string((int)initializer[0]));
+        decl = type->toStr() + " [" + type_str + " " + (elemType->isFloat() ? Double2HexStr(double(float(initializer[0]))) : std::to_string((int)initializer[0]));
         for (size_t i = 1; i != initializer.size(); i++)
         {
-            decl += ", " + type_str + " " + (elemType->isFloat() ? Double2HexStr(initializer[i]) : std::to_string((int)initializer[i]));
+            decl += ", " + type_str + " " + (elemType->isFloat() ? Double2HexStr(double(float(initializer[0]))) : std::to_string((int)initializer[i]));
         }
         decl += "]";
         return decl;
@@ -107,7 +107,7 @@ std::string ConstantSymbolEntry::toStr()
     {
         assert(type->isConstFloat());
         // return std::to_string((float)value);
-        return Double2HexStr(value);
+        return Double2HexStr(double(float(value)));
     }
 }
 
@@ -190,7 +190,7 @@ std::string IdentifierSymbolEntry::toStr()
         {
             assert(type->isConstFloat());
             // return std::to_string((float)value);
-            return Double2HexStr(value);
+            return Double2HexStr(double(float(value)));
         }
     }
     else if (isGlobal())
@@ -253,10 +253,6 @@ SymbolEntry *SymbolTable::lookup(std::string name, bool isFunc, std::vector<Type
             if (!isFunc)
             {
                 assert((count == 1) && (!it->second->getType()->isFunc())); // 不支持同一作用域下变量和函数重名
-                return it->second;
-            }
-            else if(isFunc && paramsType.empty()) //used for get a function's return type via function's name
-            {
                 return it->second;
             }
             else

@@ -169,13 +169,24 @@ void Function::genMachineCode(AsmBuilder *builder)
                 auto offset = new MachineOperand(MachineOperand::IMM, below_dist);
                 // 由于函数栈帧初始化时会将一些寄存器压栈，在FuncDef打印时还需要偏移一个值，这里保存未偏移前的值，方便后续调整
                 cur_func->addAdditionalArgsOffset(offset);
-                if (offset->getVal() >= 120) // todo：想办法优化栈偏移合法的情况，寄存器分配后再窥孔？
+                if (offset->getVal() >= 852) // todo：想办法优化栈偏移合法的情况，寄存器分配后再窥孔？
                 {
                     MachineOperand *internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
                     auto inst1 = new LoadMInstruction(bb2mbb[entry], internal_reg, offset);
                     internal_reg = new MachineOperand(*internal_reg);
-                    auto inst2 = new LoadMInstruction(bb2mbb[entry], new MachineOperand(MachineOperand::VREG, id_se->getLabel(), type), new MachineOperand(MachineOperand::REG, 11), internal_reg);
-                    bb2mbb[entry]->insertBefore(*bb2mbb[entry]->getInsts().begin(), inst2);
+                    if (type->isFloat())
+                    {
+                        auto internal_reg1 = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
+                        auto inst2 = new BinaryMInstruction(bb2mbb[entry], BinaryMInstruction::ADD, internal_reg1, new MachineOperand(MachineOperand::REG, 11), internal_reg);
+                        auto inst3 = new LoadMInstruction(bb2mbb[entry], new MachineOperand(MachineOperand::VREG, id_se->getLabel(), type), new MachineOperand(*internal_reg1));
+                        bb2mbb[entry]->insertBefore(*bb2mbb[entry]->getInsts().begin(), inst3);
+                        bb2mbb[entry]->insertBefore(*bb2mbb[entry]->getInsts().begin(), inst2);
+                    }
+                    else
+                    {
+                        auto inst2 = new LoadMInstruction(bb2mbb[entry], new MachineOperand(MachineOperand::VREG, id_se->getLabel(), type), new MachineOperand(MachineOperand::REG, 11), internal_reg);
+                        bb2mbb[entry]->insertBefore(*bb2mbb[entry]->getInsts().begin(), inst2);
+                    }
                     bb2mbb[entry]->insertBefore(*bb2mbb[entry]->getInsts().begin(), inst1);
                 }
                 else

@@ -13,7 +13,43 @@ void ElimPHI::pass()
         // Critical Edge Splitting Algorithm for making non-conventional SSA form conventional
         for (auto bb : blocks)
         {
-            if (!bb->begin()->isPHI())
+            // first try to simplify phi
+            bool to_solve = false;
+            for (auto phi = bb->begin(); phi != bb->end() && phi->isPHI(); phi = phi->getNext())
+            {
+                auto srcs = dynamic_cast<PhiInstruction *>(phi)->getUses();
+                bool Elim = true;
+                if (!srcs.empty())
+                {
+                    auto last_src = srcs[0];
+                    for (auto src : srcs)
+                    {
+                        if (src != last_src && !(src->getType()->isConst() && last_src->getType()->isConst() && src->getEntry()->getValue() == last_src->getEntry()->getValue()))
+                        {
+                            Elim = false;
+                            break;
+                        }
+                    }
+                    // check if there are two identical src basicblocks
+                    auto src_map = dynamic_cast<PhiInstruction *>(phi)->getSrcs();
+                    std::set<BasicBlock *> visited_bbs;
+                    for (auto src_kv : src_map)
+                    {
+                        assert(!visited_bbs.count(src_kv.first));
+                        visited_bbs.insert(src_kv.first);
+                    }
+                    if (Elim)
+                        phi->replaceAllUsesWith(last_src);
+                }
+                if (Elim)
+                {
+                    phi->getParent()->remove(phi);
+                    freeList.insert(phi);
+                }
+                else
+                    to_solve = true;
+            }
+            if (!to_solve)
                 continue;
             auto preds = std::vector<BasicBlock *>(bb->pred_begin(), bb->pred_end());
             for (auto pred : preds)

@@ -40,13 +40,14 @@ public:
     void setValue(double val) { value = val; };
     std::vector<double> getArrVals() { return arrVals; };
     void setArrVals(std::vector<double> arrVals) { this->arrVals = arrVals; };
-    bool isAllZero()
+    int getNonZeroCnt()
     {
+        int ans = 0;
         assert(type->isARRAY());
-        for (auto val : arrVals)
+        for (auto &val : arrVals)
             if (val)
-                return false;
-        return true;
+                ans++;
+        return ans;
     };
     int getKind() { return kind; };
     virtual std::string toStr() = 0;

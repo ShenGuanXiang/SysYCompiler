@@ -1,5 +1,3 @@
-[toc]
-
 # 已完成
 
 ## 寄存器分配
@@ -36,11 +34,13 @@
 
 ## 循环倒置
 
+## 常量内联
 
+- 除数组以外的const变量都直接内联
 
 # TODO
 
-## long_func、fp_params、light2d
+## long_func
 
 ## memset
 
@@ -64,11 +64,11 @@
 
 ## 窥孔优化
 
-1、2、4在shm ppt上
+1、2、3在shm ppt上
 
 定义一个窗口大小常量
 
-1. ldr/str和前面的add/sub fp, imm合并：
+1. ldr/str ..., [r] 和前面的 add r, imm/r 或 sub r, imm合并：
 
    - add r0, fp, #-12
      ldr r1, [r0]
@@ -96,17 +96,7 @@
      ldr r0, [fp, #-12]
      mov r1, r0
 
-3. mov vr1/vs1, vr2/vs2，前面一条指令是binary/mov等latency等于mov的指令且只有单个目标且为vr2/vs2：
-
-   - add r5, r0, 1 
-     mov r0, r5
-
-     ---->
-
-     add r5, r0, 1（很可能r5不会再用到，可以删掉）
-     add r0, r0, 1
-
-4. 前后衔接的(v)mul和(v)add/(v)sub指令合并为(v)mla/(v)mls （感觉加到Binary里面就行，不用新开）
+3. 前后衔接的(v)mul和(v)add/(v)sub指令合并为(v)mla/(v)mls （感觉加到Binary里面就行，不用新开）
 
    - mul v0,v1,v2
      add v3,v4,v0
@@ -124,9 +114,41 @@
      vmul.f32 v0,v1,v2
      vmla.f32 v4,v1,v2
 
-5. 将多条store替换为vdup和vstm
+4. mov vr1/vs1, vr2/vs2，前面一条指令是binary/mov等latency等于mov的指令且只有单个目标且为vr2/vs2(或mov的目标为r0-r3/s0-s3)：
 
-6. 多条push/pop合并为一条push/pop
+   - add r5, r0, 1 
+     mov r0, r5
+     
+     ---->
+    
+     add r5, r0, 1（很可能r5不会再用到，可以删掉） 
+     add r0, r0, 1
+   
+   - mov r1, r0
+     mov r0, r1
+   
+     ---->
+     
+     mov r1, r0
+     mov r0, r0
+
+5. mov移位 + add/sub/rsb/mov  
+   
+   - mov v5, v2, lsl #2
+	   add v4, v3, v5 (add v4, v5, v3)
+
+     --->
+     
+     add v4, v3, v2, lsl #2
+     mov v5, v2, lsl #2
+
+     (寄存器不能重定义，v4!=v2 且 v4!=v5)
+
+6. 将多条store替换为vdup和vstm
+
+7. 多条push/pop合并为一条push/pop（比如函数调用传参时）
+
+
 
 ## 寄存器分配
 
@@ -153,28 +175,31 @@
 
 ### 数组
 
-## 常量传播
+## 常量优化
 
 - 遇到常量跳转直接简化CFG
-- 
+- 数组常量内联
 
 ## 循环优化
 
 - 不变代码外提
 - 循环合并
 - 循环中的强度削弱
+  https://en.wikipedia.org/wiki/Induction_variable
 - 循环展开
   - 对于循环次数固定且展开后指令数较小的循环，展开为顺序执行
   - 对于循环次数不固定的循环，进行循环展开
 
 ## 代数化简
 
-- 代数恒等式化简 --a !!a a*b+a*c a*b/b
+- 代数恒等式化简 +--a !!a a\*b+a\*c a\*b/b 数组寻址表达式 a+0 a\*1 a/1 a*0
 
 ## 强度削弱
 
+- 乘以非2的幂次
 - 除以非2的幂次
-- 
+- 除以2的幂次，立即数超范围的情况，分解
+- 取模?
 
 ## 副作用优化
 

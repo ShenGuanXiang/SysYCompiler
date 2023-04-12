@@ -226,6 +226,8 @@ public:
     void output() const;
     void updateDst(Operand *);
     void addEdge(BasicBlock *block, Operand *src);
+    void removeEdge(BasicBlock *block);
+    void replaceEdge(BasicBlock *block, Operand *replVal);
     Operand *getAddr() { return addr; };
     std::map<BasicBlock *, Operand *> &getSrcs() { return srcs; };
 

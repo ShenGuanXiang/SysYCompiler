@@ -1,0 +1,19 @@
+int f()
+{
+  return 2;
+}
+
+int main()
+{
+  int i = 1;
+  int t = 0;
+  while(t < 3)
+  {
+    int j = i;
+    i = f();
+    if(j > 0)
+      i = j;
+    t = t + 1;
+  }
+  return i;
+}

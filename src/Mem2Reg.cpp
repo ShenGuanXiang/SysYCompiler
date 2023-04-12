@@ -195,7 +195,6 @@ void Instruction::replaceAllUsesWith(Operand *replVal)
                 }
                 use->removeUse(userInst);
                 use = replVal;
-                replVal->removeUse(userInst);
                 replVal->addUse(userInst);
             }
     }

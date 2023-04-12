@@ -498,9 +498,29 @@ void PhiInstruction::updateDst(Operand *new_dst)
 
 void PhiInstruction::addEdge(BasicBlock *block, Operand *src)
 {
+    assert(!srcs.count(block));
     use_list.push_back(src);
-    srcs[block] = src;
     src->addUse(this);
+    srcs[block] = src;
+}
+
+void PhiInstruction::removeEdge(BasicBlock *bb)
+{
+    if (srcs.count(bb))
+    {
+        auto iter = std::find(use_list.begin(), use_list.end(), srcs[bb]);
+        assert(iter != use_list.end());
+        use_list.erase(iter);
+        if (std::count(use_list.begin(), use_list.end(), srcs[bb]) == 0)
+            srcs[bb]->removeUse(this);
+        srcs.erase(bb);
+    }
+}
+
+void PhiInstruction::replaceEdge(BasicBlock *bb, Operand *replVal)
+{
+    removeEdge(bb);
+    addEdge(bb, replVal);
 }
 
 GepInstruction::GepInstruction(Operand *dst,
@@ -678,13 +698,24 @@ void LoadInstruction::genMachineCode(AsmBuilder *builder)
         if (offset->getVal() >= 0)
         {
             cur_block->getParent()->addAdditionalArgsOffset(offset);
-            if (offset->getVal() >= 120) // 后面分配好寄存器后偏移量会增加，所以这里直接做一个严格的判断
+            if (offset->getVal() >= 852) // 后面分配好寄存器后偏移量会增加，所以这里直接做一个严格的判断
                 offset = cur_block->insertLoadImm(offset);
         }
         if (offset->getVal() < 0 && offset->isIllegalShifterOperand())
             offset = cur_block->insertLoadImm(offset);
-        cur_inst = new LoadMInstruction(cur_block, dst, fp, offset);
-        cur_block->insertInst(cur_inst);
+        if (dst->getValType()->isFloat() && !offset->isImm())
+        {
+            auto internal_reg = genMachineVReg();
+            cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, internal_reg, fp, offset);
+            cur_block->insertInst(cur_inst);
+            cur_inst = new LoadMInstruction(cur_block, dst, new MachineOperand(*internal_reg));
+            cur_block->insertInst(cur_inst);
+        }
+        else
+        {
+            cur_inst = new LoadMInstruction(cur_block, dst, fp, offset);
+            cur_block->insertInst(cur_inst);
+        }
     }
     // Load operand from temporary variable
     else
@@ -738,8 +769,19 @@ void StoreInstruction::genMachineCode(AsmBuilder *builder)
         auto offset = genMachineImm(dynamic_cast<TemporarySymbolEntry *>(use_list[0]->getEntry())->getOffset());
         if (offset->isIllegalShifterOperand())
             offset = cur_block->insertLoadImm(offset);
-        cur_inst = new StoreMInstruction(cur_block, src, fp, offset);
-        cur_block->insertInst(cur_inst);
+        if (src->getValType()->isFloat() && !offset->isImm())
+        {
+            auto internal_reg = genMachineVReg();
+            cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, internal_reg, fp, offset);
+            cur_block->insertInst(cur_inst);
+            cur_inst = new StoreMInstruction(cur_block, src, new MachineOperand(*internal_reg));
+            cur_block->insertInst(cur_inst);
+        }
+        else
+        {
+            cur_inst = new StoreMInstruction(cur_block, src, fp, offset);
+            cur_block->insertInst(cur_inst);
+        }
     }
     // Store operand from temporary variable
     else
@@ -899,7 +941,7 @@ void CmpInstruction::genMachineCode(AsmBuilder *builder)
         MachineOperand *falseOperand = genMachineImm(0, TypeSystem::boolType);
         cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, trueOperand, nullptr, opcode);
         cur_block->insertInst(cur_inst);
-        dst = new MachineOperand(*dst); // todo : 需要考虑活性变量分析、活跃期计算等问题
+        dst = new MachineOperand(*dst); // new 一个新的，需要考虑活性变量分析、活跃期计算等问题
         if (opcode == CmpInstruction::E || opcode == CmpInstruction::NE)
             cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, falseOperand, nullptr, 1 - opcode);
         else
@@ -963,6 +1005,7 @@ void ZextInstruction::genMachineCode(AsmBuilder *builder)
     MachineBlock *cur_block = builder->getBlock();
     MachineInstruction *cur_inst = nullptr;
     MachineOperand *src = genMachineOperand(use_list[0]);
+    assert(src->isReg() || src->isVReg());
     // if (src->isImm() && src->isIllegalShifterOperand())
     //     src = cur_block->insertLoadImm(src);
     MachineOperand *dst = genMachineOperand(def_list[0]);
@@ -1046,6 +1089,7 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
     }
     BL->addUse(genMachineReg(11)); // fp
     BL->addDef(genMachineReg(14)); // lr
+    BL->addDef(genMachineReg(12)); // r12
     for (auto kv : func_se->getOccupiedRegs())
     {
         auto new_def = new MachineOperand(MachineOperand::REG, kv.first, kv.second);
@@ -1080,7 +1124,7 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
         cur_inst = new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, new_sp, old_sp, offset);
         cur_block->insertInst(cur_inst);
     }
-    // 如果函数执行结果被用到，还需要保存 R0 寄存器中的返回值。
+    // 如果函数执行结果被用到，还需要保存 r0/s0 寄存器中的返回值。
     if (def_list[0]->getType() != TypeSystem::voidType)
     {
         auto dst = genMachineOperand(def_list[0]);
@@ -1134,9 +1178,9 @@ void GepInstruction::genMachineCode(AsmBuilder *builder)
             auto offset = genMachineImm(((TemporarySymbolEntry *)(arr->getEntry()))->getOffset());
             if (offset->isIllegalShifterOperand())
             {
-                auto kv = cur_block->getLoadImmInsts(offset);
-                offset = kv.first;
-                insts.insert(insts.end(), kv.second.begin(), kv.second.end());
+                auto internal_reg1 = genMachineVReg();
+                insts.push_back(new LoadMInstruction(cur_block, internal_reg1, offset));
+                offset = new MachineOperand(*internal_reg1);
             }
             insts.push_back(new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, dst, fp, offset));
         }
@@ -1156,16 +1200,11 @@ void GepInstruction::genMachineCode(AsmBuilder *builder)
             internal_reg = dst->getParent() == nullptr ? genMachineOperand(arr) : new MachineOperand(*dst);
             dst = new MachineOperand(*dst);
             auto idx = genMachineOperand(use_list[i]);
-            if (idx->isImm())
-            {
-                auto kv = cur_block->getLoadImmInsts(idx);
-                idx = kv.first;
-                insts.insert(insts.end(), kv.second.begin(), kv.second.end());
-            }
+            assert(!idx->isImm());
             auto extra_offset = genMachineVReg();
-            auto kv = cur_block->getLoadImmInsts(genMachineImm(cur_size));
-            auto size = kv.first;
-            insts.insert(insts.end(), kv.second.begin(), kv.second.end());
+            auto internal_reg1 = genMachineVReg();
+            insts.push_back(new LoadMInstruction(cur_block, internal_reg1, genMachineImm(cur_size)));
+            auto size = new MachineOperand(*internal_reg1);
             insts.push_back(new BinaryMInstruction(cur_block, BinaryMInstruction::MUL, extra_offset, idx, size));
             insts.push_back(new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, dst, internal_reg, new MachineOperand(*extra_offset)));
         }
@@ -1175,22 +1214,50 @@ void GepInstruction::genMachineCode(AsmBuilder *builder)
         {
             if (temp_constant->getVal())
             {
-                if (temp_constant->isIllegalShifterOperand())
+                // 直接加到基址的栈偏移上
+                if (arr->getEntry()->isTemporary() && arr->getDef() && (arr->getDef()->isAlloca()))
                 {
-                    auto kv = cur_block->getLoadImmInsts(temp_constant);
-                    temp_constant = kv.first;
-                    insts.insert(insts.end(), kv.second.begin(), kv.second.end());
+                    if (insts[0]->isLoad())
+                    {
+                        auto to_delete = *insts.begin();
+                        insts.erase(insts.begin());
+                        delete to_delete;
+                    }
+                    assert(insts[0]->isAdd() && insts[0]->getUse()[0]->getReg() == 11);
+                    auto new_offset = genMachineImm(((TemporarySymbolEntry *)(arr->getEntry()))->getOffset() + (int)temp_constant->getVal());
+                    if (new_offset->isIllegalShifterOperand())
+                    {
+                        auto internal_reg1 = genMachineVReg();
+                        insts.insert(insts.begin(), new LoadMInstruction(cur_block, internal_reg1, new_offset));
+                        new_offset = new MachineOperand(*internal_reg1);
+                        insts[1]->getUse()[1] = new_offset;
+                        new_offset->setParent(insts[1]);
+                    }
+                    else
+                    {
+                        insts[0]->getUse()[1] = new_offset;
+                        new_offset->setParent(insts[0]);
+                    }
                 }
-                internal_reg = dst->getParent() == nullptr ? genMachineOperand(arr) : new MachineOperand(*dst);
-                dst = new MachineOperand(*dst);
-                insts.push_back(new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, dst, internal_reg, temp_constant)); // TODO: 试试直接加到基址的栈偏移上，但是要考虑立即数溢出
+                else
+                {
+                    if (temp_constant->isIllegalShifterOperand())
+                    {
+                        auto internal_reg1 = genMachineVReg();
+                        insts.push_back(new LoadMInstruction(cur_block, internal_reg1, temp_constant));
+                        temp_constant = new MachineOperand(*internal_reg1);
+                    }
+                    internal_reg = dst->getParent() == nullptr ? genMachineOperand(arr) : new MachineOperand(*dst);
+                    dst = new MachineOperand(*dst);
+                    insts.push_back(new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, dst, internal_reg, temp_constant));
+                }
             }
         }
     }
     if (dst->getParent() == nullptr)                                                                        // 只有取函数参数数组第一个元素时会走到这里
         insts.push_back(new MovMInstruction(cur_block, MovMInstruction::MOV, dst, genMachineOperand(arr))); // 这条指令是冗余的，MOV的目标数都会被替换(寄存器分配时coalesce)
 
-    // coalesce: delete redundant mov inst for param(after mem2reg)
+    // coalesce: delete redundant mov inst for param(after mem2reg)，寄存器分配时再coalesce也行
     if (arr->getEntry()->isVariable() && ((IdentifierSymbolEntry *)(arr->getEntry()))->isParam())
     {
         assert(insts[0]->isMov() && *insts[0]->getDef()[0] == *dst && (insts[0]->getUse()[0]->isReg() || insts[0]->getUse()[0]->isVReg()));
