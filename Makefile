@@ -190,7 +190,7 @@ clean-test:
 	@find . -name "*.ast" | xargs rm -rf
 	@find . -name "*.ll" | grep -v *copy.ll | xargs rm -rf
 	@find . -name "*.dot" | xargs rm -rf
-	@find . -name "*.s" | grep -v *copy.s | xargs rm -rf
+	@find . -name "*.s"  | grep -v *copy.s | xargs rm -rf
 	@find . -name "*.bin" | xargs rm -rf
 	@find . -name "*.res" | xargs rm -rf
 	@find . -name "*.log" | grep -v *last.log | grep -v *new.log|grep -v *change.log | xargs rm -rf 

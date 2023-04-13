@@ -199,24 +199,28 @@ void ValueNumberingASM::computeDomTree(MachineFunction *func)
     // }
 }
 
-std::string ValueNumberingASM::getOpString(MachineInstruction *minst)
+std::string ValueNumberingASM::getOpString(MachineInstruction *minst,bool lvn)
 {
 
     std::string instString = "";
-    // 忽略带有条件的指令，这种指令不能被消除，但是其操作数应该被替换
-    if (minst->getCond() != MachineInstruction::NONE)
-        return instString;
-
-    // minst without dst is not expression
     if (minst->getDef().empty() || minst->getDef().size() > 1)
         return instString;
 
-    // overlook minst that uses r0/s0 if r0/s0 is redefined or other redefined registers
-    for (auto use : minst->getUse())
-        if (redef.count(*use))
+    if(!lvn){
+        // 忽略带有条件的指令，这种指令不能被消除，但是其操作数应该被替换
+        if (minst->getCond() != MachineInstruction::NONE)
             return instString;
-    if (redef.count(*minst->getDef()[0]))
-        return instString;
+
+
+        // overlook minst that uses redefined operand
+        for (auto use : minst->getUse())
+            if (redef.count(*use))
+                return instString;
+                
+        if (redef.count(*minst->getDef()[0]))
+            return instString;
+    }
+    
 
     switch (minst->getInstType())
     {
@@ -314,7 +318,6 @@ void ValueNumberingASM::dvnt(MachineBlock *bb)
     for (auto it_minst = bb->begin(); it_minst != bb->end(); it_minst++)
     {
         auto inst = *it_minst;
-
         // replace
         for (auto &use : inst->getUse())
             if (htable.count(use->toStr()))
@@ -372,10 +375,67 @@ void ValueNumberingASM::dvnt(MachineBlock *bb)
         else
             htable[instString] = dst;
     }
+    lvn(bb);
     for (auto mb : domtree[bb])
         dvnt(mb);
 
     htable = prehtable;
+}
+
+void ValueNumberingASM::lvn(MachineBlock *bb)
+{
+    unsigned long long val=0;
+    std::unordered_map<std::string,unsigned long long> inst2val;
+    std::unordered_map<MachineOperand*,unsigned long long> op2val;
+    std::vector<std::set<MachineOperand*> > val2ops;
+    std::vector<MachineInstruction*> torm;
+    for(auto it_inst = bb->begin();it_inst!=bb->end();it_inst++){
+        auto minst = *it_inst;
+        auto inst_str = getOpString(minst,true);
+        if(inst_str=="") continue;
+
+        for(auto use : minst->getUse()){
+            if(!op2val.count(use)){
+                op2val[use]=val;
+                val2ops.push_back({use});
+                val++;
+            }
+            inst_str+=","+std::to_string(op2val[use]);
+        }
+
+        auto dst = minst->getDef()[0];
+        if(op2val.count(dst)){
+            unsigned long long dstval = op2val[dst];
+            auto it = val2ops[dstval].find(dst);
+            val2ops[dstval].erase(it);
+        }
+            
+
+        if(inst2val.count(inst_str)){
+            unsigned long long instval = inst2val[inst_str];
+            if(val2ops[instval].empty()) continue;
+            auto src = *val2ops[instval].begin();
+            // new mov & delete
+            torm.push_back(minst);
+            MachineInstruction *mov;
+            if (dst->getValType()->isFloat())
+                mov = new MovMInstruction(bb, MovMInstruction::VMOV, dst, src);
+            else
+                mov = new MovMInstruction(bb, MovMInstruction::MOV, dst, src);
+            bb->insertBefore(minst,mov);
+            op2val[dst]=instval;
+            val2ops[instval].insert(dst);
+        }
+        else {
+            inst2val[inst_str]=val;
+            op2val[dst]=val;
+            val2ops.push_back({dst});
+            val++;
+        }
+    }
+    for(auto i : torm)
+        bb->removeInst(i);
+
 }
 
 void ValueNumberingASM::dumpTable()
