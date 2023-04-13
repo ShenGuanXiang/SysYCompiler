@@ -9,8 +9,8 @@
 #include "Mem2Reg.h"
 #include "ElimPHI.h"
 #include "LiveVariableAnalysis.h"
-#include "MulDivMod2Bit.h"
-#include "ValueNumbering.h"
+#include "StrengthReduction.h"
+#include "ComSubExprElim.h"
 using namespace std;
 
 Ast ast;
@@ -98,8 +98,8 @@ int main(int argc, char *argv[])
         m2r.pass();
         // todo:其它中间代码优化
         // 函数自动内联
-        ValueNumbering dvn(unit);
-        dvn.pass3(); // 公共子表达式消除
+        ComSubExprElim cse(unit);
+        cse.pass3(); // 公共子表达式消除
         // 代数化简
         // 常量传播
         // 死代码删除
@@ -118,13 +118,13 @@ int main(int argc, char *argv[])
         if (optimize)
         {
             // todo: 汇编代码优化
-            ValueNumberingASM vnasm(mUnit);
-            vnasm.pass(); // 后端cse
+            ComSubExprElimASM cseasm(mUnit);
+            cseasm.pass(); // 后端cse
 
-            MulDivMod2Bit mdm2b(mUnit);
-            mdm2b.pass(); // 强度削弱
+            StrengthReduction sr(mUnit);
+            sr.pass(); // 强度削弱
 
-            vnasm.pass();
+            cseasm.pass();
             // 窥孔优化
         }
         LinearScan linearScan(mUnit);

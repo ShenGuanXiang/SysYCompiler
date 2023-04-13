@@ -1,4 +1,4 @@
-#include "MulDivMod2Bit.h"
+#include "StrengthReduction.h"
 #include <cmath>
 
 using namespace std;
@@ -33,7 +33,7 @@ union VAL
     float float_val;
 };
 
-void MulDivMod2Bit::pass()
+void StrengthReduction::pass()
 {
     for (auto func_iter = unit->begin(); func_iter != unit->end(); func_iter++)
     {
@@ -78,7 +78,7 @@ void MulDivMod2Bit::pass()
 }
 
 // 整型操作优化
-void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
+void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
 {
     auto insts = bb->getInsts();
     std::set<MachineOperand> multi_def_ops = std::set<MachineOperand>();
@@ -482,7 +482,7 @@ void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2val)
 }
 
 // 浮点操作优化
-void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, float> op2val)
+void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, float> op2val)
 {
     // todo
     return;
@@ -493,7 +493,7 @@ void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, float> op2val
 //     return !(val & (val - 1));
 // }
 
-// void MulDivMod2Bit::mul2lsl()
+// void StrengthReduction::mul2lsl()
 // {
 //     for (auto func_iter = unit->begin(); func_iter != unit->end(); func_iter++)
 //     {
@@ -579,7 +579,7 @@ void MulDivMod2Bit::dfs(MachineBlock *bb, std::map<MachineOperand, float> op2val
 //     freeInsts.clear();
 // }
 
-// void MulDivMod2Bit::div2mul()
+// void StrengthReduction::div2mul()
 // {
 
 //     for(auto func_it = unit->begin(); func_it != unit->end(); func_it++)

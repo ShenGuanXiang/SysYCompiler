@@ -1,11 +1,11 @@
-#include "ValueNumbering.h"
+#include "ComSubExprElim.h"
 #include "Instruction.h"
 #include "SymbolTable.h"
 
 #include <vector>
 #include <queue>
 
-std::string ValueNumbering::getOpString(Instruction *inst)
+std::string ComSubExprElim::getOpString(Instruction *inst)
 {
     std::string instString = "";
     switch (inst->getInstType())
@@ -91,7 +91,7 @@ std::string ValueNumbering::getOpString(Instruction *inst)
     return instString;
 }
 
-void ValueNumbering::dumpTable()
+void ComSubExprElim::dumpTable()
 {
     printf("------\n");
     for (auto p = htable.begin(); p != htable.end(); p++)
@@ -99,7 +99,7 @@ void ValueNumbering::dumpTable()
     printf("------\n");
 }
 
-void ValueNumbering::computeDomTree(Function *func)
+void ComSubExprElim::computeDomTree(Function *func)
 {
     func->ComputeDom();
     for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
@@ -109,7 +109,7 @@ void ValueNumbering::computeDomTree(Function *func)
     }
 }
 
-void ValueNumbering::dvnt(BasicBlock *bb)
+void ComSubExprElim::dvnt(BasicBlock *bb)
 {
     std::unordered_map<std::string, Operand *> prehtable;
     prehtable = htable;              // store curent htable, to restore after processing children
@@ -166,7 +166,7 @@ void ValueNumbering::dvnt(BasicBlock *bb)
     htable = prehtable;
 }
 
-void ValueNumbering::pass3()
+void ComSubExprElim::pass3()
 {
     for (auto it_func = unit->begin(); it_func != unit->end(); it_func++)
     {
@@ -179,7 +179,7 @@ void ValueNumbering::pass3()
 
 // the following functions are used for value numbering in assmbly code generation phase
 
-void ValueNumberingASM::computeDomTree(MachineFunction *func)
+void ComSubExprElimASM::computeDomTree(MachineFunction *func)
 {
     func->computeDom();
     for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
@@ -199,28 +199,27 @@ void ValueNumberingASM::computeDomTree(MachineFunction *func)
     // }
 }
 
-std::string ValueNumberingASM::getOpString(MachineInstruction *minst,bool lvn)
+std::string ComSubExprElimASM::getOpString(MachineInstruction *minst, bool lvn)
 {
 
     std::string instString = "";
     if (minst->getDef().empty() || minst->getDef().size() > 1)
         return instString;
 
-    if(!lvn){
+    if (!lvn)
+    {
         // 忽略带有条件的指令，这种指令不能被消除，但是其操作数应该被替换
         if (minst->getCond() != MachineInstruction::NONE)
             return instString;
-
 
         // overlook minst that uses redefined operand
         for (auto use : minst->getUse())
             if (redef.count(*use))
                 return instString;
-                
+
         if (redef.count(*minst->getDef()[0]))
             return instString;
     }
-    
 
     switch (minst->getInstType())
     {
@@ -286,7 +285,7 @@ std::string ValueNumberingASM::getOpString(MachineInstruction *minst,bool lvn)
     return instString;
 }
 
-void ValueNumberingASM::pass()
+void ComSubExprElimASM::pass()
 {
     for (auto it_mfunc = munit->begin(); it_mfunc != munit->end(); it_mfunc++)
     {
@@ -304,12 +303,9 @@ void ValueNumberingASM::pass()
 }
 /*
 后端cse：
-1. 被重定义的寄存器作为dst的指令，既不记录也不消除（getopstring返回空）
-2. 寄存器作为dst的指令，不能被消除
-3. 被重定义的vr只可能因为消除ph时产生，不能将其删除，只能在其后添加mov指令。
-4. 在3中，如果这条指令本身就是mov/loadimm，那么就什么都不做了
+    第一次遍历全局消去SSA的公共子表达式，第二次遍历局部消去非SSA的公共子表达式
 */
-void ValueNumberingASM::dvnt(MachineBlock *bb)
+void ComSubExprElimASM::dvnt(MachineBlock *bb)
 {
     std::unordered_map<std::string, MachineOperand *> prehtable;
 
@@ -382,38 +378,44 @@ void ValueNumberingASM::dvnt(MachineBlock *bb)
     htable = prehtable;
 }
 
-void ValueNumberingASM::lvn(MachineBlock *bb)
+void ComSubExprElimASM::lvn(MachineBlock *bb)
 {
-    unsigned long long val=0;
-    std::unordered_map<std::string,unsigned long long> inst2val;
-    std::unordered_map<MachineOperand*,unsigned long long> op2val;
-    std::vector<std::set<MachineOperand*> > val2ops;
-    std::vector<MachineInstruction*> torm;
-    for(auto it_inst = bb->begin();it_inst!=bb->end();it_inst++){
+    unsigned long long val = 0;
+    std::unordered_map<std::string, unsigned long long> inst2val;
+    std::unordered_map<MachineOperand *, unsigned long long> op2val;
+    std::vector<std::set<MachineOperand *>> val2ops;
+    std::vector<MachineInstruction *> torm;
+    for (auto it_inst = bb->begin(); it_inst != bb->end(); it_inst++)
+    {
         auto minst = *it_inst;
-        auto inst_str = getOpString(minst,true);
-        if(inst_str=="") continue;
+        auto inst_str = getOpString(minst, true);
+        if (inst_str == "")
+            continue;
 
-        for(auto use : minst->getUse()){
-            if(!op2val.count(use)){
-                op2val[use]=val;
+        for (auto use : minst->getUse())
+        {
+            if (!op2val.count(use))
+            {
+                op2val[use] = val;
                 val2ops.push_back({use});
                 val++;
             }
-            inst_str+=","+std::to_string(op2val[use]);
+            inst_str += "," + std::to_string(op2val[use]);
         }
 
         auto dst = minst->getDef()[0];
-        if(op2val.count(dst)){
+        if (op2val.count(dst))
+        {
             unsigned long long dstval = op2val[dst];
             auto it = val2ops[dstval].find(dst);
             val2ops[dstval].erase(it);
         }
-            
 
-        if(inst2val.count(inst_str)){
+        if (inst2val.count(inst_str))
+        {
             unsigned long long instval = inst2val[inst_str];
-            if(val2ops[instval].empty()) continue;
+            if (val2ops[instval].empty())
+                continue;
             auto src = *val2ops[instval].begin();
             // new mov & delete
             torm.push_back(minst);
@@ -422,23 +424,23 @@ void ValueNumberingASM::lvn(MachineBlock *bb)
                 mov = new MovMInstruction(bb, MovMInstruction::VMOV, dst, src);
             else
                 mov = new MovMInstruction(bb, MovMInstruction::MOV, dst, src);
-            bb->insertBefore(minst,mov);
-            op2val[dst]=instval;
+            bb->insertBefore(minst, mov);
+            op2val[dst] = instval;
             val2ops[instval].insert(dst);
         }
-        else {
-            inst2val[inst_str]=val;
-            op2val[dst]=val;
+        else
+        {
+            inst2val[inst_str] = val;
+            op2val[dst] = val;
             val2ops.push_back({dst});
             val++;
         }
     }
-    for(auto i : torm)
+    for (auto i : torm)
         bb->removeInst(i);
-
 }
 
-void ValueNumberingASM::dumpTable()
+void ComSubExprElimASM::dumpTable()
 {
     printf("------\n");
     for (auto it = htable.begin(); it != htable.end(); it++)
@@ -446,7 +448,7 @@ void ValueNumberingASM::dumpTable()
     printf("------\n");
 }
 
-void ValueNumberingASM::findredef(MachineBlock *entry)
+void ComSubExprElimASM::findredef(MachineBlock *entry)
 {
     // bfs from the entry
     std::queue<MachineBlock *> q;
