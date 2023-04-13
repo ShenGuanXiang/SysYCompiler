@@ -41,6 +41,8 @@ public:
         assert(!def_list.empty());
         return def_list[0];
     };
+    bool HasNoDef() { return def_list.empty(); };
+    bool HasNoUse() { return use_list.empty(); };
     virtual std::vector<Operand *> &getUses() { return use_list; };
     void replaceAllUsesWith(Operand *); // replace all uses of the def
     enum
@@ -63,6 +65,12 @@ public:
     unsigned getInstType() const { return instType; };
     unsigned getOpcode() const { return opcode; };
 
+    // DCE
+    void clearDCEMark(); 
+    void SetDCEMark();
+    bool isDCEMarked();
+    bool isCritical();
+
 protected:
     unsigned instType;
     unsigned opcode;
@@ -71,6 +79,9 @@ protected:
     BasicBlock *parent;
     std::vector<Operand *> def_list; // size <= 1;
     std::vector<Operand *> use_list;
+
+    // DCE
+    bool DCE_marked = false;
     // std::vector<Operand *> operands;
 };
 

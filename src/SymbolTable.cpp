@@ -75,7 +75,8 @@ std::vector<std::string> lib_funcs{
     "putch",
     "putfloat",
     "putarray",
-    "putfarray"};
+    "putfarray",
+    "llvm.memset.p0.i32"};
 
 bool IdentifierSymbolEntry::isLibFunc()
 {

@@ -27,6 +27,9 @@ public:
     reverse_iterator rbegin() { return func_list.rbegin(); };
     reverse_iterator rend() { return func_list.rend(); };
     void genMachineCode(MachineUnit *munit);
+
+    // DCE
+    std::vector<Function *> get_fun_list() { return func_list; };
 };
 
 #endif

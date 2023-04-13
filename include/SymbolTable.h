@@ -10,6 +10,7 @@
 
 class Type;
 class Operand;
+class Function;
 class MachineOperand;
 
 class SymbolEntry
@@ -131,6 +132,8 @@ private:
     std::set<IdentifierSymbolEntry *> params_se; // for func
     Operand *paramOpe;                           // for param
     // You can add any field you need here.
+    // DCE
+    Function* f;
 
 public:
     IdentifierSymbolEntry(Type *type, std::string name, int scope);
@@ -163,6 +166,8 @@ public:
         assert(func_se != nullptr);
         return func_se;
     };
+    Function* get_function() { return f; };
+    void Set_Function(Function* f) { this->f = f; };
     std::set<IdentifierSymbolEntry *> &getParamsSe() { return params_se; };
 };
 

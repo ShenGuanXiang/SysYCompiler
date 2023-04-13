@@ -12,6 +12,7 @@ Function::Function(Unit *u, SymbolEntry *s)
     entry = new BasicBlock(this);
     sym_ptr = s;
     parent = u;
+    ((IdentifierSymbolEntry*) s)->Set_Function(this);
 }
 
 Function::~Function()

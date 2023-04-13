@@ -23,6 +23,11 @@ private:
     BasicBlock *entry;
     Unit *parent;
     std::vector<SymbolEntry *> param_list;
+    
+    // DCE
+    std::map<Function*, std::set<Instruction*>> preds_instr;
+    std::set<BasicBlock*> Exit;
+    int iscritical = -1;
 
 public:
     Function(Unit *, SymbolEntry *);
@@ -49,6 +54,16 @@ public:
     void ComputeDom();
     void ComputeDomFrontier();
     void genMachineCode(AsmBuilder *);
+
+    // DCE 
+    void ComputeRDom();
+    void ComputeRiDom();
+    void ComputeRDF();
+    bool isCritical();
+    std::map<Function*, std::set<Instruction*>> getPreds() { return preds_instr; };
+    BasicBlock* get_nearest_dom(Instruction* instr);
+    std::set<BasicBlock*>& getExit();
+    void removePred(Instruction* instr);
 };
 
 #endif

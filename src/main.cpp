@@ -11,6 +11,7 @@
 #include "LiveVariableAnalysis.h"
 #include "StrengthReduction.h"
 #include "ComSubExprElim.h"
+#include "DeadInstrElimanation.h"
 using namespace std;
 
 Ast ast;
@@ -103,6 +104,8 @@ int main(int argc, char *argv[])
         // 代数化简
         // 常量传播
         // 死代码删除
+        DeadInstrElimination dce(unit);
+        dce.pass();
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
