@@ -146,6 +146,7 @@ public:
     bool isRsb() const;
     bool isMul() const;
     bool isDiv() const;
+    bool isStore() const { return type == STORE; };
     bool isLoad() const { return type == LOAD; };
     bool isMov() const;
     bool isVmov() const;

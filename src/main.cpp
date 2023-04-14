@@ -12,6 +12,7 @@
 #include "StrengthReduction.h"
 #include "ComSubExprElim.h"
 #include "DeadInstrElimanation.h"
+#include "PeepholeOptimization.h"
 using namespace std;
 
 Ast ast;
@@ -132,11 +133,14 @@ int main(int argc, char *argv[])
         }
         LinearScan linearScan(mUnit);
         linearScan.pass();
+        optimize = 1;
         if (optimize)
         {
             // todo: 汇编代码优化
             // 公共子表达式删除
             // 窥孔优化
+            PeepholeOptimization ph(mUnit);
+            ph.pass();
             // 控制流优化
             // 相对fp偏移非法但相对sp偏移不非法，转化一下
             // 死代码消除
