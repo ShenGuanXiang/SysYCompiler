@@ -14,6 +14,7 @@
 #include "DeadInstrElimanation.h"
 #include "SparseCondConstProp.h"
 #include "PeepholeOptimization.h"
+#include "MachineDeadCodeElimination.h"
 using namespace std;
 
 Ast ast;
@@ -133,6 +134,8 @@ int main(int argc, char *argv[])
             // 窥孔优化
             // PeepholeOptimization ph(mUnit);
             // ph.pass();
+            MachineDeadCodeElimination mdce(mUnit);
+            // mdce.pass();
         }
         LinearScan linearScan(mUnit);
         linearScan.pass();

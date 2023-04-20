@@ -58,12 +58,12 @@ bool Function::isCritical()
         for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
             if (instr->isCall())
             {
-                IdentifierSymbolEntry *funcSE = (IdentifierSymbolEntry *)(((FuncCallInstruction *)instr)->getFuncSe());
+                IdentifierSymbolEntry *funcSE = (IdentifierSymbolEntry *)(((FuncCallInstruction *)instr)->GetFuncSe());
                 if (funcSE->isLibFunc())
                     return iscritical = 1;
                 else
                 {
-                    auto func = funcSE->get_function();
+                    auto func = funcSE->GetFunction();
                     if (func == this)
                         continue;
                     if (func->isCritical() == 1)
@@ -116,8 +116,8 @@ bool Instruction::isCritical()
 
     if (isCall())
     {
-        IdentifierSymbolEntry *funcSE = (IdentifierSymbolEntry *)(((FuncCallInstruction *)this)->getFuncSe());
-        if (funcSE->isLibFunc() || funcSE->get_function()->isCritical())
+        IdentifierSymbolEntry *funcSE = (IdentifierSymbolEntry *)(((FuncCallInstruction *)this)->GetFuncSe());
+        if (funcSE->isLibFunc() || funcSE->GetFunction()->isCritical())
             return true;
     }
 
@@ -129,15 +129,17 @@ void Function::removePred(Instruction *instr)
     assert(instr->isCall());
 
     Function *func = instr->getParent()->getParent();
-    if (preds_instr[func].count(instr))
+    if (preds_instr[func].count(instr)) 
         preds_instr[func].erase(instr);
 }
 
 void DeadInstrElimination::pass()
 {
-    auto fs = unit->get_fun_list();
+    auto fs = unit->GetFuncList();
     for (auto f : fs)
         pass(f);
+
+    DeleteUselessFunc();
 }
 // 计算函数所有的Ret指令并且当作出口
 std::set<BasicBlock *> &Function::getExit()
@@ -220,18 +222,6 @@ void Function::ComputeRDF()
 {
     for (auto bb : getBlockList())
         bb->getRDF() = std::set<BasicBlock *>();
-    // for (auto &u : block_list)
-    // {
-    //     for (auto v = u->pred_begin(); v != u->pred_end(); v++)
-    //     {
-    //         BasicBlock *p = u;
-    //         while (!(p != *v && (*v)->getRSDoms().count(p)))
-    //         {
-    //             p->getRDF().insert(*v);
-    //             p = p->getRIdom();
-    //         }
-    //     }
-    // }
     std::map<BasicBlock *, bool> is_visited;
     for (auto bb : getBlockList())
         is_visited[bb] = false;
@@ -381,14 +371,6 @@ void DeadInstrElimination::DeadInstrEliminate(Function *f)
 {
     std::vector<Instruction *> Target;
 
-    // for (auto bb = f->begin(); bb != f->end(); bb++) {
-    //     if ((*bb)->empty())
-    //         continue;
-    //     for (auto instr = (*bb)->begin(); instr != (*bb)->end(); instr = instr->getNext())
-    //         if (!instr->isDCEMarked()) {
-    //             fprintf(stderr, "Block[%d] will be remove instruction %d!\n", instr->getParent()->getNo(), instr->getInstType());
-    //         }
-    // }
     for (auto bb = f->begin(); bb != f->end(); bb++)
     {
         if ((*bb)->empty())
@@ -400,16 +382,6 @@ void DeadInstrElimination::DeadInstrEliminate(Function *f)
                 {
                     // assert(0);
                     instr->getUses()[0] = (new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0)));
-                }
-                if (instr->isCall())
-                {
-                    if (instr->isCritical())
-                        continue;
-                    IdentifierSymbolEntry *funcSE =
-                        (IdentifierSymbolEntry *)(((FuncCallInstruction *)instr)
-                                                      ->getFuncSe());
-                    if (!funcSE->isLibFunc())
-                        funcSE->get_function()->removePred(instr);
                 }
                 if (!instr->isUncond())
                     Target.push_back(instr);
@@ -443,4 +415,36 @@ void DeadInstrElimination::pass(Function *f)
     DeadInstrMark(f);
     DeadInstrEliminate(f);
     sc.pass(f);
+}
+
+void DeadInstrElimination::DeleteUselessFunc()
+{
+    Function* main_func = nullptr;
+    for (auto f : unit->GetFuncList()) 
+    {
+        f->ClearCalled();
+        if (((IdentifierSymbolEntry*)f->getSymPtr())->getName() == "main")
+            main_func = f;
+    }
+    std::queue<Function*> called_funcs;
+    called_funcs.push(main_func);
+    main_func->SetCalled();
+    while (!called_funcs.empty()) {
+        auto t = called_funcs.front();
+        called_funcs.pop();
+        for (auto bb : t->getBlockList()) 
+            for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
+                if (instr->isCall() && 
+                !((IdentifierSymbolEntry*)((FuncCallInstruction*)instr)->GetFuncSe())->isLibFunc())
+                {
+                    auto called_func = ((IdentifierSymbolEntry*)
+                                ((FuncCallInstruction*)instr)->GetFuncSe())->GetFunction();
+                    if (!called_func || called_func->isCalled()) continue;
+                    called_func->SetCalled();
+                    called_funcs.push(called_func);
+                }
+    }
+    for (auto f : unit->GetFuncList())
+        if (!f->isCalled())
+            unit->removeFunc(f);
 }

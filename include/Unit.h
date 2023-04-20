@@ -29,7 +29,7 @@ public:
     void genMachineCode(MachineUnit *munit);
 
     // DCE
-    std::vector<Function *> get_fun_list() { return func_list; };
+    std::vector<Function *> GetFuncList() { return func_list; };
 };
 
 #endif

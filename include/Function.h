@@ -58,10 +58,14 @@ public:
     void SimplifyPHI();
 
     // DCE
+    bool ever_called;
     void ComputeRDom();
     void ComputeRiDom();
     void ComputeRDF();
     bool isCritical();
+    void ClearCalled() { ever_called = false; };
+    void SetCalled() { ever_called = true; };
+    bool isCalled() { return ever_called; };
     std::map<Function *, std::set<Instruction *>> getPreds() { return preds_instr; };
     BasicBlock *get_nearest_dom(Instruction *instr);
     std::set<BasicBlock *> &getExit();

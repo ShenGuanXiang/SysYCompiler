@@ -22,6 +22,7 @@ public:
     void DeadInstrEliminate(Function *f);
     void pass(Function *func);
     void pass();
+    void DeleteUselessFunc();
 };
 
 #endif

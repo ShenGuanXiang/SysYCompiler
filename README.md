@@ -22,8 +22,12 @@
 
 ## 死代码消除
 
-- 
-- 
+- ir dce
+    - iscritical: 判断Instruciton、Function是否涉及到输入输出或者对内存数据的修改
+    - getRDF: 找到反向支配边界，换言之为正向的被支配边界
+    - get_nearest_dom: 反向找到控制流最近的岔路交点
+- asm dce
+    - 
 
 ## 强度削弱
 
