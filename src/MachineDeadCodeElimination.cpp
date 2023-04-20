@@ -14,6 +14,11 @@ bool MachineInstruction::isCondMov() const
     return type == MOV && op == 0 && cond != NONE;
 }
 
+bool MachineInstruction::isSmull() const
+{
+    return type == SMULL;
+}
+
 bool MachineInstruction::isCritical() const
 {
     if (isBL() || isDummy() || isBranch() || isStack())
@@ -44,8 +49,10 @@ void MachineBlock::remove(MachineInstruction* instr)
 
 void MachineDeadCodeElimination::pass()
 {
-    for (auto f : unit->getFuncs())
+    for (auto f : unit->getFuncs()) {
         pass(f);
+        SingleBrDelete(f);
+    }
 }
 
 void MachineDeadCodeElimination::pass(MachineFunction *f)
@@ -67,11 +74,13 @@ void MachineDeadCodeElimination::pass(MachineFunction *f)
             auto defs = (*itr)->getDef();
             if (!defs.empty())
             {
-                bool flag = true;
-                for (auto d : defs)
-                    if (!out[*d].empty())
-                        flag = false;
-                if (flag)
+                MachineOperand* def = nullptr;
+                if((*itr)->isSmull()){
+                    def = defs[1];
+                }
+                else
+                    def = defs[0];
+                if (out[*def].empty())
                     deleteList.push_back(*itr);
             }
 
@@ -94,5 +103,56 @@ void MachineDeadCodeElimination::pass(MachineFunction *f)
         }
         if (t)
             t->getParent()->remove(t);
+    }
+}
+
+void MachineDeadCodeElimination::SingleBrDelete(MachineFunction* f)
+{
+    std::vector<MachineBlock*> delete_bbs;
+    for (auto &bb : f->getBlocks())
+    {
+        if (bb->getInsts().size() != 1)
+            continue;
+        MachineInstruction *inst = *bb->getInsts().begin();
+        if (!inst->isBranch())
+            continue;
+        BranchMInstruction *br = dynamic_cast<BranchMInstruction *>(inst);
+        delete_bbs.push_back(bb);
+        for (auto &pred : bb->getPreds())
+        {
+            pred->addSucc(bb->getSuccs()[0]);
+            bb->getSuccs()[0]->addPred(pred);
+            if (pred->getInsts().empty())
+                continue;
+            MachineInstruction *inst1 = pred->getInsts().back();
+            if (!inst1->isBranch())
+                continue;
+            BranchMInstruction *br1 = dynamic_cast<BranchMInstruction *>(inst1);
+            if (br1->getParent()->getNo() == bb->getNo())
+            {
+                br1->setParent(br->getParent());
+            }
+            if (pred->getInsts().size() <= 1)
+                continue;
+            auto it = pred->getInsts().rbegin();
+            it++;
+            inst1 = *it;
+            if (!inst1->isBranch())
+                continue;
+            br1 = dynamic_cast<BranchMInstruction *>(inst1);
+            if (br1->getParent()->getNo() == bb->getNo())
+            {
+                br1->setParent(br->getParent());
+            }
+        }
+    }
+
+    for (auto bb : delete_bbs)
+    {
+        for(auto &pred:bb->getPreds())
+            pred->getSuccs().erase(std::find(pred->getSuccs().begin(), pred->getSuccs().end(), bb));
+        for(auto &succ:bb->getSuccs())
+            succ->getPreds().erase(std::find(succ->getPreds().begin(), succ->getPreds().end(), bb));
+        f->removeBlock(bb);
     }
 }

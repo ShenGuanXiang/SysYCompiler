@@ -151,6 +151,8 @@ int main(int argc, char *argv[])
             // 控制流优化
             // 相对fp偏移非法但相对sp偏移不非法，转化一下
             // 死代码消除
+            MachineDeadCodeElimination mdce(mUnit);
+            mdce.pass();
         }
         fprintf(stderr, "asm generated\n");
         mUnit->output();

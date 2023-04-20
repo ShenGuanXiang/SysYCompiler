@@ -15,6 +15,7 @@ public:
     MachineDeadCodeElimination(MachineUnit *unit) : unit(unit){};
     void pass();
     void pass(MachineFunction* f);
+    void SingleBrDelete(MachineFunction* f);
 };
 
 #endif
