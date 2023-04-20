@@ -152,11 +152,9 @@ test:app
 						echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mWrong Answer\033[0m" && echo "FAIL: $${FILE}\tWrong Answer" >> asmnew.log
 					else
 						success=$$((success + 1))
+						echo "\033[1;32mPASS:\033[0m $${FILE}"
 						if [ "$(TIMING)" = "1" ]; then
-							echo -n "\033[1;32mPASS:\033[0m $${FILE}"
-							awk "BEGIN {printf \"\n\t compile: %.3fs \t execute: %.3fs\n\", ( $$compile_time ), ( $$exec_time )}"
-						else
-							echo "\033[1;32mPASS:\033[0m $${FILE}"
+							awk "BEGIN {printf \"\t compile: %.3fs \t execute: %.3fs\n\", ( $$compile_time ), ( $$exec_time )}"
 						fi
 					fi
 				fi

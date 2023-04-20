@@ -138,7 +138,6 @@ bool isIllegalOpType(Type *type)
 
 Type *unaryMax(Type *type, unsigned int opcode)
 {
-    // to do : consider array type
     assert(!isIllegalOpType(type));
     if (opcode == TypeSystem::NOT)
         return type->isConst() ? TypeSystem::constBoolType : TypeSystem::boolType;
@@ -150,7 +149,6 @@ Type *unaryMax(Type *type, unsigned int opcode)
 
 Type *calcMax(Type *type1, Type *type2)
 {
-    // to do : consider array type
     assert(!isIllegalOpType(type1));
     assert(!isIllegalOpType(type2));
     if (type1 == TypeSystem::floatType || type2 == TypeSystem::floatType ||
@@ -178,7 +176,6 @@ Type *relMax(Type *type1, Type *type2)
 
 Type *logicMax(Type *type1, Type *type2)
 {
-    // to do : consider array type
     assert(!isIllegalOpType(type1));
     assert(!isIllegalOpType(type2));
     if (type1 == TypeSystem::intType || type1 == TypeSystem::boolType || type1 == TypeSystem::floatType ||
