@@ -118,7 +118,6 @@ public:
     };
     virtual void output() = 0;
     virtual ~MachineInstruction();
-    bool isBranch() { return type == BRANCH; };
     void setNo(int no) { this->no = no; };
     int getNo() { return no; };
     int getCond() { return cond; };
@@ -143,6 +142,8 @@ public:
 
     bool isDummy() const { return type == DUMMY; };
     bool isAdd() const;
+    bool isBranch() const;
+    bool isStack() const { return type == STACK; };
     bool isSub() const;
     bool isRsb() const;
     bool isMul() const;
@@ -155,8 +156,8 @@ public:
     bool isZext() const { return type == ZEXT; };
 
     // MDCE
-    bool isCondMoV() const;
-    bool isStack() const;
+    bool isCritical() const;
+    bool isCondMov() const;
 };
 
 // 放在函数开头和结尾，分别假装定义函数参数对应的物理寄存器和使用函数返回值r0/s0，从而便于生存期等处理，防止被误判为死代码消除

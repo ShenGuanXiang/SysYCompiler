@@ -4,14 +4,26 @@
 #include <map>
 #include <set>
 
-bool MachineInstruction::isCondMoV() const 
+bool MachineInstruction::isBranch() const
+{
+    return type == BRANCH;
+}
+
+bool MachineInstruction::isCondMov() const
 {
     return type == MOV && op == 0 && cond != NONE;
 }
 
-bool MachineInstruction::isStack() const
+bool MachineInstruction::isCritical() const
 {
-    return type == STACK;
+    if (isBL() || isDummy() || isBranch() || isStack())
+        return true;
+    for (auto def : def_list)
+    {
+        if (def->getReg() == 13 && def->isReg())
+            return true;
+    }
+    return false;
 }
 
 MachineInstruction* MachineBlock::getNext(MachineInstruction* instr)
@@ -73,15 +85,14 @@ void MachineDeadCodeElimination::pass(MachineFunction *f)
         }
     }
     for (auto t : deleteList) {
-        if (t->isBL() || t->isDummy() || t->isBranch() || t->isStack())
+        if (t->isCritical())
             continue;
-        if (t->isCondMoV()) {
+        if (t->isCondMov()) {
             auto next = t->getParent()->getNext(t);
-            if (next && next->isCondMoV()) {
+            if (next && next->isCondMov())
                 continue;
-                assert(0);
-            }
         }
-        t->getParent()->remove(t);
+        if (t)
+            t->getParent()->remove(t);
     }
 }

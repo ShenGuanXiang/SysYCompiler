@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
             // PeepholeOptimization ph(mUnit);
             // ph.pass();
             MachineDeadCodeElimination mdce(mUnit);
-            // mdce.pass();
+            mdce.pass();
         }
         LinearScan linearScan(mUnit);
         linearScan.pass();
