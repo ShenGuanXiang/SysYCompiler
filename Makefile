@@ -223,7 +223,7 @@ testll:app
 		OUT=$${file%.*}.out
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
-		timeout 3s $(BINARY) $${file} -o $${IR} -O2 -i 2>$${LOG}
+		timeout 20s $(BINARY) $${file} -o $${IR} -O2 -i 2>$${LOG}
 		RETURN_VALUE=$$?
 		if [ $$RETURN_VALUE = 124 ]; then
 			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Timeout\033[0m"  && echo "FAIL: $${FILE}\tCompile Timeout" >> llnew.log

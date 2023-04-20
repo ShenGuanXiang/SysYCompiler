@@ -103,7 +103,8 @@ public:
         ZEXT,
         VCVT,
         VMRS,
-        SMULL
+        SMULL,
+        FUSE
     };
     enum condType
     {
@@ -146,6 +147,7 @@ public:
     bool isRsb() const;
     bool isMul() const;
     bool isDiv() const;
+    bool isStore() const { return type == STORE; };
     bool isLoad() const { return type == LOAD; };
     bool isMov() const;
     bool isVmov() const;
@@ -301,6 +303,18 @@ public:
                       MachineOperand *src1,
                       MachineOperand *src2,
                       int cond = MachineInstruction::NONE);
+    void output();
+};
+
+class FuseMInstruction : public MachineInstruction {
+   public:
+    enum opType { MLA, MLS, VMLA, VMLS };
+    FuseMInstruction(MachineBlock* p,
+                     int op,
+                     MachineOperand* dst,
+                     MachineOperand* src1,
+                     MachineOperand* src2,
+                     MachineOperand* src3);
     void output();
 };
 
