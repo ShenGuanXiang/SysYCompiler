@@ -53,7 +53,7 @@ Type *ExprNode::getType()
         if (!is_array_ele)
             return symbolEntry->getType();
         else
-            return dynamic_cast<ArrayType *>(symbolEntry->getType())->getElemType();
+            return Const2Var(dynamic_cast<ArrayType *>(symbolEntry->getType())->getElemType());
     }
 }
 
@@ -70,8 +70,8 @@ void Id::output(int level)
     name = ((IdentifierSymbolEntry *)symbolEntry)->getName();
     type = symbolEntry->getType()->toStr();
     scope = dynamic_cast<IdentifierSymbolEntry *>(symbolEntry)->getScope();
-    fprintf(yyout, "%*cId \t name: %s \t scope: %d \t type: %s\n", level, ' ',
-            name.c_str(), scope, type.c_str());
+    fprintf(yyout, "%*cId \t name: %s \t scope: %d \t type: %s \t is_array: %d \t is_array_ele: %d\n", level, ' ',
+            name.c_str(), scope, type.c_str(), is_array, is_array_ele);
     if (indices != nullptr)
         indices->output(level + 4);
 }
@@ -827,8 +827,7 @@ void IndicesNode::output(int level)
 
 void InitNode::output(int level)
 {
-    std::string constStr = isconst ? "true" : "false";
-    fprintf(yyout, "%*cInitValNode\tisConst:%s\n", level, ' ', constStr.c_str());
+    fprintf(yyout, "%*cInitValNode\n", level, ' ');
     for (auto l : leaves)
         l->output(level + 4);
     if (leaf != nullptr)
@@ -856,7 +855,7 @@ DeclStmt::DeclStmt(Id *id, InitNode *expr) : id(id), expr(expr)
             std::vector<double> arrVals;
             for (auto elem : vec_val)
                 arrVals.push_back(elem->getValue());
-            id->getSymPtr()->setArrVals(arrVals);
+            id->getSymPtr()->getArrVals() = arrVals;
         }
     }
 
@@ -998,8 +997,7 @@ void ReturnStmt::genCode()
 
 void AssignStmt::genCode()
 {
-    if (lval->getType()->isConst()) // 常量不会被重新赋值，这里的折叠应该没有作用
-        return;
+    assert(!lval->getType()->isConst()); // 常量不会被重新赋值
     BasicBlock *bb = builder->getInsertBB();
     expr->genCode();
     if (lval->getSymPtr()->getType()->isARRAY() || lval->getSymPtr()->getType()->isPTR())
@@ -1360,7 +1358,7 @@ void InitNode::fill(int level, std::vector<int> d, Type *type)
             break;
     while (num % cap)
     {
-        InitNode *new_const_node = new InitNode(true);
+        InitNode *new_const_node = new InitNode();
         new_const_node->setleaf(new Constant(new ConstantSymbolEntry(Var2Const(type), 0)));
         addleaf(new_const_node);
         num++;
@@ -1368,7 +1366,7 @@ void InitNode::fill(int level, std::vector<int> d, Type *type)
     int t = getSize(cap);
     while (t < d[level])
     {
-        InitNode *new_node = new InitNode(true);
+        InitNode *new_node = new InitNode();
         addleaf(new_node);
         t++;
     }

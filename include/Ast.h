@@ -179,7 +179,7 @@ private:
     IndicesNode *indices;
     bool is_array = false, is_array_ele = false; // is_array is array. is_array_ele is array ele
     bool is_left;
-    bool is_FP;
+    bool is_FP; // func param
 
 public:
     Id(SymbolEntry *se, bool is_array_ele = false) : ExprNode(se, is_array_ele)
@@ -208,12 +208,11 @@ public:
 class InitNode : public StmtNode
 {
 private:
-    bool isconst;
     ExprNode *leaf;
     std::vector<InitNode *> leaves;
 
 public:
-    InitNode(bool isconst = false) : isconst(isconst), leaf(nullptr){};
+    InitNode() : leaf(nullptr){};
     void addleaf(InitNode *next) { leaves.push_back(next); };
     void setleaf(ExprNode *leaf1)
     {
@@ -223,7 +222,6 @@ public:
     bool isLeaf() { return leaves.empty() && leaf != nullptr; };
     void fill(int level, std::vector<int> d, Type *type);
     int getSize(int d_nxt);
-    bool isConst() const { return isconst; }
     void output(int level);
     void genCode();
     std::vector<InitNode *> getleaves() { return leaves; };

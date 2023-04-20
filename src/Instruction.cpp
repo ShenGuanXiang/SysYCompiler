@@ -540,6 +540,7 @@ GepInstruction::GepInstruction(Operand *dst,
         use_list.push_back(idx);
         idx->addUse(this);
     }
+    assert(use_list.size() > 1);
 }
 
 void GepInstruction::output() const

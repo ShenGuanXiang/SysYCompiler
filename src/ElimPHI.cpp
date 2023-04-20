@@ -8,50 +8,16 @@ void ElimPHI::pass()
     auto Funcs = std::vector<Function *>(unit->begin(), unit->end());
     for (auto func : Funcs)
     {
+        // first try to simplify phi
+        func->SimplifyPHI();
+
         std::map<BasicBlock *, std::vector<Instruction *>> pcopy;
         auto blocks = std::vector<BasicBlock *>(func->begin(), func->end());
         // Critical Edge Splitting Algorithm for making non-conventional SSA form conventional
         for (auto bb : blocks)
         {
-            // first try to simplify phi
-            bool to_solve = false;
-            for (auto phi = bb->begin(); phi != bb->end() && phi->isPHI(); phi = phi->getNext())
-            {
-                auto srcs = dynamic_cast<PhiInstruction *>(phi)->getUses();
-                bool Elim = true;
-                if (!srcs.empty())
-                {
-                    auto last_src = srcs[0];
-                    for (auto src : srcs)
-                    {
-                        if (src != last_src && !(src->getType()->isConst() && last_src->getType()->isConst() && src->getEntry()->getValue() == last_src->getEntry()->getValue()))
-                        {
-                            Elim = false;
-                            break;
-                        }
-                    }
-                    // check if there are two identical src basicblocks
-                    auto src_map = dynamic_cast<PhiInstruction *>(phi)->getSrcs();
-                    std::set<BasicBlock *> visited_bbs;
-                    for (auto src_kv : src_map)
-                    {
-                        assert(!visited_bbs.count(src_kv.first));
-                        visited_bbs.insert(src_kv.first);
-                    }
-                    if (Elim)
-                        phi->replaceAllUsesWith(last_src);
-                }
-                if (Elim)
-                {
-                    phi->getParent()->remove(phi);
-                    freeList.insert(phi);
-                }
-                else
-                    to_solve = true;
-            }
-            if (!to_solve)
-                continue;
             auto preds = std::vector<BasicBlock *>(bb->pred_begin(), bb->pred_end());
+            std::vector<Instruction *> to_remove;
             for (auto pred : preds)
             {
                 // split
@@ -79,6 +45,7 @@ void ElimPHI::pass()
                         src->removeUse(i);
                         pcopy[splitBlock].push_back(new BinaryInstruction(BinaryInstruction::ADD, def, src, new Operand(new ConstantSymbolEntry(Var2Const(def->getType()), 0))));
                         freeList.insert(i);
+                        to_remove.push_back(i);
                     }
                 }
                 // no split
@@ -91,10 +58,11 @@ void ElimPHI::pass()
                         src->removeUse(i);
                         pcopy[pred].push_back(new BinaryInstruction(BinaryInstruction::ADD, def, src, new Operand(new ConstantSymbolEntry(Var2Const(def->getType()), 0))));
                         freeList.insert(i);
+                        to_remove.push_back(i);
                     }
                 }
             }
-            for (auto i : freeList)
+            for (auto i : to_remove)
                 i->getParent()->remove(i);
         }
         // Replacement of parallel copies with sequences of sequential copy operations.
@@ -103,14 +71,14 @@ void ElimPHI::pass()
             auto block = kv.first;
             auto &restInsts = kv.second;
             std::vector<Instruction *> seq;
-            auto insts = restInsts;
             // 为了后面判断重定义、计算生存期、coalesce等不出错，先不删了
+            // auto insts = restInsts;
             // for (auto inst : insts) // delete inst like a <- a
             // {
             //     if (inst->getDef() == inst->getUses()[0])
             //         restInsts.erase(std::find(restInsts.begin(), restInsts.end(), inst));
             // }
-            while (restInsts.size())
+            while (!restInsts.empty())
             {
                 std::map<Operand *, std::set<Instruction *>> use2insts;
                 for (auto inst : restInsts)
@@ -144,6 +112,7 @@ void ElimPHI::pass()
                     auto freshOp = new Operand(new TemporarySymbolEntry(restInsts[0]->getUses()[0]->getType(), SymbolTable::getLabel()));
                     seq.push_back(new BinaryInstruction(BinaryInstruction::ADD, freshOp, restInsts[0]->getUses()[0], new Operand(new ConstantSymbolEntry(Var2Const(freshOp->getType()), 0))));
                     restInsts[0]->getUses()[0] = freshOp;
+                    freshOp->addUse(restInsts[0]);
                 }
             }
             for (auto inst : seq)

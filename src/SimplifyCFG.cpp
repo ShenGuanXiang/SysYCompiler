@@ -15,6 +15,35 @@ void SimplifyCFG::pass()
 
 void SimplifyCFG::pass(Function *func)
 {
+    // 删除非连通分支
+    std::set<BasicBlock *> visited;
+    std::queue<BasicBlock *> q1;
+    q1.push(func->getEntry());
+    visited.insert(func->getEntry());
+    while (!q1.empty())
+    {
+        auto bb = q1.front();
+        std::vector<BasicBlock *> succs(bb->succ_begin(), bb->succ_end());
+        q1.pop();
+        for (auto succ : succs)
+        {
+            if (!visited.count(succ))
+            {
+                q1.push(succ);
+                visited.insert(succ);
+            }
+        }
+    }
+    auto block_list_copy = func->getBlockList();
+    for (auto bb : block_list_copy)
+    {
+        if (!visited.count(bb))
+            delete bb;
+    }
+
+    // 简化PHI
+    func->SimplifyPHI();
+
     // bfs
     std::map<BasicBlock *, bool> is_visited;
     for (auto bb : func->getBlockList())
@@ -73,6 +102,7 @@ void SimplifyCFG::pass(Function *func)
             {
                 if (succs[0]->getNumOfPred() == 1)
                 {
+                    succs[0]->removePred(bb);
                     func->setEntry(succs[0]);
                     func->remove(bb);
                     freeBBs.insert(bb);
@@ -148,8 +178,24 @@ void SimplifyCFG::pass(Function *func)
             auto insts = std::vector<Instruction *>();
             for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
             {
-                assert(!inst->isPHI());
-                insts.push_back(inst);
+                if (inst->isPHI())
+                {
+                    auto phi = dynamic_cast<PhiInstruction *>(inst);
+                    Operand *replVal = nullptr;
+                    for (auto [pre_bb, src] : phi->getSrcs())
+                    {
+                        if (pre_bb == pred)
+                        {
+                            assert(replVal == nullptr);
+                            replVal = src;
+                        }
+                    }
+                    assert(replVal != nullptr);
+                    phi->replaceAllUsesWith(replVal);
+                    freeInsts.insert(inst);
+                }
+                else
+                    insts.push_back(inst);
             }
             for (auto &inst : insts)
             {
@@ -294,7 +340,7 @@ void SimplifyCFG::pass(Function *func)
     for (auto bb : blocks)
         if (!is_visited[bb])
             freeBBs.insert(bb);
-    
+
     for (auto inst : freeInsts)
         delete inst;
     freeInsts.clear();

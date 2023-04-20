@@ -12,7 +12,7 @@ Function::Function(Unit *u, SymbolEntry *s)
     entry = new BasicBlock(this);
     sym_ptr = s;
     parent = u;
-    ((IdentifierSymbolEntry*) s)->Set_Function(this);
+    ((IdentifierSymbolEntry *)s)->Set_Function(this);
 }
 
 Function::~Function()
@@ -27,6 +27,11 @@ Function::~Function()
 // remove the basicblock bb from its block_list.
 void Function::remove(BasicBlock *bb)
 {
+    std::vector<BasicBlock *> preds(bb->pred_begin(), bb->pred_end()), succs(bb->succ_begin(), bb->succ_end());
+    for (auto pred : preds)
+        bb->removePred(pred);
+    for (auto succ : succs)
+        bb->removeSucc(succ);
     auto it = std::find(block_list.begin(), block_list.end(), bb);
     if (it != block_list.end())
         block_list.erase(it);

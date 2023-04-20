@@ -7,7 +7,6 @@ bool mem2reg = false;
 
 static std::map<AllocaInstruction *, bool> allocaPromotable;
 static std::map<Instruction *, unsigned> InstNumbers;
-static std::vector<PhiInstruction *> newPHIs;
 static std::set<Instruction *> freeInsts;
 
 struct AllocaInfo
@@ -180,23 +179,7 @@ void Instruction::replaceAllUsesWith(Operand *replVal)
         return;
     for (auto userInst : def_list[0]->getUses())
     {
-        auto &uses = userInst->getUses();
-        for (auto &use : uses)
-            if (use == def_list[0])
-            {
-                if (userInst->isPHI())
-                {
-                    auto &srcs = ((PhiInstruction *)userInst)->getSrcs();
-                    for (auto &src : srcs)
-                    {
-                        if (src.second == use)
-                            src.second = replVal;
-                    }
-                }
-                use->removeUse(userInst);
-                use = replVal;
-                replVal->addUse(userInst);
-            }
+        userInst->replaceUsesWith(def_list[0], replVal);
     }
 }
 
@@ -408,24 +391,24 @@ static std::set<BasicBlock *> ComputeLiveInBlocks(AllocaInstruction *alloca, All
             LiveInBlocks.erase(BB);
     }
     // bfs，迭代添加前驱
-    std::queue<BasicBlock *> workList;
+    std::queue<BasicBlock *> worklist;
     std::map<BasicBlock *, bool> is_visited;
     for (auto bb : alloca->getParent()->getParent()->getBlockList())
         is_visited[bb] = false;
     for (auto bb : LiveInBlocks)
     {
-        workList.push(bb);
+        worklist.push(bb);
         is_visited[bb] = true;
     }
-    while (!workList.empty())
+    while (!worklist.empty())
     {
-        auto bb = workList.front();
-        workList.pop();
+        auto bb = worklist.front();
+        worklist.pop();
         for (auto pred = bb->pred_begin(); pred != bb->pred_end(); pred++)
             if (!is_visited[*pred] && (!DefBlocks.count(*pred) || !StoreBeforeLoad(*pred, alloca)))
             {
                 LiveInBlocks.insert(*pred);
-                workList.push(*pred);
+                worklist.push(*pred);
                 is_visited[*pred] = true;
             }
     }
@@ -445,16 +428,22 @@ void Mem2Reg::InsertPhi(Function *func)
             continue;
         assert(alloca->getDef()->getType()->isPTR());
 
+        // 计算哪里的基本块定义(store)和使用(load)了alloc变量
+        Info.AnalyzeAlloca(alloca);
+
         // 筛1：如果alloca出的空间从未被使用，直接删除
-        if (alloca->getDef()->usersNum() == 0)
+        if (Info.UsingBlocks.empty())
         {
             alloca->getParent()->remove(alloca);
             freeInsts.insert(alloca);
+            for (auto userInst : alloca->getDef()->getUses())
+            {
+                assert(userInst->isStore());
+                userInst->getParent()->remove(userInst);
+                freeInsts.insert(userInst);
+            }
             continue;
         }
-
-        // 计算哪里的基本块定义(store)和使用(load)了alloc变量
-        Info.AnalyzeAlloca(alloca);
 
         // 筛2：如果 alloca 只有一个 store，那么 users 可以替换成这个 store 的值
         if (Info.DefiningBlocks.size() == 1)
@@ -474,13 +463,13 @@ void Mem2Reg::InsertPhi(Function *func)
         std::map<BasicBlock *, bool> is_visited;
         for (auto bb : func->getBlockList())
             is_visited[bb] = false;
-        std::queue<BasicBlock *> workList;
+        std::queue<BasicBlock *> worklist;
         for (auto bb : Info.DefiningBlocks)
-            workList.push(bb);
-        while (!workList.empty())
+            worklist.push(bb);
+        while (!worklist.empty())
         {
-            auto bb = workList.front();
-            workList.pop();
+            auto bb = worklist.front();
+            worklist.pop();
             for (auto df : bb->getDomFrontiers())
                 if (!is_visited[df])
                 {
@@ -488,39 +477,39 @@ void Mem2Reg::InsertPhi(Function *func)
                     {
                         auto phi = new PhiInstruction(alloca->getDef()); // 现在PHI的dst是PTR
                         df->insertFront(phi);
-                        newPHIs.push_back(phi);
                     }
                     is_visited[df] = true;
-                    workList.push(df);
+                    worklist.push(df);
                 }
         }
     }
 }
 
 // 删除源操作数均相同的PHI
-static void SimplifyInstruction()
+void Function::SimplifyPHI()
 {
-    for (auto phi : newPHIs)
+    for (auto bb : getBlockList())
     {
-        auto srcs = phi->getUses();
-        auto last_src = srcs[0];
-        bool Elim = true;
-        for (auto src : srcs)
+        for (auto phi = bb->begin(); phi != bb->end() && phi->isPHI(); phi = phi->getNext())
         {
-            if (src != last_src && !(src->getType()->isConst() && last_src->getType()->isConst() && src->getEntry()->getValue() == last_src->getEntry()->getValue()))
+            auto srcs = phi->getUses();
+            auto last_src = srcs[0];
+            bool Elim = true;
+            for (auto src : srcs)
             {
-                Elim = false;
-                break;
+                if (src != last_src && !(src->getType()->isConst() && last_src->getType()->isConst() && src->getEntry()->getValue() == last_src->getEntry()->getValue()))
+                {
+                    Elim = false;
+                    break;
+                }
+            }
+            if (Elim)
+            {
+                phi->replaceAllUsesWith(last_src);
+                delete phi;
             }
         }
-        if (Elim)
-        {
-            phi->replaceAllUsesWith(last_src);
-            phi->getParent()->remove(phi);
-            freeInsts.insert(phi);
-        }
     }
-    newPHIs.clear();
 }
 
 // https://roife.github.io/2022/02/07/mem2reg/
@@ -532,13 +521,13 @@ void Mem2Reg::Rename(Function *func)
     std::map<BasicBlock *, bool> isVisited;
     for (auto bb : func->getBlockList())
         isVisited[bb] = false;
-    std::queue<RenamePassData> workList;
-    workList.push(std::make_pair(func->getEntry(), std::map<Operand *, Operand *>()));
-    while (!workList.empty())
+    std::queue<RenamePassData> worklist;
+    worklist.push(std::make_pair(func->getEntry(), std::map<Operand *, Operand *>()));
+    while (!worklist.empty())
     {
-        auto BB = workList.front().first;
-        auto IncomingVals = workList.front().second;
-        workList.pop();
+        auto BB = worklist.front().first;
+        auto IncomingVals = worklist.front().second;
+        worklist.pop();
         if (isVisited[BB])
             continue;
         isVisited[BB] = true;
@@ -584,7 +573,7 @@ void Mem2Reg::Rename(Function *func)
         }
         for (auto succ = BB->succ_begin(); succ != BB->succ_end(); succ++)
         {
-            workList.push(std::make_pair(*succ, IncomingVals));
+            worklist.push(std::make_pair(*succ, IncomingVals));
             for (auto phi = (*succ)->begin(); phi != (*succ)->end() && phi->isPHI(); phi = phi->getNext())
             {
                 if (IncomingVals.count(dynamic_cast<PhiInstruction *>(phi)->getAddr()))
@@ -592,7 +581,7 @@ void Mem2Reg::Rename(Function *func)
             }
         }
     }
-    SimplifyInstruction();
+    func->SimplifyPHI();
     for (auto inst : freeInsts)
         delete inst;
     freeInsts.clear();

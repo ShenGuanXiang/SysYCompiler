@@ -651,7 +651,7 @@ ConstDef
     ;
 InitVal 
     : Exp {
-        InitNode* new_exp = new InitNode(false);
+        InitNode* new_exp = new InitNode();
         assert(convertible(dynamic_cast<ExprNode*>($1)->getType(), curType));
         ExprNode* new_expr = typeCast(dynamic_cast<ExprNode*>($1), curType);
         new_exp->setleaf(new_expr);
@@ -662,13 +662,13 @@ InitVal
         $$ = $2;;
     }
     | LBRACE RBRACE {
-        $$ = new InitNode(true);
+        $$ = new InitNode();
     }
     ;
 
 ConstInitVal
     : ConstExp {
-        InitNode* new_exp = new InitNode(true);
+        InitNode* new_exp = new InitNode();
         new_exp->setleaf(dynamic_cast<ExprNode*>($1));
         $$ = new_exp;
     }
@@ -676,12 +676,12 @@ ConstInitVal
         $$ = $2;
     }
     | LBRACE RBRACE {
-        $$ = new InitNode(true);
+        $$ = new InitNode();
     }
     ;
 InitValList
     : InitVal {
-        InitNode* new_expr = new InitNode(false);
+        InitNode* new_expr = new InitNode();
         new_expr->addleaf(dynamic_cast<InitNode*>($1));
         $$ = new_expr;
     }
@@ -693,7 +693,7 @@ InitValList
     ;
 ConstInitValList
     : ConstInitVal {
-        InitNode* new_expr = new InitNode(true);
+        InitNode* new_expr = new InitNode();
         new_expr->addleaf(dynamic_cast<InitNode*>($1));
         $$ = new_expr;
     }

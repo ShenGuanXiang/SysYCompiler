@@ -18,10 +18,9 @@ private:
 
 public:
     DeadInstrElimination(Unit *unit) : unit(unit){};
-    void DeadInstrMark(Function* f);
-    void DeadInstrEliminate(Function* f);
-    void DeleteBbWithNoPred(Function* f);
-    void pass(Function* func);
+    void DeadInstrMark(Function *f);
+    void DeadInstrEliminate(Function *f);
+    void pass(Function *func);
     void pass();
 };
 

@@ -39,8 +39,7 @@ public:
     void setType(Type *type) { this->type = type; };
     double getValue() { return value; };
     void setValue(double val) { value = val; };
-    std::vector<double> getArrVals() { return arrVals; };
-    void setArrVals(std::vector<double> arrVals) { this->arrVals = arrVals; };
+    std::vector<double> &getArrVals() { return arrVals; };
     int getNonZeroCnt()
     {
         int ans = 0;
@@ -50,7 +49,7 @@ public:
                 ans++;
         return ans;
     };
-    int getKind() { return kind; };
+    int getKind() { return kind; }; // for comparison
     virtual std::string toStr() = 0;
     // You can add any function you need here.
 };
@@ -133,7 +132,7 @@ private:
     Operand *paramOpe;                           // for param
     // You can add any field you need here.
     // DCE
-    Function* f;
+    Function *f;
 
 public:
     IdentifierSymbolEntry(Type *type, std::string name, int scope);
@@ -166,8 +165,8 @@ public:
         assert(func_se != nullptr);
         return func_se;
     };
-    Function* get_function() { return f; };
-    void Set_Function(Function* f) { this->f = f; };
+    Function *get_function() { return f; };
+    void Set_Function(Function *f) { this->f = f; };
     std::set<IdentifierSymbolEntry *> &getParamsSe() { return params_se; };
 };
 

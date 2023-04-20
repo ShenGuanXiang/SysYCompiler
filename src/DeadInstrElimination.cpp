@@ -2,12 +2,13 @@
 #include <queue>
 
 // 清除后继节点
-void BasicBlock::CleanSucc() 
+void BasicBlock::CleanSucc()
 {
-    for (auto i : succ) {
+    for (auto i : succ)
+    {
         i->removePred(this);
     }
-    std::set<BasicBlock*>().swap(succ);
+    std::set<BasicBlock *>().swap(succ);
 }
 
 // 得到指令的数量
@@ -15,9 +16,10 @@ int BasicBlock::getNumofInstr()
 {
     int num = 0;
     auto x = head;
-    while (x->getNext() != head) {
+    while (x->getNext() != head)
+    {
         x = x->getNext();
-        num ++;
+        num++;
     }
     return num;
 }
@@ -29,13 +31,13 @@ void BasicBlock::SetBDCEMark() { DCE_marked = true; };
 // 判断是否有DCE标记
 bool BasicBlock::isDCEMarked() { return DCE_marked; };
 // 获得反向的严格支配着
-std::set<BasicBlock*> &BasicBlock::getRSDoms() { return RSDoms; };
+std::set<BasicBlock *> &BasicBlock::getRSDoms() { return RSDoms; };
 // 获得反向的立即支配者
-BasicBlock* &BasicBlock::getRIdom() { return RiDom; };
+BasicBlock *&BasicBlock::getRIdom() { return RiDom; };
 // 获得反向的支配者边界
-std::set<BasicBlock*> &BasicBlock::getRDF() { return RDF; };
+std::set<BasicBlock *> &BasicBlock::getRDF() { return RDF; };
 // 清理DCE的标记
-void Instruction::clearDCEMark() { DCE_marked = false; }; 
+void Instruction::clearDCEMark() { DCE_marked = false; };
 // 设置DCE的标记
 void Instruction::SetDCEMark() { DCE_marked = true; };
 // 判断是否存在DCE的标记
@@ -43,44 +45,48 @@ bool Instruction::isDCEMarked() { return DCE_marked; };
 // 判断是否是关键函数
 bool Function::isCritical()
 {
-    if (iscritical != -1) return iscritical;
+    if (iscritical != -1)
+        return iscritical;
 
-    for (auto p_type : ((FunctionType*)sym_ptr->getType())->getParamsType()) {
+    for (auto p_type : ((FunctionType *)sym_ptr->getType())->getParamsType())
+    {
         if (p_type->isARRAY())
             return iscritical = 1;
     }
-    for (auto bb : block_list) {
+    for (auto bb : block_list)
+    {
         for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
-            if (instr->isCall()) {
-                IdentifierSymbolEntry* funcSE =
-                    (IdentifierSymbolEntry*)(((FuncCallInstruction*)instr)
-                                                 ->getFuncSe());
-                if (funcSE->isLibFunc()) {
-                    iscritical = 1;
-                    return iscritical;
-                } else {
+            if (instr->isCall())
+            {
+                IdentifierSymbolEntry *funcSE = (IdentifierSymbolEntry *)(((FuncCallInstruction *)instr)->getFuncSe());
+                if (funcSE->isLibFunc())
+                    return iscritical = 1;
+                else
+                {
                     auto func = funcSE->get_function();
                     if (func == this)
                         continue;
-                    if (func->isCritical() == 1) {
-                        iscritical = 1;
-                        return iscritical;
-                    }
+                    if (func->isCritical() == 1)
+                        return iscritical = 1;
                 }
             }
             else
             {
-                if (!instr->HasNoDef()) {
+                if (!instr->HasNoDef())
+                {
                     auto def = instr->getDef();
-                    if (def != nullptr && def->getEntry()->isVariable()) {
-                        auto se = ((IdentifierSymbolEntry*)def->getEntry());
+                    if (def != nullptr && def->getEntry()->isVariable())
+                    {
+                        auto se = ((IdentifierSymbolEntry *)def->getEntry());
                         if (se->isGlobal())
                             return iscritical = 1;
                     }
                 }
-                for (auto use : instr->getUses()) {
-                    if (use != nullptr && use->getEntry()->isVariable()) {
-                        auto se = (IdentifierSymbolEntry*) use->getEntry();
+                for (auto use : instr->getUses())
+                {
+                    if (use != nullptr && use->getEntry()->isVariable())
+                    {
+                        auto se = (IdentifierSymbolEntry *)use->getEntry();
                         if (se->isGlobal())
                             return iscritical = 1;
                     }
@@ -92,13 +98,14 @@ bool Function::isCritical()
 // 判断指令是否为关键指令
 bool Instruction::isCritical()
 {
-    if (isRet()) 
+    if (isRet())
     {
-        if (getUses().empty()) return true;
+        if (getUses().empty())
+            return true;
         auto preds = parent->getParent()->getPreds();
         if (preds.empty())
             return true;
-        
+
         // 只要有接收ret值的就要返回true
         for (auto it : preds)
             for (auto in : it.second)
@@ -109,21 +116,19 @@ bool Instruction::isCritical()
 
     if (isCall())
     {
-        IdentifierSymbolEntry* funcSE = (IdentifierSymbolEntry*)(((FuncCallInstruction*)this)->getFuncSe());
-        if (funcSE->isLibFunc() 
-         || funcSE->get_function()->isCritical()
-        )
+        IdentifierSymbolEntry *funcSE = (IdentifierSymbolEntry *)(((FuncCallInstruction *)this)->getFuncSe());
+        if (funcSE->isLibFunc() || funcSE->get_function()->isCritical())
             return true;
     }
 
-    return /*isUncond() || */isStore();
+    return /*isUncond() || */ isStore();
 }
 
-void Function::removePred(Instruction* instr)
+void Function::removePred(Instruction *instr)
 {
     assert(instr->isCall());
 
-    Function* func = instr->getParent()->getParent();
+    Function *func = instr->getParent()->getParent();
     if (preds_instr[func].count(instr))
         preds_instr[func].erase(instr);
 }
@@ -135,10 +140,11 @@ void DeadInstrElimination::pass()
         pass(f);
 }
 // 计算函数所有的Ret指令并且当作出口
-std::set<BasicBlock*>& Function::getExit()
+std::set<BasicBlock *> &Function::getExit()
 {
-    if (Exit.size() != 0) return Exit;
-    for (auto b : block_list) 
+    if (Exit.size() != 0)
+        return Exit;
+    for (auto b : block_list)
         if (b->rbegin()->isRet())
             Exit.insert(b);
     // assert(Exit.size() == 2);
@@ -160,7 +166,7 @@ void Function::ComputeRDom()
         for (auto bb : getBlockList())
             is_visited[bb] = false;
         for (auto b : getExit())
-            if (b != removed_bb) 
+            if (b != removed_bb)
             {
                 visited.insert(b);
                 is_visited[b] = true;
@@ -170,7 +176,8 @@ void Function::ComputeRDom()
         {
             BasicBlock *cur = q.front();
             q.pop();
-            for (auto pred = cur->pred_begin(); pred != cur->pred_end(); pred++) {
+            for (auto pred = cur->pred_begin(); pred != cur->pred_end(); pred++)
+            {
                 if (*pred != removed_bb && !is_visited[*pred])
                 {
                     q.push(*pred);
@@ -229,7 +236,8 @@ void Function::ComputeRDF()
     for (auto bb : getBlockList())
         is_visited[bb] = false;
     std::queue<BasicBlock *> q;
-    for (auto e : getExit()) {
+    for (auto e : getExit())
+    {
         q.push(e);
         is_visited[e] = true;
     }
@@ -254,10 +262,10 @@ void Function::ComputeRDF()
             }
         }
     }
-    for (auto bb : getBlockList())
-        if (!getExit().count(bb))
-            for (auto e : bb->getRDF())
-                fprintf(stderr, "RDF[B%d] = B%d\n", bb->getNo(), e->getNo());
+    // for (auto bb : getBlockList())
+    //     if (!getExit().count(bb))
+    //         for (auto e : bb->getRDF())
+    //             fprintf(stderr, "RDF[B%d] = B%d\n", bb->getNo(), e->getNo());
 }
 // 获得最近的反向支配者
 BasicBlock *Function::get_nearest_dom(Instruction *instr)
@@ -275,7 +283,7 @@ BasicBlock *Function::get_nearest_dom(Instruction *instr)
 // 死的指令的标记
 void DeadInstrElimination::DeadInstrMark(Function *f)
 {
-    std::vector<Instruction *> WorkList;
+    std::vector<Instruction *> worklist;
     for (auto bb = f->begin(); bb != f->end(); bb++)
     {
         (*bb)->clearDCEMark();
@@ -286,11 +294,11 @@ void DeadInstrElimination::DeadInstrMark(Function *f)
             instr->clearDCEMark();
             if (instr->isCritical())
             {
-                fprintf(stderr, "Mark B%d instrType%d\n", instr->getParent()->getNo(), instr->getInstType());
+                // fprintf(stderr, "Mark B%d instrType%d\n", instr->getParent()->getNo(), instr->getInstType());
                 instr->SetDCEMark();
                 auto bb = instr->getParent();
                 bb->SetBDCEMark();
-                WorkList.push_back(instr);
+                worklist.push_back(instr);
             }
         }
     }
@@ -299,62 +307,70 @@ void DeadInstrElimination::DeadInstrMark(Function *f)
     f->ComputeRiDom();
     f->ComputeRDF();
 
-    while (!WorkList.empty())
+    while (!worklist.empty())
     {
-        auto instr = WorkList.back();
-        WorkList.pop_back();
-        if (!instr->HasNoUse()) {
+        auto instr = worklist.back();
+        worklist.pop_back();
+        if (!instr->HasNoUse())
+        {
             std::vector<Operand *> op_ptrs = instr->getUses();
             for (auto &op_ptr : op_ptrs)
             {
                 Instruction *op_def = op_ptr->getDef();
                 if (op_def && !op_def->isDCEMarked())
                 {
-                    fprintf(stderr, "UseMark B%d instrType%d\n", op_def->getParent()->getNo(), op_def->getInstType());
+                    // fprintf(stderr, "UseMark B%d instrType%d\n", op_def->getParent()->getNo(), op_def->getInstType());
                     op_def->SetDCEMark();
                     auto bb = op_def->getParent();
                     bb->SetBDCEMark();
-                    WorkList.push_back(op_def);
+                    worklist.push_back(op_def);
                 }
             }
         }
 
-        if (!instr->HasNoDef()) {
+        if (!instr->HasNoDef())
+        {
             auto def = instr->getDef();
-            for (auto use = def->use_begin(); use != def->use_end(); use++) {
+            for (auto use = def->use_begin(); use != def->use_end(); use++)
+            {
                 if (!(*use)->isDCEMarked() &&
-                    ((*use)->isUncond() || (*use)->isCond())) {
-                    fprintf(stderr, "UseMark B%d instrType%d\n", (*use)->getParent()->getNo(), (*use)->getInstType());
+                    ((*use)->isUncond() || (*use)->isCond()))
+                {
+                    // fprintf(stderr, "UseMark B%d instrType%d\n", (*use)->getParent()->getNo(), (*use)->getInstType());
                     (*use)->SetDCEMark();
                     (*use)->getParent()->SetBDCEMark();
-                    WorkList.push_back(*use);
+                    worklist.push_back(*use);
                 }
             }
         }
         BasicBlock *bb = instr->getParent();
-        if (!bb) continue;
+        if (!bb)
+            continue;
         for (auto bbrdf : bb->getRDF())
         {
             auto instr_br = bbrdf->rbegin();
             if (instr_br != nullptr && (instr_br->isCond() || instr_br->isUncond()) && !instr_br->isDCEMarked())
             {
-                fprintf(stderr, "RDFMark B%d instrType%d\n", instr_br->getParent()->getNo(), instr_br->getInstType());
+                // fprintf(stderr, "RDFMark B%d instrType%d\n", instr_br->getParent()->getNo(), instr_br->getInstType());
                 instr_br->SetDCEMark();
-                WorkList.push_back(instr_br);
+                worklist.push_back(instr_br);
             }
         }
-        for (auto in = bb->begin(); in != bb->end(); in = in->getNext()) {
+        for (auto in = bb->begin(); in != bb->end(); in = in->getNext())
+        {
             if (!in->isPHI())
                 continue;
-            auto phi = (PhiInstruction*)in;
-            for (auto it : phi->getSrcs()) {
-                Instruction* in = it.first->rbegin();
-                fprintf(stderr, "retain B%d\n", it.first->getNo());
-                if (!in->isDCEMarked() && (in->isCond() || in->isUncond())) {
+            auto phi = (PhiInstruction *)in;
+            for (auto it : phi->getSrcs())
+            {
+                Instruction *in = it.first->rbegin();
+                // fprintf(stderr, "retain B%d\n", it.first->getNo());
+                if (!in->isDCEMarked() && (in->isCond() || in->isUncond()))
+                {
                     // fprintf(stderr, "phiMark B%d instrType%d\n", in->getParent()->getNo(), in->getInstType());
                     in->SetDCEMark();
                     in->getParent()->SetBDCEMark();
-                    WorkList.push_back(in);
+                    worklist.push_back(in);
                 }
             }
         }
@@ -378,17 +394,20 @@ void DeadInstrElimination::DeadInstrEliminate(Function *f)
         if ((*bb)->empty())
             continue;
         for (auto instr = (*bb)->begin(); instr != (*bb)->end(); instr = instr->getNext())
-            if (!instr->isDCEMarked()) {
-                if (instr->isRet()) {
+            if (!instr->isDCEMarked())
+            {
+                if (instr->isRet())
+                {
                     // assert(0);
-                    instr->getUses()[0] = (
-                        new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0)));
+                    instr->getUses()[0] = (new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0)));
                 }
-                if (instr->isCall()) {
-                    if (instr->isCritical()) continue;
-                    IdentifierSymbolEntry* funcSE =
-                            (IdentifierSymbolEntry*)(((FuncCallInstruction*)instr)
-                                                         ->getFuncSe());
+                if (instr->isCall())
+                {
+                    if (instr->isCritical())
+                        continue;
+                    IdentifierSymbolEntry *funcSE =
+                        (IdentifierSymbolEntry *)(((FuncCallInstruction *)instr)
+                                                      ->getFuncSe());
                     if (!funcSE->isLibFunc())
                         funcSE->get_function()->removePred(instr);
                 }
@@ -397,7 +416,8 @@ void DeadInstrElimination::DeadInstrEliminate(Function *f)
                 if (instr->isCond())
                 {
                     BasicBlock *npd = f->get_nearest_dom(instr);
-                    if (npd == nullptr) return;
+                    if (npd == nullptr)
+                        return;
                     new UncondBrInstruction(npd, *bb);
                     (*bb)->CleanSucc();
                     (*bb)->addSucc(npd);
@@ -410,34 +430,17 @@ void DeadInstrElimination::DeadInstrEliminate(Function *f)
     {
         /*Ret problem*/
         // assert(ta->isRet());
-        fprintf(stderr, "Block[%d] will remove instruction %d!\n", ta->getParent()->getNo(), ta->getInstType());
+        // fprintf(stderr, "Block[%d] will remove instruction %d!\n", ta->getParent()->getNo(), ta->getInstType());
         auto p = ta->getParent();
         p->remove(ta);
-    }
-}
-// 删除所有没有前导的非入口点
-void DeadInstrElimination::DeleteBbWithNoPred(Function* f) 
-{
-    while (true) {
-        std::vector<BasicBlock*> temp;
-        for (auto block : f->getBlockList())
-            if (block->getNumOfPred() == 0 && block != f->getEntry())
-                temp.push_back(block);
-        for (auto block : temp) {
-            block->CleanSucc();
-            delete block;
-        }
-        if (temp.size() == 0)
-            break;
     }
 }
 
 void DeadInstrElimination::pass(Function *f)
 {
-    DeleteBbWithNoPred(f);
+    SimplifyCFG sc(f->getParent());
+    sc.pass(f);
     DeadInstrMark(f);
     DeadInstrEliminate(f);
-    DeleteBbWithNoPred(f);
-    SimplifyCFG sc(f->getParent());
-    sc.pass();
+    sc.pass(f);
 }

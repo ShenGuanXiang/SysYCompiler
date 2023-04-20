@@ -45,6 +45,7 @@ public:
     bool HasNoUse() { return use_list.empty(); };
     virtual std::vector<Operand *> &getUses() { return use_list; };
     void replaceAllUsesWith(Operand *); // replace all uses of the def
+    void replaceUsesWith(Operand *old_op, Operand *new_op);
     enum
     {
         BINARY,
@@ -61,12 +62,11 @@ public:
         PHI,
         GEP
     };
-    // getting opcode/instruction type to construct string key for lvn
     unsigned getInstType() const { return instType; };
     unsigned getOpcode() const { return opcode; };
 
     // DCE
-    void clearDCEMark(); 
+    void clearDCEMark();
     void SetDCEMark();
     bool isDCEMarked();
     bool isCritical();
@@ -100,6 +100,7 @@ public:
     AllocaInstruction(Operand *dst, SymbolEntry *se, BasicBlock *insert_bb = nullptr);
     void output() const;
     void genMachineCode(AsmBuilder *);
+    SymbolEntry *getSymPtr() { return se; };
 
 private:
     SymbolEntry *se;

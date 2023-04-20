@@ -71,79 +71,98 @@
 1. ldr/str ..., [r] 和前面的 add r, imm/r 或 sub r, imm合并：
 
    - add r0, fp, #-12
+     
      ldr r1, [r0]
-
+     
      --->
-
+     
      add r0, fp, #-12
+     
      ldr r1, [fp, #-12]
 
 2. ldr指令转为mov
 
    - str v355, [v11]
+     
      ldr v227, [v11]
-
+     
      --->
-
+     
      str v355, [v11]
+
      mov v227,v355
-
+     
    - ldr r0, [fp,#-12]
+     
      ldr r1, [fp,#-12]
-
+     
      --->
-
+     
      ldr r0, [fp, #-12]
+     
      mov r1, r0
 
-3. 前后衔接的(v)mul和(v)add/(v)sub指令合并为(v)mla/(v)mls （感觉加到Binary里面就行，不用新开）
+3. 前后衔接的(v)mul和(v)add/(v)sub指令合并为(v)mla/(v)mls
 
    - mul v0,v1,v2
+     
      add v3,v4,v0
 
-   ​		--->
+   ​	--->
 
-   ​		mul v0,v1,v2
-   ​		mla v3,v1,v2,v4
+   ​	mul v0,v1,v2
+
+   ​	mla v3,v1,v2,v4
 
    - vmul.f32 v0,v1,v2
+     
      vadd.f32 v3,v4,v0
-
+     
      --->
-
+     
      vmul.f32 v0,v1,v2
+     
      vmla.f32 v4,v1,v2
+
+     vmov.f32 v3,v4
+
 
 4. mov vr1/vs1, vr2/vs2，前面一条指令是binary/mov等latency等于mov的指令且只有单个目标且为vr2/vs2(或mov的目标为r0-r3/s0-s3)：
 
    - add r5, r0, 1 
+     
      mov r0, r5
      
      ---->
-    
+     
      add r5, r0, 1（很可能r5不会再用到，可以删掉） 
+
      add r0, r0, 1
-   
+     
    - mov r1, r0
+     
      mov r0, r1
-   
+     
      ---->
      
      mov r1, r0
+     
      mov r0, r0
 
 5. mov移位 + add/sub/rsb/mov  
    
    - mov v5, v2, lsl #2
-	   add v4, v3, v5 (add v4, v5, v3)
-
+	   
+     add v4, v3, v5 (add v4, v5, v3)
+     
      --->
      
      add v4, v3, v2, lsl #2
+
      mov v5, v2, lsl #2
-
+     
      (寄存器不能重定义，v4!=v2 且 v4!=v5)
-
+   
 6. 将多条store替换为vdup和vstm
 
 7. 多条push/pop合并为一条push/pop（比如函数调用传参时）
@@ -177,8 +196,10 @@
 
 ## 常量优化
 
-- 遇到常量跳转直接简化CFG
+- SCCP
 - 数组常量内联
+- if(a == 1) 分支内部a用1替换
+- 一部分副作用优化
 
 ## 循环优化
 
@@ -221,4 +242,13 @@
 
 - 调整基本块内指令顺序，尽可能缩短变量的生存期，从而减少寄存器分配中的溢出
 - Global Code Motion?
+
+## 模拟
+
+- 没有外部输入的程序
+- 只保留输出语句和main的ret
+
+## 参考网站
+
+https://oi-wiki.org/lang/optimizations/
 

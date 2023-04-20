@@ -45,8 +45,6 @@ Type *ArrayType::getElemType()
                                  : TypeSystem::floatType;
 }
 
-// to do : toStr 方法还需要修改
-
 std::string IntType::toStr()
 {
     std::ostringstream buffer;

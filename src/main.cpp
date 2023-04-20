@@ -12,6 +12,7 @@
 #include "StrengthReduction.h"
 #include "ComSubExprElim.h"
 #include "DeadInstrElimanation.h"
+#include "SparseCondConstProp.h"
 using namespace std;
 
 Ast ast;
@@ -99,13 +100,13 @@ int main(int argc, char *argv[])
         m2r.pass();
         // todo:其它中间代码优化
         // 函数自动内联
+        // 代数化简
+        SparseCondConstProp sccp(unit);
+        sccp.pass(); // 常量传播
         ComSubExprElim cse(unit);
         cse.pass3(); // 公共子表达式消除
-        // 代数化简
-        // 常量传播
-        // 死代码删除
         DeadInstrElimination dce(unit);
-        dce.pass();
+        dce.pass(); // 死代码删除
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
@@ -135,7 +136,8 @@ int main(int argc, char *argv[])
         if (optimize)
         {
             // todo: 汇编代码优化
-            // 公共子表达式删除
+            ComSubExprElimASM cseasm(mUnit);
+            cseasm.pass(); // 公共子表达式删除
             // 窥孔优化
             // 控制流优化
             // 相对fp偏移非法但相对sp偏移不非法，转化一下

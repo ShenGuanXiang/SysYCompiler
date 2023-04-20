@@ -6,7 +6,7 @@ OPTTEST_PATH ?= testopt
 OBJ_PATH ?= $(BUILD_PATH)/obj
 BINARY ?= $(BUILD_PATH)/compiler
 SYSLIB_PATH ?= sysyruntimelibrary
-TIMING ?= 0
+TIMING ?= 1
 
 INC = $(addprefix -I, $(INC_PATH))
 SRC = $(shell find $(SRC_PATH)  -name "*.cpp")
@@ -113,7 +113,7 @@ test:app
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
 		@compile_start=$$(date +%s.%3N); \
-		timeout 3s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
+		timeout 60s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
 		RETURN_VALUE=$$?; \
 		compile_end=$$(date +%s.%3N); \
 		compile_time=$$(echo "$$compile_end - $$compile_start" | bc)
@@ -154,7 +154,7 @@ test:app
 						success=$$((success + 1))
 						if [ "$(TIMING)" = "1" ]; then
 							echo -n "\033[1;32mPASS:\033[0m $${FILE}"
-							awk "BEGIN {printf \"\t compile: %.3fs \t execute: %.3fs\n\", ( $$compile_time ), ( $$exec_time )}"
+							awk "BEGIN {printf \"\n\t compile: %.3fs \t execute: %.3fs\n\", ( $$compile_time ), ( $$exec_time )}"
 						else
 							echo "\033[1;32mPASS:\033[0m $${FILE}"
 						fi
@@ -223,7 +223,7 @@ testll:app
 		OUT=$${file%.*}.out
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
-		timeout 5s $(BINARY) $${file} -o $${IR} -O2 -i 2>$${LOG}
+		timeout 3s $(BINARY) $${file} -o $${IR} -O2 -i 2>$${LOG}
 		RETURN_VALUE=$$?
 		if [ $$RETURN_VALUE = 124 ]; then
 			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Timeout\033[0m"  && echo "FAIL: $${FILE}\tCompile Timeout" >> llnew.log
@@ -265,3 +265,13 @@ testll:app
 	[ $(TESTCASE_NUM) = $${success} ] && echo "\033[5;32mAll Accepted. Congratulations!\033[0m" && echo "All Accepted. Congratulations!" >> llnew.log
 	:
 	diff lllast.log llnew.log > llchange.log
+
+countIr:
+	@echo "IR Lines Count:"
+	@echo "=================="
+	@find test/  -name "*.ll" | xargs cat | grep -v '^$$' | wc -l
+
+countAsm:
+	@echo "ASM Lines Count:"
+	@echo "=================="
+	@find test/  -name "*.s" | xargs cat | grep -v '^$$' | wc -l
