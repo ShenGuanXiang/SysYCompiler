@@ -168,6 +168,9 @@ public:
     Function *GetFunction() { return f; };
     void Set_Function(Function *f) { this->f = f; };
     std::set<IdentifierSymbolEntry *> &getParamsSe() { return params_se; };
+
+    // AutoInline
+    bool isMain() { return name == "main"; };
 };
 
 /*

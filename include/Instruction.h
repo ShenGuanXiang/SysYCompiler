@@ -24,6 +24,7 @@ public:
     bool isPHI() const { return instType == PHI; };
     bool isCall() const { return instType == CALL; };
     bool isGep() const { return instType == GEP; };
+    bool isCalc() const { return isAlloca() && !isUncond() && !isCond(); };
     void setParent(BasicBlock *);
     void setNext(Instruction *);
     void setPrev(Instruction *);

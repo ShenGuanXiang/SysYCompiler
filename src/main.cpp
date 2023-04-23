@@ -15,6 +15,7 @@
 #include "SparseCondConstProp.h"
 #include "PeepholeOptimization.h"
 #include "MachineDeadCodeElimination.h"
+#include "AutoInline.h"
 using namespace std;
 
 Ast ast;
@@ -103,6 +104,8 @@ int main(int argc, char *argv[])
         // todo:其它中间代码优化
         // 函数自动内联
         // 代数化简
+        // AutoInliner autoinliner(unit);
+        // autoinliner.pass();
         SparseCondConstProp sccp(unit);
         sccp.pass(); // 常量传播
         ComSubExprElim cse(unit);

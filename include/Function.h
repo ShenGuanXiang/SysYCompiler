@@ -70,6 +70,14 @@ public:
     BasicBlock *get_nearest_dom(Instruction *instr);
     std::set<BasicBlock *> &getExit();
     void removePred(Instruction *instr);
+
+    // AutoInline
+    bool isrecur = false;
+    int cal_inst_num;
+    int isCalc() { return cal_inst_num; };
+    void SetCalcInstNum(int num) { cal_inst_num = num; };
+    bool isRecur() { return isrecur; };
+    void SetRecur() { isrecur = true; }
 };
 
 #endif
