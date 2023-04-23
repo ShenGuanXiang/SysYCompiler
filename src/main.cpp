@@ -143,7 +143,6 @@ int main(int argc, char *argv[])
         }
         LinearScan linearScan(mUnit);
         linearScan.pass();
-        optimize = 1;
         if (optimize)
         {
             // todo: 汇编代码优化

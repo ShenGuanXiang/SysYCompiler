@@ -312,15 +312,22 @@ public:
     void output();
 };
 
-class FuseMInstruction : public MachineInstruction {
-   public:
-    enum opType { MLA, MLS, VMLA, VMLS };
-    FuseMInstruction(MachineBlock* p,
+class FuseMInstruction : public MachineInstruction
+{
+public:
+    enum opType
+    {
+        MLA,
+        MLS,
+        VMLA,
+        VMLS
+    };
+    FuseMInstruction(MachineBlock *p,
                      int op,
-                     MachineOperand* dst,
-                     MachineOperand* src1,
-                     MachineOperand* src2,
-                     MachineOperand* src3);
+                     MachineOperand *dst,
+                     MachineOperand *src1,
+                     MachineOperand *src2,
+                     MachineOperand *src3);
     void output();
 };
 
@@ -372,8 +379,8 @@ public:
     ~MachineBlock();
 
     // MDCE
-    MachineInstruction* getNext(MachineInstruction* instr);
-    void remove(MachineInstruction* instr);
+    MachineInstruction *getNext(MachineInstruction *instr);
+    void remove(MachineInstruction *instr);
 };
 
 class MachineFunction
@@ -418,7 +425,7 @@ public:
     std::vector<MachineOperand *> getAdditionalArgsOffset() { return additional_args_offset; };
     MachineBlock *getEntry() { return entry; };
     void setEntry(MachineBlock *entry) { this->entry = entry; };
-    void AnalyzeLiveVariable(std::map<MachineOperand, std::set<MachineOperand*>>& all_uses);
+    void AnalyzeLiveVariable(std::map<MachineOperand, std::set<MachineOperand *>> &all_uses);
     void outputStart();
     void outputEnd();
     void output();

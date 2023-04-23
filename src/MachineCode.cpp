@@ -544,6 +544,19 @@ bool MachineInstruction::isBL() const
     return type == BRANCH && op == BranchMInstruction::BL;
 }
 
+bool MachineInstruction::isCritical() const
+{
+    if (isBL() || isDummy() || type == STACK)
+        return true;
+    auto sp = new MachineOperand(MachineOperand::REG, 13, TypeSystem::intType);
+    for (auto def : def_list)
+    {
+        if (*def == *sp)
+            return true;
+    }
+    return false;
+}
+
 DummyMInstruction::DummyMInstruction(
     MachineBlock *p,
     std::vector<MachineOperand *> defs, std::vector<MachineOperand *> uses,
@@ -1264,12 +1277,13 @@ void SmullMInstruction::output()
     fprintf(yyout, "\n");
 }
 
-FuseMInstruction::FuseMInstruction(MachineBlock* p,
+FuseMInstruction::FuseMInstruction(MachineBlock *p,
                                    int op,
-                                   MachineOperand* dst,
-                                   MachineOperand* src1,
-                                   MachineOperand* src2,
-                                   MachineOperand* src3) {
+                                   MachineOperand *dst,
+                                   MachineOperand *src1,
+                                   MachineOperand *src2,
+                                   MachineOperand *src3)
+{
     this->parent = p;
     this->type = MachineInstruction::FUSE;
     this->op = op;
@@ -1283,22 +1297,24 @@ FuseMInstruction::FuseMInstruction(MachineBlock* p,
     src3->setParent(this);
     // dst->setDef(this);
 }
-void FuseMInstruction::output() {
-    switch (this->op) {
-        case FuseMInstruction::MLA:
-            fprintf(yyout, "\tmla ");
-            break;
-        case FuseMInstruction::MLS:
-            fprintf(yyout, "\tmls ");
-            break;
-        case FuseMInstruction::VMLA:
-            fprintf(yyout, "\tvmla.f32 ");
-            break;
-        case FuseMInstruction::VMLS:
-            fprintf(yyout, "\tvmls.f32 ");
-            break;
-        default:
-            break;
+void FuseMInstruction::output()
+{
+    switch (this->op)
+    {
+    case FuseMInstruction::MLA:
+        fprintf(yyout, "\tmla ");
+        break;
+    case FuseMInstruction::MLS:
+        fprintf(yyout, "\tmls ");
+        break;
+    case FuseMInstruction::VMLA:
+        fprintf(yyout, "\tvmla.f32 ");
+        break;
+    case FuseMInstruction::VMLS:
+        fprintf(yyout, "\tvmls.f32 ");
+        break;
+    default:
+        break;
     }
 
     printCond();
@@ -1308,15 +1324,13 @@ void FuseMInstruction::output() {
     fprintf(yyout, ", ");
     this->use_list[1]->output();
     if (this->op != FuseMInstruction::VMLA &&
-        this->op != FuseMInstruction::VMLS) {
+        this->op != FuseMInstruction::VMLS)
+    {
         fprintf(yyout, ", ");
         this->use_list[2]->output();
     }
     fprintf(yyout, "\n");
 }
-
-
-
 
 void MachineBlock::insertBefore(MachineInstruction *pos, MachineInstruction *inst)
 {

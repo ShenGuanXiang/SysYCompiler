@@ -120,9 +120,9 @@
      add v3,v4,v0
 
    ​	--->
-
+   
    ​	mul v0,v1,v2
-
+    
    ​	mla v3,v1,v2,v4
 
    - vmul.f32 v0,v1,v2
@@ -196,6 +196,9 @@
 
 ## Mem2Reg
 
+- new FuncCall(dst = nullptr, params = {arr, val}, funcSe(name = "memset"))
+- 如果符号表没有memset，那么插入符号表&插入ir : declare void @llvm.memset.p0.i32(i8*, i8, i32, i1)
+
 ### Global2Local
 
 - 对于全局int/float类型变量，转换为函数内的局部变量。
@@ -221,7 +224,7 @@
 
 ## 代数化简
 
-- 代数恒等式化简 +--a !!a a\*b+a\*c a\*b/b 数组寻址表达式 a+0 a\*1 a/1 a*0
+- 代数恒等式化简 +--a !!a a\*b+a\*c a\*b/b 数组寻址表达式 a+0 a\*1 a/1 a*0 a%1
 
 ## 强度削弱
 

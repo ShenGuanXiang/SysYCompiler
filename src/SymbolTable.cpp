@@ -76,7 +76,8 @@ std::vector<std::string> lib_funcs{
     "putfloat",
     "putarray",
     "putfarray",
-    "llvm.memset.p0.i32"};
+    "memset",
+};
 
 bool IdentifierSymbolEntry::isLibFunc()
 {
@@ -119,7 +120,7 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
     this->is8BytesAligned = type->isFunc() && isLibFunc() && name != "getint" && name != "putint" && name != "getch" && name != "putch" && name != "getarray" && name != "putarray";
     if (type->isFunc() && isLibFunc())
     {
-        if (name == "getint" || name == "putint" || name == "getch" || name == "putch" || name == "getarray" || name == "putarray")
+        if (name == "getint" || name == "putint" || name == "getch" || name == "putch" || name == "getarray" || name == "putarray" || name == "putfarray" || name == "memset")
         {
             occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
@@ -129,13 +130,6 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
         else if (name == "getfloat" || name == "putfloat" || name == "getfarray")
         {
             occupiedRegs.insert(std::make_pair(0, TypeSystem::floatType));
-            occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
-            occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
-            occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
-            occupiedRegs.insert(std::make_pair(3, TypeSystem::intType));
-        }
-        else if (name == "putfarray")
-        {
             occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
