@@ -544,18 +544,18 @@ bool MachineInstruction::isBL() const
     return type == BRANCH && op == BranchMInstruction::BL;
 }
 
-bool MachineInstruction::isCritical() const
-{
-    if (isBL() || isDummy() || type == STACK)
-        return true;
-    auto sp = new MachineOperand(MachineOperand::REG, 13, TypeSystem::intType);
-    for (auto def : def_list)
-    {
-        if (*def == *sp)
-            return true;
-    }
-    return false;
-}
+// bool MachineInstruction::isCritical() const
+// {
+//     if (isBL() || isDummy() || type == STACK)
+//         return true;
+//     auto sp = new MachineOperand(MachineOperand::REG, 13, TypeSystem::intType);
+//     for (auto def : def_list)
+//     {
+//         if (*def == *sp)
+//             return true;
+//     }
+//     return false;
+// }
 
 DummyMInstruction::DummyMInstruction(
     MachineBlock *p,

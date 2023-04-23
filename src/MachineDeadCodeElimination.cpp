@@ -19,6 +19,18 @@ bool MachineInstruction::isSmull() const
     return type == SMULL;
 }
 
+bool MachineInstruction::isCritical() const
+{
+    if (/*isBL() || */isDummy() || isBranch() || isStack())
+        return true;
+    for (auto def : def_list)
+    {
+        if (def->getReg() == 13 && def->isReg())
+            return true;
+    }
+    return false;
+}
+
 MachineInstruction* MachineBlock::getNext(MachineInstruction* instr)
 {
     auto it = find(inst_list.begin(), inst_list.end(), instr);
