@@ -176,7 +176,7 @@ void LinearScan::makeDuChains()
                 assert(du.defs.size() == 1);
                 auto def = *du.defs.begin();
                 if (du.uses.empty() && // def not use
-                    !def->getParent()->isBL() && !def->getParent()->isDummy() &&
+                    !def->getParent()->isCritical() &&
                     def->getParent()->getDef().size() == 1) // todo：定义多个的还没删
                 {
                     change = true;
