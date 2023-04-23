@@ -96,6 +96,7 @@ int main(int argc, char *argv[])
         unit->output();
         fprintf(stderr, "ir output ok\n");
     }
+    optimize = 0;
     if (optimize)
     {
         // Global2Local

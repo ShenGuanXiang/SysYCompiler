@@ -15,15 +15,16 @@ void AutoInliner::pass()
     CallIntrNum();
     RecurDetect();
     std::queue<Function*> func_inline;
-    for (auto f : unit->GetFuncList()) {
-        bool flag = true;
-        for (auto ff : calls[f])
-            if (!calls[ff].empty()) {
-                flag = false;
-                break;
-            }
-        if (flag) func_inline.push(f);
-    }
+    for (auto f : unit->GetFuncList())
+        if (!((IdentifierSymbolEntry*)f->getSymPtr())->isLibFunc()) {
+            bool flag = true;
+            for (auto ff : calls[f])
+                if (!calls[ff].empty()) {
+                    flag = false;
+                    break;
+                }
+            if (flag) func_inline.push(f);
+        }
 
     while (!func_inline.empty()) {
         auto f = func_inline.front();
@@ -47,7 +48,12 @@ void AutoInliner::pass()
 
 void AutoInliner::pass(Instruction* instr)
 {
-    
+    auto func_se = ((FuncCallInstruction*)instr)->GetFuncSe();
+    auto func = func_se->GetFunction(), Func = instr->getParent()->getParent();
+    if (func_se->isLibFunc() || func == nullptr) return;
+    auto instr_bb = instr->getParent(), exit_bb = new BasicBlock(Func);
+    auto Ret = instr->getDef();
+    auto params = instr->getUses();
 }
 
 void AutoInliner::CallIntrNum()

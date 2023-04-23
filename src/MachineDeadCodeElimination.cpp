@@ -51,7 +51,7 @@ void MachineDeadCodeElimination::pass()
 {
     for (auto f : unit->getFuncs()) {
         pass(f);
-        SingleBrDelete(f);
+        // SingleBrDelete(f);
     }
 }
 
