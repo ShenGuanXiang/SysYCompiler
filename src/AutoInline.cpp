@@ -15,7 +15,7 @@ void AutoInliner::pass()
     CallIntrNum();
     RecurDetect();
     std::queue<Function*> func_inline;
-    for (auto f : unit->GetFuncList()) {
+    for (auto f : unit->getFuncList()) {
         bool flag = true;
         for (auto ff : calls[f])
             if (!calls[ff].empty()) {
@@ -66,7 +66,7 @@ void AutoInliner::CallIntrNum()
 
 void AutoInliner::RecurDetect()
 {
-    for (auto f : unit->GetFuncList()) {
+    for (auto f : unit->getFuncList()) {
             for (auto bb : f->getBlockList())
                 for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
                 {

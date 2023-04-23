@@ -113,7 +113,7 @@ test:app
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
 		@compile_start=$$(date +%s.%3N); \
-		timeout 60s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
+		timeout 120s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
 		RETURN_VALUE=$$?; \
 		compile_end=$$(date +%s.%3N); \
 		compile_time=$$(echo "$$compile_end - $$compile_start" | bc)

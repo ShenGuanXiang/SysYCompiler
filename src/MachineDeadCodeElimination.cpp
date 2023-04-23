@@ -4,43 +4,23 @@
 #include <map>
 #include <set>
 
-bool MachineInstruction::isBranch() const
-{
-    return type == BRANCH;
-}
-
-bool MachineInstruction::isCondMov() const
-{
-    return type == MOV && op == 0 && cond != NONE;
-}
-
-bool MachineInstruction::isSmull() const
-{
-    return type == SMULL;
-}
-
-MachineInstruction* MachineBlock::getNext(MachineInstruction* instr)
-{
-    auto it = find(inst_list.begin(), inst_list.end(), instr);
-    if (it != inst_list.end() && (it + 1) != inst_list.end()) {
-        return *(it + 1);
-    }
-    return nullptr;
-}
-
-void MachineBlock::remove(MachineInstruction* instr)
-{
-    auto it = find(inst_list.begin(), inst_list.end(), instr);
-    if (it != inst_list.end())
-        inst_list.erase(it);
-}
-
 void MachineDeadCodeElimination::pass()
 {
-    for (auto f : unit->getFuncs()) {
+    for (auto f : unit->getFuncs())
+    {
         pass(f);
         // SingleBrDelete(f);
     }
+}
+
+MachineInstruction *MachineBlock::getNext(MachineInstruction *instr)
+{
+    auto it = find(inst_list.begin(), inst_list.end(), instr);
+    if (it != inst_list.end() && (it + 1) != inst_list.end())
+    {
+        return *(it + 1);
+    }
+    return nullptr;
 }
 
 void MachineDeadCodeElimination::pass(MachineFunction *f)
@@ -48,7 +28,7 @@ void MachineDeadCodeElimination::pass(MachineFunction *f)
     MLiveVariableAnalysis mlva(nullptr);
     mlva.pass(f);
     std::map<MachineOperand, std::set<MachineOperand *>> out;
-    std::vector<MachineInstruction*> deleteList;
+    std::vector<MachineInstruction *> deleteList;
     for (auto b : f->getBlocks())
     {
         out.clear();
@@ -56,14 +36,15 @@ void MachineDeadCodeElimination::pass(MachineFunction *f)
         for (auto liveout : b->getLiveOut())
             out[*liveout].insert(liveout);
 
-        auto Insts = b->getInsts();
+        auto &Insts = b->getInsts();
         for (auto itr = Insts.rbegin(); itr != Insts.rend(); itr++)
         {
             auto defs = (*itr)->getDef();
             if (!defs.empty())
             {
-                MachineOperand* def = nullptr;
-                if((*itr)->isSmull()){
+                MachineOperand *def = nullptr;
+                if ((*itr)->isSmull())
+                {
                     def = defs[1];
                 }
                 else
@@ -72,31 +53,38 @@ void MachineDeadCodeElimination::pass(MachineFunction *f)
                     deleteList.push_back(*itr);
             }
 
-            for (auto& def : defs)
-                for (auto& o : mlva.getAllUses()[*def])
+            for (auto &def : defs)
+            {
+                auto &O = mlva.getAllUses()[*def];
+                for (auto &o : O)
                     if (out[*def].find(o) != out[*def].end())
                         out[*def].erase(o);
+            }
             auto uses = (*itr)->getUse();
-            for (auto& use : uses)
+            for (auto &use : uses)
                 out[*use].insert(use);
         }
     }
-    for (auto t : deleteList) {
+    for (auto t : deleteList)
+    {
         if (t->isCritical())
             continue;
-        if (t->isCondMov()) {
+        if (t->isCondMov())
+        {
             auto next = t->getParent()->getNext(t);
             if (next && next->isCondMov())
                 continue;
         }
         if (t)
-            t->getParent()->remove(t);
+        {
+            delete t;
+        }
     }
 }
 
-void MachineDeadCodeElimination::SingleBrDelete(MachineFunction* f)
+void MachineDeadCodeElimination::SingleBrDelete(MachineFunction *f)
 {
-    std::vector<MachineBlock*> delete_bbs;
+    std::vector<MachineBlock *> delete_bbs;
     for (auto &bb : f->getBlocks())
     {
         if (bb->getInsts().size() != 1)
@@ -137,9 +125,9 @@ void MachineDeadCodeElimination::SingleBrDelete(MachineFunction* f)
 
     for (auto bb : delete_bbs)
     {
-        for(auto &pred:bb->getPreds())
+        for (auto &pred : bb->getPreds())
             pred->getSuccs().erase(std::find(pred->getSuccs().begin(), pred->getSuccs().end(), bb));
-        for(auto &succ:bb->getSuccs())
+        for (auto &succ : bb->getSuccs())
             succ->getPreds().erase(std::find(succ->getPreds().begin(), succ->getPreds().end(), bb));
         f->removeBlock(bb);
     }

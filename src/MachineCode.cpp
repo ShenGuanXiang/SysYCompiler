@@ -544,14 +544,28 @@ bool MachineInstruction::isBL() const
     return type == BRANCH && op == BranchMInstruction::BL;
 }
 
+bool MachineInstruction::isBranch() const
+{
+    return type == BRANCH;
+}
+
+bool MachineInstruction::isCondMov() const
+{
+    return type == MOV && (op == MovMInstruction::MOV || op == MovMInstruction::VMOV) && cond != NONE;
+}
+
+bool MachineInstruction::isSmull() const
+{
+    return type == SMULL;
+}
+
 bool MachineInstruction::isCritical() const
 {
-    if (isBL() || isDummy() || type == STACK)
+    if (isDummy() || type == STACK || type == BRANCH)
         return true;
-    auto sp = new MachineOperand(MachineOperand::REG, 13, TypeSystem::intType);
     for (auto def : def_list)
     {
-        if (*def == *sp)
+        if (def->getReg() == 13 && def->isReg())
             return true;
     }
     return false;
