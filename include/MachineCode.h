@@ -140,6 +140,8 @@ public:
     int getOpType() { return op; };
     int getInstType() const { return type; };
 
+    bool isCritical() const;
+
     bool isDummy() const { return type == DUMMY; };
     bool isAdd() const;
     bool isBranch() const;
@@ -154,9 +156,6 @@ public:
     bool isVmov() const;
     bool isBL() const;
     bool isZext() const { return type == ZEXT; };
-
-    // MDCE
-    bool isCritical() const;
     bool isCondMov() const;
     bool isSmull() const;
 };
@@ -380,7 +379,6 @@ public:
 
     // MDCE
     MachineInstruction *getNext(MachineInstruction *instr);
-    void remove(MachineInstruction *instr);
 };
 
 class MachineFunction

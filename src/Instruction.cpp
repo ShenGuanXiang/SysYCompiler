@@ -2,6 +2,7 @@
 #include "Instruction.h"
 #include "BasicBlock.h"
 #include "Function.h"
+#include "Unit.h"
 #include "Type.h"
 extern FILE *yyout;
 extern bool mem2reg;
@@ -423,6 +424,13 @@ FuncCallInstruction::FuncCallInstruction(Operand *dst, std::vector<Operand *> pa
         it->addUse(this);
     }
     func_se = funcse;
+    if (funcse->getName() == "memset")
+    {
+        for (auto decl : this->getParent()->getParent()->getParent()->getDeclList())
+            if (decl->getType()->isFunc() && decl->getName() == "memset")
+                return;
+        this->getParent()->getParent()->getParent()->insertDecl(func_se);
+    }
 }
 
 void FuncCallInstruction::output() const
@@ -430,8 +438,8 @@ void FuncCallInstruction::output() const
     if (func_se->getName() == "memset")
     {
         auto internal_label = SymbolTable::getLabel();
-        fprintf(yyout, "  %%t%d = bitcast %s %s to i8*\n", internal_label, use_list[0]->getType()->toStr().c_str(), use_list[0]->toStr().c_str());                                                                                             // %t35 = bitcast [5 x i32]* %t34 to i8*
-        fprintf(yyout, "  call void @llvm.memset.p0.i32(i8* %%t%d, i8 %d, i32 %d, i1 0)\n", internal_label, (unsigned char)use_list[1]->getEntry()->getValue(), dynamic_cast<PointerType *>(use_list[0]->getType())->getValType()->getSize()); // call void @llvm.memset.p0.i32(i8* %t35, i8 0, i32 20, i1 0)
+        fprintf(yyout, "  %%t%d = bitcast %s %s to i8*\n", internal_label, use_list[0]->getType()->toStr().c_str(), use_list[0]->toStr().c_str());                                                         // %t35 = bitcast [5 x i32]* %t34 to i8*
+        fprintf(yyout, "  call void @llvm.memset.p0.i32(i8* %%t%d, i8 %d, i32 %d, i1 0)\n", internal_label, (unsigned char)use_list[1]->getEntry()->getValue(), (int)use_list[2]->getEntry()->getValue()); // call void @llvm.memset.p0.i32(i8* %t35, i8 0, i32 20, i1 0)
         return;
     }
     std::string dst = def_list[0]->toStr();
@@ -1102,7 +1110,7 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
         cur_block->insertInst(cur_inst);
         dst = new MachineOperand(MachineOperand::REG, 2);
         BL->addUse(dst);
-        cur_inst = new LoadMInstruction(cur_block, dst, genMachineImm(dynamic_cast<PointerType *>(use_list[0]->getType())->getValType()->getSize()));
+        cur_inst = new LoadMInstruction(cur_block, dst, genMachineOperand(use_list[2]));
         cur_block->insertInst(cur_inst);
     }
     else

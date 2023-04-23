@@ -129,13 +129,13 @@ void Function::removePred(Instruction *instr)
     assert(instr->isCall());
 
     Function *func = instr->getParent()->getParent();
-    if (preds_instr[func].count(instr)) 
+    if (preds_instr[func].count(instr))
         preds_instr[func].erase(instr);
 }
 
 void DeadInstrElimination::pass()
 {
-    auto fs = unit->GetFuncList();
+    auto fs = unit->getFuncList();
     for (auto f : fs)
         pass(f);
 
@@ -419,32 +419,33 @@ void DeadInstrElimination::pass(Function *f)
 
 void DeadInstrElimination::DeleteUselessFunc()
 {
-    Function* main_func = nullptr;
-    for (auto f : unit->GetFuncList()) 
+    Function *main_func = nullptr;
+    for (auto f : unit->getFuncList())
     {
         f->ClearCalled();
-        if (((IdentifierSymbolEntry*)f->getSymPtr())->getName() == "main")
+        if (((IdentifierSymbolEntry *)f->getSymPtr())->getName() == "main")
             main_func = f;
     }
-    std::queue<Function*> called_funcs;
+    std::queue<Function *> called_funcs;
     called_funcs.push(main_func);
     main_func->SetCalled();
-    while (!called_funcs.empty()) {
+    while (!called_funcs.empty())
+    {
         auto t = called_funcs.front();
         called_funcs.pop();
-        for (auto bb : t->getBlockList()) 
+        for (auto bb : t->getBlockList())
             for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
-                if (instr->isCall() && 
-                !((IdentifierSymbolEntry*)((FuncCallInstruction*)instr)->GetFuncSe())->isLibFunc())
+                if (instr->isCall() &&
+                    !((IdentifierSymbolEntry *)((FuncCallInstruction *)instr)->GetFuncSe())->isLibFunc())
                 {
-                    auto called_func = ((IdentifierSymbolEntry*)
-                                ((FuncCallInstruction*)instr)->GetFuncSe())->GetFunction();
-                    if (!called_func || called_func->isCalled()) continue;
+                    auto called_func = ((IdentifierSymbolEntry *)((FuncCallInstruction *)instr)->GetFuncSe())->GetFunction();
+                    if (!called_func || called_func->isCalled())
+                        continue;
                     called_func->SetCalled();
                     called_funcs.push(called_func);
                 }
     }
-    for (auto f : unit->GetFuncList())
+    for (auto f : unit->getFuncList())
         if (!f->isCalled())
             unit->removeFunc(f);
 }

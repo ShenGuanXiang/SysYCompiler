@@ -28,8 +28,9 @@ public:
     reverse_iterator rend() { return func_list.rend(); };
     void genMachineCode(MachineUnit *munit);
 
+    std::unordered_set<IdentifierSymbolEntry*> getDeclList(){return decl_list;};
     // DCE
-    std::vector<Function *> GetFuncList() { return func_list; };
+    std::vector<Function *> getFuncList() { return func_list; };
 };
 
 #endif

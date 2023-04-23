@@ -53,7 +53,12 @@
 
 # TODO
 
+## many_params2
+
 ## memset
+
+- new FuncCall(dst = nullptr, params = {arr, val, len}, funcSe(name = "memset")), 其中val, len用constSymbolEntry初始
+- 非零元素<1/10 && 非零元素<25，调nonZeroCnt直接获得非零元素个数
 
 ## Inliner
 
@@ -90,6 +95,21 @@
      add r0, fp, #-12
      
      ldr r1, [fp, #-12]
+    
+   - add vr7279, fp, #-12
+    
+     mov vr28908, #0
+     
+     str vr28908, [vr7279]
+
+     --->
+     
+     add vr7279, fp, #-12
+    
+     mov vr28908, #0
+     
+     str vr28908, [fp, #-12]
+
 
 2. ldr指令转为mov
 
@@ -194,11 +214,6 @@
 - 将无条件跳转的目标基本块的代码复制到跳转前的基本块
 - 多个空的machineblock合并成1个
 
-## Mem2Reg
-
-- new FuncCall(dst = nullptr, params = {arr, val}, funcSe(name = "memset"))
-- 如果符号表没有memset，那么插入符号表&插入ir : declare void @llvm.memset.p0.i32(i8*, i8, i32, i1)
-
 ### Global2Local
 
 - 对于全局int/float类型变量，转换为函数内的局部变量。
@@ -242,6 +257,7 @@
 - 将main函数开头的全局变量写操作吸收到全局变量初始化中
 - 尽可能将读内存操作替换为上次读或写的值
 - 如果写操作不会对之后的读操作产生影响，则删除写操作
+- 参考拷贝传播
 
 ## SIMD 和多线程
 

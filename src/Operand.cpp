@@ -60,23 +60,31 @@ void IdentifierSymbolEntry::decl_code()
 {
     if (type->isFunc())
     {
-        fprintf(yyout, "declare %s @%s(",
-                dynamic_cast<FunctionType *>(type)->getRetType()->toStr().c_str(), name.c_str());
-        fprintf(stderr, "declare %s @%s(",
-                dynamic_cast<FunctionType *>(type)->getRetType()->toStr().c_str(), name.c_str());
-        std::vector<Type *> paramslist = dynamic_cast<FunctionType *>(type)->getParamsType();
-        for (auto it = paramslist.begin(); it != paramslist.end(); it++)
+        if (name == "memset")
         {
-            if (it != paramslist.begin())
-            {
-                fprintf(yyout, ", ");
-                fprintf(stderr, ", ");
-            }
-            fprintf(yyout, "%s", (*it)->toStr().c_str());
-            fprintf(stderr, "%s", (*it)->toStr().c_str());
+            fprintf(yyout, "declare void @llvm.memset.p0.i32(i8*, i8, i32, i1)\n");
+            fprintf(stderr, "declare void @llvm.memset.p0.i32(i8*, i8, i32, i1)\n");
         }
-        fprintf(yyout, ")\n");
-        fprintf(stderr, ")\n");
+        else
+        {
+            fprintf(yyout, "declare %s @%s(",
+                    dynamic_cast<FunctionType *>(type)->getRetType()->toStr().c_str(), name.c_str());
+            fprintf(stderr, "declare %s @%s(",
+                    dynamic_cast<FunctionType *>(type)->getRetType()->toStr().c_str(), name.c_str());
+            std::vector<Type *> paramslist = dynamic_cast<FunctionType *>(type)->getParamsType();
+            for (auto it = paramslist.begin(); it != paramslist.end(); it++)
+            {
+                if (it != paramslist.begin())
+                {
+                    fprintf(yyout, ", ");
+                    fprintf(stderr, ", ");
+                }
+                fprintf(yyout, "%s", (*it)->toStr().c_str());
+                fprintf(stderr, "%s", (*it)->toStr().c_str());
+            }
+            fprintf(yyout, ")\n");
+            fprintf(stderr, ")\n");
+        }
     }
     else if (type->isARRAY())
     {
