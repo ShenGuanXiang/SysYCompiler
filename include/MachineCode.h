@@ -118,7 +118,6 @@ public:
     };
     virtual void output() = 0;
     virtual ~MachineInstruction();
-    bool isBranch() { return type == BRANCH; };
     void setNo(int no) { this->no = no; };
     int getNo() { return no; };
     int getCond() { return cond; };
@@ -143,6 +142,8 @@ public:
 
     bool isDummy() const { return type == DUMMY; };
     bool isAdd() const;
+    bool isBranch() const;
+    bool isStack() const { return type == STACK; };
     bool isSub() const;
     bool isRsb() const;
     bool isMul() const;
@@ -154,7 +155,10 @@ public:
     bool isBL() const;
     bool isZext() const { return type == ZEXT; };
 
+    // MDCE
     bool isCritical() const;
+    bool isCondMov() const;
+    bool isSmull() const;
 };
 
 // 放在函数开头和结尾，分别假装定义函数参数对应的物理寄存器和使用函数返回值r0/s0，从而便于生存期等处理，防止被误判为死代码消除
@@ -373,6 +377,10 @@ public:
     std::set<MachineBlock *> &getSDoms() { return SDoms; };
     MachineBlock *&getIDom() { return IDom; };
     ~MachineBlock();
+
+    // MDCE
+    MachineInstruction *getNext(MachineInstruction *instr);
+    void remove(MachineInstruction *instr);
 };
 
 class MachineFunction
@@ -417,7 +425,7 @@ public:
     std::vector<MachineOperand *> getAdditionalArgsOffset() { return additional_args_offset; };
     MachineBlock *getEntry() { return entry; };
     void setEntry(MachineBlock *entry) { this->entry = entry; };
-    void AnalyzeLiveVariable();
+    void AnalyzeLiveVariable(std::map<MachineOperand, std::set<MachineOperand *>> &all_uses);
     void outputStart();
     void outputEnd();
     void output();

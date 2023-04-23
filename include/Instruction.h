@@ -24,6 +24,7 @@ public:
     bool isPHI() const { return instType == PHI; };
     bool isCall() const { return instType == CALL; };
     bool isGep() const { return instType == GEP; };
+    bool isCalc() const { return isAlloca() && !isUncond() && !isCond(); };
     void setParent(BasicBlock *);
     void setNext(Instruction *);
     void setPrev(Instruction *);
@@ -223,7 +224,7 @@ private:
 public:
     FuncCallInstruction(Operand *dst, std::vector<Operand *> params, IdentifierSymbolEntry *funcse, BasicBlock *insert_bb);
     void output() const;
-    IdentifierSymbolEntry *getFuncSe() { return func_se; };
+    IdentifierSymbolEntry *GetFuncSe() { return func_se; };
     void genMachineCode(AsmBuilder *);
 };
 

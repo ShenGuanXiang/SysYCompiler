@@ -22,8 +22,13 @@
 
 ## 死代码消除
 
-- 
-- 
+- ir dce
+    - iscritical: 判断Instruciton、Function是否涉及到输入输出或者对内存数据的修改
+    - getRDF: 找到反向支配边界，换言之为正向的被支配边界
+    - get_nearest_dom: 反向找到控制流最近的岔路交点
+- asm dce
+    - iscritical: 判断汇编指令是否可以被删，包括函数调用后对栈帧的调整，如果是条件跳转，那么需要判断他的跳转对象是否也是跳转指令，如果是就不删了
+    - 删除掉了只包含一条跳转指令的machineblock(合并，类似于控制流优化), 直接调用SingleBrDelete(MachineFunc*)
 
 ## 强度削弱
 

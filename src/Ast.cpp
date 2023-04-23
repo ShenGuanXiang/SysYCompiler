@@ -437,14 +437,10 @@ void Id::genCode()
                 final_type = new PointerType(Const2Var(cur_type->getElemType()));
             }
             Operand *tempDst = new Operand(new TemporarySymbolEntry(final_type, SymbolTable::getLabel()));
+            if (is_FP)
+                idx_operend.push_back(nullptr);
             new GepInstruction(tempDst, tempSrc, idx_operend, bb);
             tempSrc = tempDst;
-            if (is_FP)
-            {
-                tempDst = new Operand(new TemporarySymbolEntry(final_type, SymbolTable::getLabel()));
-                new GepInstruction(tempDst, tempSrc, std::vector<Operand *>{nullptr, nullptr}, bb);
-                tempSrc = tempDst;
-            }
             if (is_left)
             {
                 arrayAddr = tempSrc;

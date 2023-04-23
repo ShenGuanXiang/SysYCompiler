@@ -1,6 +1,5 @@
 int f()
 {
-  putint(1);
   return 1;
 }
 

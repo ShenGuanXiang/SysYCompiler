@@ -14,6 +14,8 @@
 #include "DeadInstrElimanation.h"
 #include "SparseCondConstProp.h"
 #include "PeepholeOptimization.h"
+#include "MachineDeadCodeElimination.h"
+#include "AutoInline.h"
 using namespace std;
 
 Ast ast;
@@ -102,6 +104,8 @@ int main(int argc, char *argv[])
         // todo:其它中间代码优化
         // 函数自动内联
         // 代数化简
+        // AutoInliner autoinliner(unit);
+        // autoinliner.pass();
         SparseCondConstProp sccp(unit);
         sccp.pass(); // 常量传播
         ComSubExprElim cse(unit);
@@ -133,6 +137,8 @@ int main(int argc, char *argv[])
             // 窥孔优化
             // PeepholeOptimization ph(mUnit);
             // ph.pass();
+            MachineDeadCodeElimination mdce(mUnit);
+            mdce.pass();
         }
         LinearScan linearScan(mUnit);
         linearScan.pass();
@@ -147,6 +153,8 @@ int main(int argc, char *argv[])
             // 控制流优化
             // 相对fp偏移非法但相对sp偏移不非法，转化一下
             // 死代码消除
+            MachineDeadCodeElimination mdce(mUnit);
+            mdce.pass();
         }
         fprintf(stderr, "asm generated\n");
         mUnit->output();

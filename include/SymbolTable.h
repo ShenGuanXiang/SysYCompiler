@@ -165,9 +165,12 @@ public:
         assert(func_se != nullptr);
         return func_se;
     };
-    Function *get_function() { return f; };
+    Function *GetFunction() { return f; };
     void Set_Function(Function *f) { this->f = f; };
     std::set<IdentifierSymbolEntry *> &getParamsSe() { return params_se; };
+
+    // AutoInline
+    bool isMain() { return name == "main"; };
 };
 
 /*
