@@ -787,29 +787,6 @@ void SeqStmt::genCode()
 
 void InitNode::genCode()
 {
-    // for (size_t i = 0; i < vec_val.size(); i++)
-    // {
-    //     int pos = i;
-    //     ArrayType *curr_type = arrTypeLike(cur_type);
-    //     std::vector<int> curr_dim(cur_dim);
-    //     Operand *addr = arrayAddr;
-    //     std::vector<Operand *> idx_operand{nullptr};
-    //     for (size_t j = 0; j < d.size(); j++)
-    //     {
-    //         curr_dim.erase(curr_dim.begin());
-    //         idx_operand.push_back(new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, pos / d[j])));
-    //         // fprintf(stderr, "currdim is %s\n", addr->getType()->toStr().c_str());
-    //         pos %= d[j];
-    //     }
-    //     curr_type->SetDim(curr_dim);
-    //     Operand *final_offset = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
-    //     vec_val[i]->genCode();
-    //     Operand *src = vec_val[i]->getOperand();
-    //     new GepInstruction(final_offset, addr, idx_operand, builder->getInsertBB());
-    //     new StoreInstruction(final_offset, src, builder->getInsertBB());
-    //     curr_dim.clear();
-    //     // assert(cur_dim.empty());
-    // }
     std::vector<std::vector<Operand*>> non_zeros;
     std::vector<int> expr_node;
     size_t cur_z = 0;
