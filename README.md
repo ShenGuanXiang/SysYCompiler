@@ -53,8 +53,6 @@
 
 # TODO
 
-## many_params2
-
 ## memset
 
 - new FuncCall(dst = nullptr, params = {arr, val, len}, funcSe(name = "memset")), 其中val, len用constSymbolEntry初始
@@ -95,9 +93,9 @@
      add r0, fp, #-12
      
      ldr r1, [fp, #-12]
-    
+   
    - add vr7279, fp, #-12
-    
+   
      mov vr28908, #0
      
      str vr28908, [vr7279]
@@ -105,7 +103,7 @@
      --->
      
      add vr7279, fp, #-12
-    
+   
      mov vr28908, #0
      
      str vr28908, [fp, #-12]
@@ -138,13 +136,13 @@
    - mul v0,v1,v2
      
      add v3,v4,v0
-
-   ​	--->
-   
-   ​	mul v0,v1,v2
-    
-   ​	mla v3,v1,v2,v4
-
+     
+     --->
+     
+     mul v0,v1,v2
+     
+     mla v3,v1,v2,v4
+     
    - vmul.f32 v0,v1,v2
      
      vadd.f32 v3,v4,v0
@@ -156,6 +154,7 @@
      vmla.f32 v4,v1,v2
 
      vmov.f32 v3,v4
+   
 
 
 4. mov vr1/vs1, vr2/vs2，前面一条指令是binary/mov等latency等于mov的指令且只有单个目标且为vr2/vs2(或mov的目标为r0-r3/s0-s3)：
@@ -183,7 +182,7 @@
 5. mov移位 + add/sub/rsb/mov  
    
    - mov v5, v2, lsl #2
-	   
+	  
      add v4, v3, v5 (add v4, v5, v3)
      
      --->

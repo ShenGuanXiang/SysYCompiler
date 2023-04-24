@@ -783,7 +783,14 @@ void StoreInstruction::genMachineCode(AsmBuilder *builder)
         // example: str r1, [fp, #-4]
         auto fp = genMachineReg(11);
         auto offset = genMachineImm(dynamic_cast<TemporarySymbolEntry *>(use_list[0]->getEntry())->getOffset());
-        if (offset->isIllegalShifterOperand())
+        // 如果是函数参数(第四个以后)，由于函数栈帧初始化时会将一些寄存器压栈，在FuncDef打印时还需要偏移一个值，这里保存未偏移前的值，方便后续调整
+        if (offset->getVal() >= 0)
+        {
+            cur_block->getParent()->addAdditionalArgsOffset(offset);
+            if (offset->getVal() >= 852) // 后面分配好寄存器后偏移量会增加，所以这里直接做一个严格的判断
+                offset = cur_block->insertLoadImm(offset);
+        }
+        if (offset->getVal() < 0 && offset->isIllegalShifterOperand())
             offset = cur_block->insertLoadImm(offset);
         if (src->getValType()->isFloat() && !offset->isImm())
         {
