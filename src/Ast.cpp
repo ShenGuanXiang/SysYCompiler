@@ -787,28 +787,74 @@ void SeqStmt::genCode()
 
 void InitNode::genCode()
 {
-    for (size_t i = 0; i < vec_val.size(); i++)
-    {
-        int pos = i;
-        ArrayType *curr_type = arrTypeLike(cur_type);
-        std::vector<int> curr_dim(cur_dim);
-        Operand *addr = arrayAddr;
-        std::vector<Operand *> idx_operand{nullptr};
-        for (size_t j = 0; j < d.size(); j++)
-        {
-            curr_dim.erase(curr_dim.begin());
-            idx_operand.push_back(new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, pos / d[j])));
-            // fprintf(stderr, "currdim is %s\n", addr->getType()->toStr().c_str());
-            pos %= d[j];
+    std::vector<std::vector<Operand*>> non_zeros;
+    std::vector<int> expr_node;
+    size_t cur_z = 0;
+    for (size_t i = 0; i < vec_val.size(); i ++ ) {
+        size_t pos = i;
+        if (vec_val[i]->getValue() != 0 
+            || !vec_val[i]->getSymPtr()->isConstant()) {
+            non_zeros.push_back(std::vector<Operand*>{nullptr});
+            for (size_t j = 0; j < d.size(); j ++ )
+            {
+                non_zeros[cur_z].push_back(new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, pos / d[j])));
+                pos %= d[j];
+            }
+            expr_node.push_back(i);
+            cur_z ++;
         }
-        curr_type->SetDim(curr_dim);
-        Operand *final_offset = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
-        vec_val[i]->genCode();
-        Operand *src = vec_val[i]->getOperand();
-        new GepInstruction(final_offset, addr, idx_operand, builder->getInsertBB());
-        new StoreInstruction(final_offset, src, builder->getInsertBB());
-        curr_dim.clear();
-        // assert(cur_dim.empty());
+    }
+    if (
+        // 0
+        10 * cur_z < vec_val.size() && cur_z < 25
+    )
+    {
+        auto val = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0)),
+                len = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 4 * vec_val.size()));
+        auto memset_func = new FunctionType(TypeSystem::intType, std::vector<Type*>{nullptr});
+        new FuncCallInstruction(new Operand(new TemporarySymbolEntry(new IntType(8), SymbolTable::getLabel())), 
+                                std::vector<Operand*>{arrayAddr, val, len}, 
+                                new IdentifierSymbolEntry(memset_func, "memset", 0),
+                                builder->getInsertBB()
+                            );
+        std::vector<int> curr_dim(cur_dim);
+        for (size_t j = 0; j < d.size(); j++)
+            curr_dim.erase(curr_dim.begin());
+        for (int i = 0; i < non_zeros.size(); i ++ )
+        {
+            ArrayType *curr_type = arrTypeLike(cur_type);
+            curr_type->SetDim(curr_dim);
+            Operand *final_offset = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
+            vec_val[expr_node[i]]->genCode();
+            Operand *src = vec_val[expr_node[i]]->getOperand();
+            new GepInstruction(final_offset, arrayAddr, non_zeros[i], builder->getInsertBB());
+            new StoreInstruction(final_offset, src, builder->getInsertBB());
+            curr_dim.clear();
+        }
+    }
+    else {
+        for (size_t i = 0; i < vec_val.size(); i++)
+        {
+            int pos = i;
+            ArrayType *curr_type = arrTypeLike(cur_type);
+            std::vector<int> curr_dim(cur_dim);
+            Operand *addr = arrayAddr;
+            std::vector<Operand *> idx_operand{nullptr};
+            for (size_t j = 0; j < d.size(); j++)
+            {
+                curr_dim.erase(curr_dim.begin());
+                idx_operand.push_back(new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, pos / d[j])));
+                pos %= d[j];
+            }
+            curr_type->SetDim(curr_dim);
+            Operand *final_offset = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
+            vec_val[i]->genCode();
+            Operand *src = vec_val[i]->getOperand();
+            new GepInstruction(final_offset, addr, idx_operand, builder->getInsertBB());
+            new StoreInstruction(final_offset, src, builder->getInsertBB());
+            curr_dim.clear();
+            // assert(cur_dim.empty());
+        }
     }
 }
 

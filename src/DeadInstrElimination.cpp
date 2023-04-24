@@ -446,6 +446,6 @@ void DeadInstrElimination::DeleteUselessFunc()
                 }
     }
     for (auto f : unit->getFuncList())
-        if (!f->isCalled())
+        if (!f->isCalled() && !((IdentifierSymbolEntry*)f->getSymPtr())->isMain())
             unit->removeFunc(f);
 }
