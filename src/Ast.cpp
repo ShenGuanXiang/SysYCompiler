@@ -828,8 +828,8 @@ void InitNode::genCode()
         }
     }
     if (
-        0
-        // 10 * cur_z < vec_val.size() && cur_z < 25
+        // 0
+        10 * cur_z < vec_val.size() && cur_z < 25
     )
     {
         auto val = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0)),

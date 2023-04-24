@@ -90,12 +90,12 @@ int main(int argc, char *argv[])
     // ast.typeCheck();
     ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
+    optimize = 0;
     if (dump_ir && !optimize)
     {
         unit->output();
         fprintf(stderr, "ir output ok\n");
     }
-    optimize = 1;
     if (optimize)
     {
         // Global2Local
