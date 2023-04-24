@@ -11,10 +11,9 @@
 #include "LiveVariableAnalysis.h"
 #include "StrengthReduction.h"
 #include "ComSubExprElim.h"
-#include "DeadInstrElimanation.h"
+#include "DeadCodeElim.h"
 #include "SparseCondConstProp.h"
 #include "PeepholeOptimization.h"
-#include "MachineDeadCodeElimination.h"
 #include "AutoInline.h"
 
 Ast ast;
@@ -90,7 +89,7 @@ int main(int argc, char *argv[])
     // ast.typeCheck();
     ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
-    optimize = 0;
+    // optimize = false;
     if (dump_ir && !optimize)
     {
         unit->output();
@@ -109,7 +108,7 @@ int main(int argc, char *argv[])
         sccp.pass(); // 常量传播
         ComSubExprElim cse(unit);
         cse.pass3(); // 公共子表达式消除
-        DeadInstrElimination dce(unit);
+        DeadCodeElim dce(unit);
         dce.pass(); // 死代码删除
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
@@ -136,7 +135,7 @@ int main(int argc, char *argv[])
             // 窥孔优化
             // PeepholeOptimization ph(mUnit);
             // ph.pass();
-            MachineDeadCodeElimination mdce(mUnit);
+            MachineDeadCodeElim mdce(mUnit);
             mdce.pass();
         }
         LinearScan linearScan(mUnit);
@@ -150,7 +149,7 @@ int main(int argc, char *argv[])
             // ph.pass(); // 窥孔优化
             // 控制流优化
             // 相对fp偏移非法但相对sp偏移不非法，转化一下
-            MachineDeadCodeElimination mdce(mUnit);
+            MachineDeadCodeElim mdce(mUnit);
             mdce.pass(); // 死代码消除 // todo：等加速完再放上
         }
         fprintf(stderr, "asm generated\n");

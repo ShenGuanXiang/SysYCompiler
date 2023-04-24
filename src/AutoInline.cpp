@@ -10,7 +10,7 @@ bool AutoInliner::ShouldBeinlined(Function* f)
 
 void AutoInliner::pass()
 {
-    DeadInstrElimination dce(unit);
+    DeadCodeElim dce(unit);
     dce.pass();
     CallIntrNum();
     RecurDetect();

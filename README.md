@@ -1,5 +1,7 @@
 # 已完成
 
+## memset
+
 ## 寄存器分配
 
 - 删除def not use的指令
@@ -52,11 +54,6 @@
 - 除数组以外的const变量都直接内联
 
 # TODO
-
-## memset
-
-- new FuncCall(dst = nullptr, params = {arr, val, len}, funcSe(name = "memset")), 其中val, len用constSymbolEntry初始
-- 非零元素<1/10 && 非零元素<25，调nonZeroCnt直接获得非零元素个数
 
 ## Inliner
 
