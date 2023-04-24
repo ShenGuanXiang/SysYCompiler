@@ -15,7 +15,7 @@ void AutoInliner::pass()
     CallIntrNum();
     RecurDetect();
     std::queue<Function*> func_inline;
-    for (auto f : unit->GetFuncList())
+    for (auto f : unit->getFuncList())
         if (!((IdentifierSymbolEntry*)f->getSymPtr())->isLibFunc()) {
             bool flag = true;
             for (auto ff : calls[f])
