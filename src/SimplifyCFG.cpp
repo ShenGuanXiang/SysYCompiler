@@ -335,6 +335,9 @@ void SimplifyCFG::pass(Function *func)
             }
         }
     }
+
+    func->getExit().clear();
+
     // 删除不可达的基本块。
     auto blocks = func->getBlockList();
     for (auto bb : blocks)

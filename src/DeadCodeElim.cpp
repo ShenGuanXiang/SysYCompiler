@@ -76,7 +76,7 @@ bool Function::isCritical()
             }
             else
             {
-                if (!instr->HasNoDef())
+                if (!instr->hasNoDef())
                 {
                     auto def = instr->getDef();
                     if (def != nullptr && def->getEntry()->isVariable())
@@ -143,7 +143,7 @@ void DeadCodeElim::pass()
     for (auto f : fs)
         pass(f);
 
-    DeleteUselessFunc();
+    deleteUselessFunc();
 }
 // 计算函数所有的Ret指令并且当作出口
 std::set<BasicBlock *> &Function::getExit()
@@ -153,7 +153,6 @@ std::set<BasicBlock *> &Function::getExit()
     for (auto b : block_list)
         if (b->rbegin()->isRet())
             Exit.insert(b);
-    // assert(Exit.size() == 2);
     return Exit;
 }
 // 计算反向严格支配者
@@ -275,7 +274,7 @@ BasicBlock *Function::get_nearest_dom(Instruction *instr)
     return nullptr;
 }
 // 死的指令的标记
-void DeadCodeElim::DeadInstrMark(Function *f)
+void DeadCodeElim::deadInstrMark(Function *f)
 {
     std::vector<Instruction *> worklist;
     for (auto bb = f->begin(); bb != f->end(); bb++)
@@ -305,7 +304,7 @@ void DeadCodeElim::DeadInstrMark(Function *f)
     {
         auto instr = worklist.back();
         worklist.pop_back();
-        if (!instr->HasNoUse())
+        if (!instr->hasNoUse())
         {
             std::vector<Operand *> op_ptrs = instr->getUses();
             for (auto &op_ptr : op_ptrs)
@@ -322,7 +321,7 @@ void DeadCodeElim::DeadInstrMark(Function *f)
             }
         }
 
-        if (!instr->HasNoDef())
+        if (!instr->hasNoDef())
         {
             auto def = instr->getDef();
             for (auto use = def->use_begin(); use != def->use_end(); use++)
@@ -371,7 +370,7 @@ void DeadCodeElim::DeadInstrMark(Function *f)
     }
 }
 // 死的指令的清除
-void DeadCodeElim::DeadInstrEliminate(Function *f)
+void DeadCodeElim::deadInstrEliminate(Function *f)
 {
     std::vector<Instruction *> Target;
 
@@ -416,20 +415,16 @@ void DeadCodeElim::pass(Function *f)
 {
     SimplifyCFG sc(f->getParent());
     sc.pass(f);
-    DeadInstrMark(f);
-    DeadInstrEliminate(f);
+    deadInstrMark(f);
+    deadInstrEliminate(f);
     sc.pass(f);
 }
 
-void DeadCodeElim::DeleteUselessFunc()
+void DeadCodeElim::deleteUselessFunc()
 {
-    Function *main_func = nullptr;
     for (auto f : unit->getFuncList())
-    {
         f->ClearCalled();
-        if (((IdentifierSymbolEntry *)f->getSymPtr())->getName() == "main")
-            main_func = f;
-    }
+    Function *main_func = unit->getMainFunc();
     std::queue<Function *> called_funcs;
     called_funcs.push(main_func);
     main_func->SetCalled();
@@ -451,7 +446,7 @@ void DeadCodeElim::DeleteUselessFunc()
     }
     for (auto f : unit->getFuncList())
         if (!f->isCalled() && !((IdentifierSymbolEntry *)f->getSymPtr())->isMain())
-            unit->removeFunc(f);
+            delete f;
 }
 
 void MachineDeadCodeElim::pass()

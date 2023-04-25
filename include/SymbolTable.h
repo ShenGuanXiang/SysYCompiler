@@ -114,12 +114,6 @@ public:
 class IdentifierSymbolEntry : public SymbolEntry
 {
 private:
-    enum
-    {
-        GLOBAL,
-        PARAM,
-        LOCAL
-    };
     std::string name;
     int label; // Vreg no for param
     int scope;
@@ -135,6 +129,12 @@ private:
     Function *f;
 
 public:
+    enum
+    {
+        GLOBAL,
+        PARAM,
+        LOCAL
+    };
     IdentifierSymbolEntry(Type *type, std::string name, int scope);
     virtual ~IdentifierSymbolEntry(){};
     std::string toStr();
@@ -142,6 +142,7 @@ public:
     bool isParam() const { return scope == PARAM; };
     bool isLocal() const { return scope >= LOCAL; };
     int getScope() const { return scope; };
+    void setScope(int scope) { this->scope = scope; };
     void setAddr(Operand *addr) { this->addr = addr; };
     Operand *getAddr() { return addr; };
     // You can add any function you need here.

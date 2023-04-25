@@ -97,12 +97,12 @@ int main(int argc, char *argv[])
     }
     if (optimize)
     {
+        // AutoInliner autoinliner(unit);
+        // autoinliner.pass();  // 函数自动内联
         // Global2Local
         Mem2Reg m2r(unit);
         m2r.pass();
         // todo:其它中间代码优化
-        // AutoInliner autoinliner(unit);
-        // autoinliner.pass();  // 函数自动内联
         // 代数化简
         SparseCondConstProp sccp(unit);
         sccp.pass(); // 常量传播

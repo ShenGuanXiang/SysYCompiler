@@ -42,11 +42,11 @@ public:
         assert(!def_list.empty());
         return def_list[0];
     };
-    bool HasNoDef() { return def_list.empty(); };
-    bool HasNoUse() { return use_list.empty(); };
+    bool hasNoDef() { return def_list.empty(); };
+    bool hasNoUse() { return use_list.empty(); };
     virtual std::vector<Operand *> &getUses() { return use_list; };
-    void replaceAllUsesWith(Operand *); // replace all uses of the def
-    void replaceUsesWith(Operand *old_op, Operand *new_op);
+    void replaceAllUsesWith(Operand *);                     // replace all uses of the def
+    void replaceUsesWith(Operand *old_op, Operand *new_op); // replace uses of this instruction
     enum
     {
         BINARY,

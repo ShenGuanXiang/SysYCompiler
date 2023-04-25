@@ -194,7 +194,6 @@ Type *Var2Const(Type *type)
     if (type == TypeSystem::floatType)
         return TypeSystem::constFloatType;
 
-    // to do : array type
     assert(type->isConstInt() || type->isConstFloat());
     return type;
 }
@@ -214,8 +213,7 @@ Type *Const2Var(Type *type)
 
 bool convertible(Type *from, Type *to)
 {
-    // to do : array type
-    if (from->isARRAY() && to->isARRAY())
+    if (from->isARRAY() && to->isARRAY()) // 函数实参转形参时的判断会用
         return true;
     return from->isConst() ? (!to->isPTR() && !to->isFunc() && !to->isVoid()) : (from->isInt() || from->isFloat()) ? (!to->isPTR() && !to->isFunc() && !to->isVoid() && !to->isConst())
                                                                                                                    : false;

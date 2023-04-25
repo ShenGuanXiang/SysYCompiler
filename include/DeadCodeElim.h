@@ -9,7 +9,7 @@
         1) 将重要的指令标记
         2) 把重要的指令和所有相关的指令标记
         3) 清除所有的未标记指令
-        4) 删除无前导非入口块
+        4) SimplifyCFG
 */
 class DeadCodeElim
 {
@@ -18,11 +18,11 @@ private:
 
 public:
     DeadCodeElim(Unit *unit) : unit(unit){};
-    void DeadInstrMark(Function *f);
-    void DeadInstrEliminate(Function *f);
+    void deadInstrMark(Function *f);
+    void deadInstrEliminate(Function *f);
     void pass(Function *func);
     void pass();
-    void DeleteUselessFunc();
+    void deleteUselessFunc();
 };
 
 /*

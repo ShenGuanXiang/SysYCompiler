@@ -59,6 +59,7 @@ struct AllocaInfo
 
 void Mem2Reg::pass()
 {
+    global2Local();
     for (auto func = unit->begin(); func != unit->end(); func++)
     {
         (*func)->ComputeDom();
@@ -67,6 +68,70 @@ void Mem2Reg::pass()
         Rename(*func);
     }
     mem2reg = true;
+}
+
+void Mem2Reg::global2Local()
+{
+    auto main_func = unit->getMainFunc();
+    for (auto id_se : unit->getDeclList())
+    {
+        if (id_se->getType()->isARRAY() || id_se->getType()->isFunc()) // todo ：数组全局转局部
+            continue;
+        if (id_se->getAddr() == nullptr)
+        {
+            unit->removeDecl(id_se);
+            continue;
+        }
+        bool has_store = false, only_in_main = true;
+        for (auto userInst : id_se->getAddr()->getUses())
+        {
+            assert(userInst->isLoad() || userInst->isStore());
+            if (userInst->isStore())
+                has_store = true;
+            if (userInst->getParent()->getParent() != main_func) // todo ：这里应该还有优化空间
+                only_in_main = false;
+        }
+        if (!has_store)
+        {
+            for (auto userInst : id_se->getAddr()->getUses())
+            {
+                assert(userInst->isLoad());
+                assert(id_se->getType()->isFloat() || id_se->getType()->isInt());
+                double value = id_se->getType()->isFloat() ? (float)id_se->getValue() : (int)id_se->getValue();
+                auto replVal = new Operand(new ConstantSymbolEntry(Var2Const(id_se->getType()), value));
+                userInst->replaceAllUsesWith(replVal);
+                userInst->getParent()->remove(userInst);
+                freeInsts.insert(userInst);
+            }
+            unit->removeDecl(id_se);
+        }
+        else if (only_in_main)
+        {
+            auto old_addr = id_se->getAddr();
+            auto new_addr = new Operand(new TemporarySymbolEntry(new PointerType(id_se->getType()), SymbolTable::getLabel()));
+            id_se->setScope(IdentifierSymbolEntry::LOCAL);
+            id_se->setAddr(new_addr);
+            main_func->getEntry()->insertFront(new AllocaInstruction(new_addr, id_se));
+            Instruction *last_alloc_pos = main_func->getEntry()->begin();
+            for (; last_alloc_pos->isAlloca() && last_alloc_pos != main_func->getEntry()->end(); last_alloc_pos = last_alloc_pos->getNext())
+                ;
+            double value = id_se->getType()->isFloat() ? (float)id_se->getValue() : (int)id_se->getValue();
+            main_func->getEntry()->insertBefore(new StoreInstruction(new_addr, new Operand(new ConstantSymbolEntry(Var2Const(id_se->getType()), value))), last_alloc_pos);
+            std::vector<Instruction *> userInsts;
+            for (auto userInst : old_addr->getUses())
+            {
+                userInsts.push_back(userInst);
+            }
+            for (auto userInst : userInsts)
+            {
+                userInst->replaceUsesWith(old_addr, new_addr);
+            }
+            unit->removeDecl(id_se);
+        }
+    }
+    for (auto inst : freeInsts)
+        delete inst;
+    freeInsts.clear();
 }
 
 // SDoms & IDom

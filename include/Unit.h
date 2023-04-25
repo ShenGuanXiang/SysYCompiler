@@ -14,13 +14,15 @@ class Unit
 private:
     std::vector<Function *> func_list;
     std::unordered_set<IdentifierSymbolEntry *> decl_list;
+    Function *main_func;
 
 public:
-    Unit() = default;
+    Unit() { main_func = nullptr; };
     ~Unit();
     void insertFunc(Function *);
     void insertDecl(IdentifierSymbolEntry *);
     void removeFunc(Function *);
+    void removeDecl(IdentifierSymbolEntry *);
     void output() const;
     iterator begin() { return func_list.begin(); };
     iterator end() { return func_list.end(); };
@@ -28,7 +30,8 @@ public:
     reverse_iterator rend() { return func_list.rend(); };
     void genMachineCode(MachineUnit *munit);
 
-    std::unordered_set<IdentifierSymbolEntry*> getDeclList(){return decl_list;};
+    std::unordered_set<IdentifierSymbolEntry *> getDeclList() { return decl_list; };
+    Function *getMainFunc();
     // DCE
     std::vector<Function *> getFuncList() { return func_list; };
 };

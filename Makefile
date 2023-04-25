@@ -192,6 +192,7 @@ clean-test:
 	@find . -name "*.bin" | xargs rm -rf
 	@find . -name "*.res" | xargs rm -rf
 	@find . -name "*.log" | grep -v *last.log | grep -v *new.log|grep -v *change.log | xargs rm -rf 
+	@find ./testopt -name "*.log" | xargs rm -rf 
 
 clean-all:clean-test clean-app
 
@@ -201,9 +202,9 @@ count:clean-all
 	@echo "Code Lines Count:"
 	@echo "=================="
 	@echo "Header Files:"
-	@find include/ -name "*.h" | xargs grep -v '^$$' | wc -l
+	@find include/ -name "*.h" | xargs grep -v '^$$' | grep -E -v '^\s*(//|/\*)' | wc -l
 	@echo "Source Files:"
-	@find src/ \( -name "*.cpp" -o -name "*.l" -o -name "*.y" \) | xargs cat | grep -v '^$$' | wc -l
+	@find src/ \( -name "*.cpp" -o -name "*.l" -o -name "*.y" \) | xargs cat | grep -v '^$$' | grep -E -v '^\s*(//|/\*)' | wc -l
 
 .ONESHELL:
 testll:app
@@ -267,9 +268,9 @@ testll:app
 countIr:
 	@echo "IR Lines Count:"
 	@echo "=================="
-	@find test/  -name "*.ll" | xargs cat | grep -v '^$$' | wc -l
+	@find test/  -name "*.ll" | xargs cat | grep -v '^$$' | grep -E -v '^\s*(;)' | wc -l
 
 countAsm:
 	@echo "ASM Lines Count:"
 	@echo "=================="
-	@find test/  -name "*.s" | xargs cat | grep -v '^$$' | wc -l
+	@find test/  -name "*.s" | xargs cat | grep -v '^$$' | grep -E -v '^\s*(@)' | wc -l

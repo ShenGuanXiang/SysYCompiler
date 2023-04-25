@@ -1,0 +1,8 @@
+int k = 1;
+float c = 5;
+int main()
+{
+    c = c + 1;
+    k = k + c;
+    return k;
+}

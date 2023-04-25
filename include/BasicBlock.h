@@ -24,9 +24,9 @@ private:
 
     // DCE
     bool DCE_marked = false;
-    std::set<BasicBlock*> RSDoms;
+    std::set<BasicBlock *> RSDoms;
     BasicBlock *RiDom = nullptr;
-    std::set<BasicBlock*> RDF;
+    std::set<BasicBlock *> RDF;
 
 public:
     BasicBlock(Function *);
@@ -38,7 +38,7 @@ public:
     std::set<BasicBlock *> &getDomFrontiers() { return DomFrontiers; };
     void insertFront(Instruction *);
     void insertBack(Instruction *);
-    void insertBefore(Instruction *, Instruction *);
+    void insertBefore(Instruction *dst, Instruction *src);
     void remove(Instruction *);
     bool empty() const { return head->getNext() == head; }
     void output() const;
@@ -67,9 +67,9 @@ public:
     void clearDCEMark();
     void SetBDCEMark();
     bool isDCEMarked();
-    std::set<BasicBlock*> &getRSDoms();
-    BasicBlock* &getRIdom();
-    std::set<BasicBlock*> &getRDF();
+    std::set<BasicBlock *> &getRSDoms();
+    BasicBlock *&getRIdom();
+    std::set<BasicBlock *> &getRDF();
     void CleanSucc();
     int getNumofInstr();
 };

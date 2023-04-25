@@ -43,7 +43,7 @@ void AutoInliner::pass()
                 func_inline.push(o);
         }
     }
-    dce.DeleteUselessFunc();
+    dce.deleteUselessFunc();
 }
 
 void AutoInliner::pass(Instruction* instr)
