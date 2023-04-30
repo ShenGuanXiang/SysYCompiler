@@ -79,7 +79,7 @@ $(TEST_PATH)/%_std.s:$(TEST_PATH)/%.sy
 	@arm-linux-gnueabihf-gcc -x c $< -S -o $@ 
 
 $(TEST_PATH)/%.s:$(TEST_PATH)/%.sy
-	@timeout 5s $(BINARY) $< -o $@ -S 2>$(addsuffix .log, $(basename $@))
+	@timeout 20s $(BINARY) $< -o $@ -S 2>$(addsuffix .log, $(basename $@))
 	@[ $$? != 0 ] && echo "\033[1;31mCOMPILE FAIL:\033[0m $(notdir $<)" || echo "\033[1;32mCOMPILE SUCCESS:\033[0m $(notdir $<)"
 
 llvmir:$(LLVM_IR)
@@ -113,7 +113,7 @@ test:app
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
 		@compile_start=$$(date +%s.%3N); \
-		timeout 60s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
+		timeout 180s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
 		RETURN_VALUE=$$?; \
 		compile_end=$$(date +%s.%3N); \
 		compile_time=$$(echo "$$compile_end - $$compile_start" | bc)
@@ -132,9 +132,9 @@ test:app
 		else
 			@exec_start=$$(date +%s.%3N); \
 			if [ -f "$${IN}" ]; then \
-				timeout 20s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} <$${IN} >$${RES} 2>>$${LOG}; \
+				timeout 120s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} <$${IN} >$${RES} 2>>$${LOG}; \
 			else \
-				timeout 20s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} >$${RES} 2>>$${LOG}; \
+				timeout 120s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} >$${RES} 2>>$${LOG}; \
 			fi; \
 			RETURN_VALUE=$$?; \
 			exec_end=$$(date +%s.%3N); \

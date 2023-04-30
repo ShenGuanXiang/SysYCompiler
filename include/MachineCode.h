@@ -104,7 +104,8 @@ public:
         VCVT,
         VMRS,
         SMULL,
-        FUSE
+        MLAS,
+        VMLAS
     };
     enum condType
     {
@@ -311,22 +312,36 @@ public:
     void output();
 };
 
-class FuseMInstruction : public MachineInstruction
+class MLASMInstruction : public MachineInstruction
 {
 public:
     enum opType
     {
         MLA,
-        MLS,
-        VMLA,
-        VMLS
+        MLS
     };
-    FuseMInstruction(MachineBlock *p,
+    MLASMInstruction(MachineBlock *p,
                      int op,
                      MachineOperand *dst,
                      MachineOperand *src1,
                      MachineOperand *src2,
                      MachineOperand *src3);
+    void output();
+};
+
+class VMLASMInstruction : public MachineInstruction 
+{
+public:
+    enum opType 
+    { 
+        VMLA, 
+        VMLS 
+    };
+    VMLASMInstruction(MachineBlock* p,
+                     int op,
+                     MachineOperand* dst,
+                     MachineOperand* src1,
+                     MachineOperand* src2);
     void output();
 };
 
