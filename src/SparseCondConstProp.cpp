@@ -101,8 +101,10 @@ void SparseCondConstProp::pass(Function *func)
     auto i = 0U;
     auto j = 0U;
     auto k = 0U;
-    while (i < cfg_worklist.size() || j < ssa_worklist.size())
+    while (i < cfg_worklist.size() || j < ssa_worklist.size() || k < eq_cond_worklist.size())
     {
+        // while (i < cfg_worklist.size() || j < ssa_worklist.size())
+        // {
         while (i < cfg_worklist.size())
         {
             auto [pre_bb, bb] = cfg_worklist[i++];
@@ -130,18 +132,21 @@ void SparseCondConstProp::pass(Function *func)
                 }
             }
         }
-
+        // }
         while (k < eq_cond_worklist.size())
         {
             auto [inst, kv] = eq_cond_worklist[k++];
-            auto [op, val] = kv;
+            auto [op, val_op] = kv;
 
+            if (status_map[val_op] != CONST)
+                continue;
+
+            double val = value_map[val_op];
             auto const_op = new Operand(new ConstantSymbolEntry(Var2Const(op->getType()), val));
             inst->replaceUsesWith(op, const_op);
             status_map[const_op] = CONST;
             value_map[const_op] = val;
 
-            // visit(inst);
             auto bb = inst->getParent();
             for (auto pre_bb_iter = bb->pred_begin(); pre_bb_iter != bb->pred_end(); pre_bb_iter++)
             {
@@ -295,14 +300,14 @@ void SparseCondConstProp::visit(Instruction *inst)
                         for (auto userInst : inst->getUses()[0]->getUses())
                         {
                             if (userInst->getParent() == true_bb || userInst->getParent()->getSDoms().count(true_bb))
-                                eq_cond_worklist.push_back({userInst, {inst->getUses()[0], value_map[inst->getUses()[1]]}});
+                                eq_cond_worklist.push_back({userInst, {inst->getUses()[0], inst->getUses()[1]}});
                             else if (userInst->isPHI())
                             {
                                 for (auto [pre_bb, src] : dynamic_cast<PhiInstruction *>(userInst)->getSrcs())
                                     if (src == inst->getUses()[0])
                                     {
                                         if (pre_bb == true_bb || pre_bb->getSDoms().count(true_bb))
-                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[0], value_map[inst->getUses()[1]]}});
+                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[0], inst->getUses()[1]}});
                                         break;
                                     }
                             }
@@ -318,7 +323,7 @@ void SparseCondConstProp::visit(Instruction *inst)
                                     if (src == inst->getUses()[0])
                                     {
                                         if (pre_bb == inst->getParent())
-                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[0], value_map[inst->getUses()[1]]}});
+                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[0], inst->getUses()[1]}});
                                         break;
                                     }
                             }
@@ -333,14 +338,14 @@ void SparseCondConstProp::visit(Instruction *inst)
                         for (auto userInst : inst->getUses()[0]->getUses())
                         {
                             if (userInst->getParent() == false_bb || userInst->getParent()->getSDoms().count(false_bb))
-                                eq_cond_worklist.push_back({userInst, {inst->getUses()[0], value_map[inst->getUses()[1]]}});
+                                eq_cond_worklist.push_back({userInst, {inst->getUses()[0], inst->getUses()[1]}});
                             else if (userInst->isPHI())
                             {
                                 for (auto [pre_bb, src] : dynamic_cast<PhiInstruction *>(userInst)->getSrcs())
                                     if (src == inst->getUses()[0])
                                     {
                                         if (pre_bb == false_bb || pre_bb->getSDoms().count(false_bb))
-                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[0], value_map[inst->getUses()[1]]}});
+                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[0], inst->getUses()[1]}});
                                         break;
                                     }
                             }
@@ -356,7 +361,7 @@ void SparseCondConstProp::visit(Instruction *inst)
                                     if (src == inst->getUses()[0])
                                     {
                                         if (pre_bb == inst->getParent())
-                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[0], value_map[inst->getUses()[1]]}});
+                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[0], inst->getUses()[1]}});
                                         break;
                                     }
                             }
@@ -379,14 +384,14 @@ void SparseCondConstProp::visit(Instruction *inst)
                         for (auto userInst : inst->getUses()[1]->getUses())
                         {
                             if (userInst->getParent() == true_bb || userInst->getParent()->getSDoms().count(true_bb))
-                                eq_cond_worklist.push_back({userInst, {inst->getUses()[1], value_map[inst->getUses()[0]]}});
+                                eq_cond_worklist.push_back({userInst, {inst->getUses()[1], inst->getUses()[0]}});
                             else if (userInst->isPHI())
                             {
                                 for (auto [pre_bb, src] : dynamic_cast<PhiInstruction *>(userInst)->getSrcs())
                                     if (src == inst->getUses()[1])
                                     {
                                         if (pre_bb == true_bb || pre_bb->getSDoms().count(true_bb))
-                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[1], value_map[inst->getUses()[0]]}});
+                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[1], inst->getUses()[0]}});
                                         break;
                                     }
                             }
@@ -402,7 +407,7 @@ void SparseCondConstProp::visit(Instruction *inst)
                                     if (src == inst->getUses()[1])
                                     {
                                         if (pre_bb == inst->getParent())
-                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[1], value_map[inst->getUses()[0]]}});
+                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[1], inst->getUses()[0]}});
                                         break;
                                     }
                             }
@@ -417,14 +422,14 @@ void SparseCondConstProp::visit(Instruction *inst)
                         for (auto userInst : inst->getUses()[1]->getUses())
                         {
                             if (userInst->getParent() == false_bb || userInst->getParent()->getSDoms().count(false_bb))
-                                eq_cond_worklist.push_back({userInst, {inst->getUses()[1], value_map[inst->getUses()[0]]}});
+                                eq_cond_worklist.push_back({userInst, {inst->getUses()[1], inst->getUses()[0]}});
                             else if (userInst->isPHI())
                             {
                                 for (auto [pre_bb, src] : dynamic_cast<PhiInstruction *>(userInst)->getSrcs())
                                     if (src == inst->getUses()[1])
                                     {
                                         if (pre_bb == false_bb || pre_bb->getSDoms().count(false_bb))
-                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[1], value_map[inst->getUses()[0]]}});
+                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[1], inst->getUses()[0]}});
                                         break;
                                     }
                             }
@@ -440,7 +445,7 @@ void SparseCondConstProp::visit(Instruction *inst)
                                     if (src == inst->getUses()[1])
                                     {
                                         if (pre_bb == inst->getParent())
-                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[1], value_map[inst->getUses()[0]]}});
+                                            eq_cond_worklist.push_back({userInst, {inst->getUses()[1], inst->getUses()[0]}});
                                         break;
                                     }
                             }

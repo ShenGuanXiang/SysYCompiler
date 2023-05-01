@@ -1,8 +1,11 @@
 int k = 1;
 float c = 5;
+int d = 3;
 int main()
 {
+    c = 4;
+    int d = 2;
     c = c + 1;
     k = k + c;
-    return k;
+    return k + d;
 }

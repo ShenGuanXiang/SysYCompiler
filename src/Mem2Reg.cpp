@@ -9,7 +9,7 @@ static std::map<AllocaInstruction *, bool> allocaPromotable;
 static std::map<Instruction *, unsigned> InstNumbers;
 static std::set<Instruction *> freeInsts;
 
-struct AllocaInfo
+struct AddrInfo
 {
 
     std::vector<BasicBlock *> DefiningBlocks;
@@ -28,12 +28,12 @@ struct AllocaInfo
         OnlyUsedInOneBlock = true;
     }
 
-    // 计算哪里的基本块定义(store)和使用(load)了alloc变量
-    void AnalyzeAlloca(AllocaInstruction *alloca)
+    // 计算哪里的基本块定义(store)和使用(load)了addr变量
+    void AnalyzeAddr(Operand *addr)
     {
         clear();
         // 获得store指令和load指令所在的基本块，并判断它们是否在同一块中
-        for (auto user : alloca->getDef()->getUses())
+        for (auto user : addr->getUses())
         {
             if (user->isStore())
             {
@@ -82,6 +82,20 @@ void Mem2Reg::global2Local()
             unit->removeDecl(id_se);
             continue;
         }
+        // 将main函数开头的全局int/float变量写操作吸收到全局变量初始化中
+        for (auto inst = main_func->getEntry()->begin(); inst != main_func->getEntry()->end(); inst = inst->getNext())
+        {
+            if (inst->isStore() && inst->getUses()[0]->getEntry() == id_se && inst->getUses()[1]->getType()->isConst())
+            {
+                id_se->setValue(inst->getUses()[1]->getEntry()->getValue());
+                break;
+            }
+            else if ((inst->isLoad() && inst->getUses()[0]->getEntry() == id_se) ||
+                     (inst->isStore() && inst->getUses()[0]->getEntry() == id_se))
+            {
+                break;
+            }
+        }
         bool has_store = false, only_in_main = true;
         for (auto userInst : id_se->getAddr()->getUses())
         {
@@ -91,6 +105,7 @@ void Mem2Reg::global2Local()
             if (userInst->getParent()->getParent() != main_func) // todo ：这里应该还有优化空间
                 only_in_main = false;
         }
+        // 对于全局从未发生store的全局变量，将其视为常数处理。
         if (!has_store)
         {
             for (auto userInst : id_se->getAddr()->getUses())
@@ -105,6 +120,7 @@ void Mem2Reg::global2Local()
             }
             unit->removeDecl(id_se);
         }
+        // 对于全局int/float类型变量，转换为函数内的局部变量。
         else if (only_in_main)
         {
             auto old_addr = id_se->getAddr();
@@ -138,8 +154,31 @@ void Mem2Reg::global2Local()
 void Function::ComputeDom()
 {
     // 删除不可达的基本块。
-    SimplifyCFG sc(this->getParent());
-    sc.pass(this);
+    std::set<BasicBlock *> visited;
+    std::queue<BasicBlock *> q1;
+    q1.push(getEntry());
+    visited.insert(getEntry());
+    while (!q1.empty())
+    {
+        auto bb = q1.front();
+        std::vector<BasicBlock *> succs(bb->succ_begin(), bb->succ_end());
+        q1.pop();
+        for (auto succ : succs)
+        {
+            if (!visited.count(succ))
+            {
+                q1.push(succ);
+                visited.insert(succ);
+            }
+        }
+    }
+    auto block_list_copy = getBlockList();
+    for (auto bb : block_list_copy)
+    {
+        if (!visited.count(bb))
+            delete bb;
+    }
+
     // Vertex-removal Algorithm, O(n^2)
     for (auto bb : getBlockList())
         bb->getSDoms() = std::set<BasicBlock *>();
@@ -310,7 +349,7 @@ static unsigned getInstructionIndex(Instruction *inst)
 }
 
 // 如果只有一个store语句，那么被这个store指令所支配的所有指令都要被替换为store的src。
-static bool rewriteSingleStoreAlloca(AllocaInstruction *alloca, AllocaInfo &Info)
+static bool rewriteSingleStoreAlloca(AllocaInstruction *alloca, AddrInfo &Info)
 {
     StoreInstruction *OnlyStore = Info.OnlyStore;
     bool StoringGlobalVal = OnlyStore->getUses()[1]->getEntry()->isVariable() &&
@@ -443,7 +482,7 @@ static bool StoreBeforeLoad(BasicBlock *BB, AllocaInstruction *alloca)
 }
 
 // 对于一个alloca，检查每一个usingblock，是否在对这个变量load之前有store，有则说明原来的alloca变量被覆盖了，不是live in的
-static std::set<BasicBlock *> ComputeLiveInBlocks(AllocaInstruction *alloca, AllocaInfo &Info)
+static std::set<BasicBlock *> ComputeLiveInBlocks(AllocaInstruction *alloca, AddrInfo &Info)
 {
     std::set<BasicBlock *> UseBlocks(Info.UsingBlocks.begin(), Info.UsingBlocks.end());
     std::set<BasicBlock *> DefBlocks(Info.DefiningBlocks.begin(), Info.DefiningBlocks.end());
@@ -483,7 +522,7 @@ static std::set<BasicBlock *> ComputeLiveInBlocks(AllocaInstruction *alloca, All
 // 将局部变量由内存提升到寄存器的主体函数
 void Mem2Reg::InsertPhi(Function *func)
 {
-    AllocaInfo Info;
+    AddrInfo Info;
     for (auto inst = func->getEntry()->begin(); inst != func->getEntry()->end(); inst = inst->getNext())
     {
         if (!inst->isAlloca())
@@ -494,7 +533,7 @@ void Mem2Reg::InsertPhi(Function *func)
         assert(alloca->getDef()->getType()->isPTR());
 
         // 计算哪里的基本块定义(store)和使用(load)了alloc变量
-        Info.AnalyzeAlloca(alloca);
+        Info.AnalyzeAddr(alloca->getDef());
 
         // 筛1：如果alloca出的空间从未被使用，直接删除
         if (Info.UsingBlocks.empty())

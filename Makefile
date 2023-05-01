@@ -268,9 +268,9 @@ testll:app
 countIr:
 	@echo "IR Lines Count:"
 	@echo "=================="
-	@find test/  -name "*.ll" | xargs cat | grep -v '^$$' | grep -E -v '^\s*(;)' | wc -l
+	@find $(TEST_PATH)  -name "*.ll" | xargs cat | grep -v '^$$' | grep -E -v '^\s*(;)' | wc -l
 
 countAsm:
 	@echo "ASM Lines Count:"
 	@echo "=================="
-	@find test/  -name "*.s" | xargs cat | grep -v '^$$' | grep -E -v '^\s*(@)' | wc -l
+	@find $(TEST_PATH)  -name "*.s" | xargs cat | grep -v '^$$' | grep -E -v '^\s*(@)' | wc -l

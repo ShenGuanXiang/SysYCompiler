@@ -99,7 +99,6 @@ int main(int argc, char *argv[])
     {
         // AutoInliner autoinliner(unit);
         // autoinliner.pass();  // 函数自动内联
-        // Global2Local
         Mem2Reg m2r(unit);
         m2r.pass();
         // todo:其它中间代码优化
@@ -108,8 +107,10 @@ int main(int argc, char *argv[])
         sccp.pass(); // 常量传播
         ComSubExprElim cse(unit);
         cse.pass3(); // 公共子表达式消除
+        // 访存优化
         DeadCodeElim dce(unit);
         dce.pass(); // 死代码删除
+        // 函数自动内联
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
@@ -150,7 +151,7 @@ int main(int argc, char *argv[])
             // 控制流优化
             // 相对fp偏移非法但相对sp偏移不非法，转化一下
             MachineDeadCodeElim mdce(mUnit);
-            mdce.pass(); // 死代码消除 // todo：等加速完再放上
+            mdce.pass(); // 死代码消除
         }
         fprintf(stderr, "asm generated\n");
         mUnit->output();

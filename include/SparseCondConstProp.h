@@ -12,7 +12,7 @@ private:
     std::set<std::pair<BasicBlock *, BasicBlock *>> marked;
     std::vector<std::pair<BasicBlock *, BasicBlock *>> cfg_worklist;
     std::vector<Instruction *> ssa_worklist;
-    std::vector<std::pair<Instruction *, std::pair<Operand *, double>>> eq_cond_worklist;
+    std::vector<std::pair<Instruction *, std::pair<Operand *, Operand *>>> eq_cond_worklist;
 
 public:
     enum
