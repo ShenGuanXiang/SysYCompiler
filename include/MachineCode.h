@@ -4,6 +4,7 @@
 #include <set>
 #include <string>
 #include <algorithm>
+#include <unordered_map>
 #include <fstream>
 #include "SymbolTable.h"
 
@@ -352,6 +353,7 @@ private:
     int no;
     std::vector<MachineBlock *> pred, succ;
     std::vector<MachineInstruction *> inst_list;
+    std::unordered_map<MachineInstruction*, MachineInstruction*> inst_nxt, inst_pre;
     std::set<MachineOperand *> live_in;
     std::set<MachineOperand *> live_out;
     std::set<MachineBlock *> SDoms;
@@ -369,12 +371,38 @@ public:
         this->no = no;
         this->IDom = nullptr;
     };
-    void insertInst(MachineInstruction *inst) { this->inst_list.push_back(inst); };
+    void insertInst(MachineInstruction *inst) 
+    {
+        inst_nxt[inst] = nullptr;
+        if (!inst_list.size())
+            inst_pre[inst] = nullptr;
+        else {
+            inst_nxt[*inst_list.rbegin()] = inst;
+            inst_pre[inst] = *inst_list.rbegin();
+        }
+        this->inst_list.push_back(inst);
+    };
     void removeInst(MachineInstruction *inst)
     {
         auto iter = std::find(inst_list.begin(), inst_list.end(), inst);
-        if (iter != inst_list.end())
+        if (iter != inst_list.end()) {
             inst_list.erase(iter);
+            auto nxt_inst = inst_nxt[inst], pre_inst = inst_pre[inst];
+            if (nxt_inst != nullptr && pre_inst != nullptr)
+            {
+                inst_nxt[pre_inst] = nxt_inst;
+                inst_pre[nxt_inst] = pre_inst;
+            }
+            else if (nxt_inst != nullptr || pre_inst != nullptr) {
+                if (nxt_inst != nullptr)
+                    inst_pre[nxt_inst] = nullptr;
+                else
+                    inst_nxt[pre_inst] = nullptr;
+            }
+            inst_nxt[inst] = nullptr;
+            inst_pre[inst] = nullptr;
+            
+        }
     };
     void addPred(MachineBlock *p) { this->pred.push_back(p); };
     void addSucc(MachineBlock *s) { this->succ.push_back(s); };

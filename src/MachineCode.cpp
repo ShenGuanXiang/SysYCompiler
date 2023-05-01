@@ -1376,7 +1376,16 @@ void VMLASMInstruction::output() {
 void MachineBlock::insertBefore(MachineInstruction *pos, MachineInstruction *inst)
 {
     auto p = find(inst_list.begin(), inst_list.end(), pos);
+    if (p == inst_list.end())
+    {
+        insertInst(inst);
+        return;
+    }
     inst_list.insert(p, inst);
+    if (inst_pre[pos] != nullptr)
+        inst_nxt[inst_pre[pos]] = inst;
+    inst_pre[inst] = inst_pre[pos], inst_pre[pos] = inst, inst_nxt[inst] = pos;
+    
 }
 
 void MachineBlock::insertAfter(MachineInstruction *pos, MachineInstruction *inst)
@@ -1384,10 +1393,14 @@ void MachineBlock::insertAfter(MachineInstruction *pos, MachineInstruction *inst
     auto p = find(inst_list.begin(), inst_list.end(), pos);
     if (p == inst_list.end())
     {
-        inst_list.push_back(inst);
+        // inst_list.push_back(inst);
+        insertInst(inst);
         return;
     }
     inst_list.insert(p + 1, inst);
+    if (inst_nxt[pos] != nullptr)
+        inst_pre[inst_nxt[pos]] = inst;
+    inst_nxt[inst] = inst_nxt[pos], inst_nxt[pos] = inst, inst_pre[inst] = pos;
 }
 
 MachineBlock::~MachineBlock()

@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
     // ast.typeCheck();
     ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
-    // optimize = false;
+    optimize = false;
     if (dump_ir && !optimize)
     {
         unit->output();
@@ -135,8 +135,8 @@ int main(int argc, char *argv[])
             // 窥孔优化
             PeepholeOptimization ph(mUnit);
             ph.pass();
-            // MachineDeadCodeElim mdce(mUnit);
-            // mdce.pass();
+            MachineDeadCodeElim mdce(mUnit);
+            mdce.pass();
         }
         LinearScan linearScan(mUnit);
         linearScan.pass();
@@ -145,12 +145,12 @@ int main(int argc, char *argv[])
             // todo: 汇编代码优化
             ComSubExprElimASM cseasm(mUnit);
             cseasm.pass(); // 公共子表达式删除
-            // PeepholeOptimization ph(mUnit);
-            // ph.pass(); // 窥孔优化
+            PeepholeOptimization ph(mUnit);
+            ph.pass(); // 窥孔优化
             // 控制流优化
             // 相对fp偏移非法但相对sp偏移不非法，转化一下
-            // MachineDeadCodeElim mdce(mUnit);
-            // mdce.pass(); // 死代码消除 // todo：等加速完再放上
+            MachineDeadCodeElim mdce(mUnit);
+            mdce.pass(); // 死代码消除 // todo：等加速完再放上
         }
         fprintf(stderr, "asm generated\n");
         mUnit->output();

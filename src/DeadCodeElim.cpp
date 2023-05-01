@@ -406,8 +406,9 @@ void DeadCodeElim::deadInstrEliminate(Function *f)
         /*Ret problem*/
         // assert(ta->isRet());
         // fprintf(stderr, "Block[%d] will remove instruction %d!\n", ta->getParent()->getNo(), ta->getInstType());
-        auto p = ta->getParent();
-        p->remove(ta);
+        // auto p = ta->getParent();
+        // p->remove(ta);
+        delete ta;
     }
 }
 
@@ -460,12 +461,9 @@ void MachineDeadCodeElim::pass()
 
 MachineInstruction *MachineBlock::getNext(MachineInstruction *instr)
 {
-    auto it = find(inst_list.begin(), inst_list.end(), instr);
-    if (it != inst_list.end() && (it + 1) != inst_list.end())
-    {
-        return *(it + 1);
-    }
-    return nullptr;
+    if (inst_nxt.find(instr) != inst_nxt.end())
+        return inst_nxt[instr];
+    else return nullptr;
 }
 
 void MachineDeadCodeElim::pass(MachineFunction *f)
@@ -522,7 +520,7 @@ void MachineDeadCodeElim::pass(MachineFunction *f)
         }
         if (t)
         {
-            delete t;
+            t->getParent()->removeInst(t);
         }
     }
 }
