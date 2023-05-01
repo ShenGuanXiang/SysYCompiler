@@ -1309,7 +1309,6 @@ MLASMInstruction::MLASMInstruction(MachineBlock *p,
     src1->setParent(this);
     src2->setParent(this);
     src3->setParent(this);
-    // dst->setDef(this);
 }
 
 void MLASMInstruction::output()
@@ -1337,48 +1336,56 @@ void MLASMInstruction::output()
     fprintf(yyout, "\n");
 }
 
-VMLASMInstruction::VMLASMInstruction(MachineBlock *p,
-                                     int op,
-                                     MachineOperand *dst,
-                                     MachineOperand *src1,
-                                     MachineOperand *src2)
-{
-    this->parent = p;
-    this->type = MachineInstruction::VMLAS;
-    this->op = op;
-    this->use_list.push_back(dst);
-    this->use_list.push_back(src1);
-    this->use_list.push_back(src2);
-    dst->setParent(this);
-    src1->setParent(this);
-    src2->setParent(this);
-}
+// VMLASMInstruction::VMLASMInstruction(MachineBlock *p,
+//                                      int op,
+//                                      MachineOperand *dst,
+//                                      MachineOperand *src1,
+//                                      MachineOperand *src2)
+// {
+//     this->parent = p;
+//     this->type = MachineInstruction::VMLAS;
+//     this->op = op;
+//     auto inplaced = new MachineOperand(*dst);
+//     this->def_list.push_back(inplaced);
+//     this->use_list.push_back(dst);
+//     this->use_list.push_back(src1);
+//     this->use_list.push_back(src2);
+//     inplaced->setParent(this);
+//     dst->setParent(this);
+//     src1->setParent(this);
+//     src2->setParent(this);
+// }
 
-void VMLASMInstruction::output()
-{
-    switch (this->op)
-    {
-    case VMLASMInstruction::VMLA:
-        fprintf(yyout, "\tvmla.f32 ");
-        break;
-    case VMLASMInstruction::VMLS:
-        fprintf(yyout, "\tvmls.f32 ");
-        break;
-    default:
-        break;
-    }
-    printCond();
-    this->use_list[0]->output();
-    fprintf(yyout, ", ");
-    this->use_list[1]->output();
-    fprintf(yyout, ", ");
-    this->use_list[2]->output();
-    fprintf(yyout, "\n");
-}
+// void VMLASMInstruction::output()
+// {
+//     switch (this->op)
+//     {
+//     case VMLASMInstruction::VMLA:
+//         fprintf(yyout, "\tvmla.f32 ");
+//         break;
+//     case VMLASMInstruction::VMLS:
+//         fprintf(yyout, "\tvmls.f32 ");
+//         break;
+//     default:
+//         break;
+//     }
+//     printCond();
+//     this->use_list[0]->output();
+//     fprintf(yyout, ", ");
+//     this->use_list[1]->output();
+//     fprintf(yyout, ", ");
+//     this->use_list[2]->output();
+//     fprintf(yyout, "\n");
+// }
 
 void MachineBlock::insertBefore(MachineInstruction *pos, MachineInstruction *inst)
 {
     auto p = find(inst_list.begin(), inst_list.end(), pos);
+    if (p == inst_list.end())
+    {
+        inst_list.push_back(inst);
+        return;
+    }
     inst_list.insert(p, inst);
 }
 

@@ -233,6 +233,7 @@ class PhiInstruction : public Instruction
 private:
     std::map<BasicBlock *, Operand *> srcs;
     Operand *addr; // old PTR
+    bool incomplete;
 
 public:
     PhiInstruction(Operand *dst, BasicBlock *insert_bb = nullptr);
@@ -243,6 +244,7 @@ public:
     void replaceEdge(BasicBlock *block, Operand *replVal);
     Operand *getAddr() { return addr; };
     std::map<BasicBlock *, Operand *> &getSrcs() { return srcs; };
+    bool &get_incomplete() { return this->incomplete; };
 
     void genMachineCode(AsmBuilder *){};
 };

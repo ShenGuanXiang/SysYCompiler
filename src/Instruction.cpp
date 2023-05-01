@@ -478,6 +478,7 @@ PhiInstruction::PhiInstruction(Operand *dst, BasicBlock *insert_bb) : Instructio
     // if (dst->getDef() == nullptr)
     //     dst->setDef(this);
     addr = dst;
+    incomplete = true;
 }
 
 void PhiInstruction::output() const
@@ -506,6 +507,7 @@ void PhiInstruction::output() const
 
 void PhiInstruction::updateDst(Operand *new_dst)
 {
+    assert(incomplete);
     def_list.clear();
     def_list.push_back(new_dst);
     new_dst->setDef(this);

@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
     }
     if (optimize)
     {
-        for(int i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             // AutoInliner autoinliner(unit);
             // autoinliner.pass();  // 函数自动内联
@@ -136,11 +136,11 @@ int main(int argc, char *argv[])
             sr.pass(); // 强度削弱
 
             cseasm.pass();
-            // 窥孔优化
+
             PeepholeOptimization ph(mUnit);
-            ph.pass();
-            // MachineDeadCodeElim mdce(mUnit);
-            // mdce.pass();
+            ph.pass(); // 窥孔优化
+            MachineDeadCodeElim mdce(mUnit);
+            mdce.pass();
         }
         LinearScan linearScan(mUnit);
         linearScan.pass();
@@ -149,12 +149,12 @@ int main(int argc, char *argv[])
             // todo: 汇编代码优化
             ComSubExprElimASM cseasm(mUnit);
             cseasm.pass(); // 公共子表达式删除
-            // PeepholeOptimization ph(mUnit);
-            // ph.pass(); // 窥孔优化
+            PeepholeOptimization ph(mUnit);
+            ph.pass(); // 窥孔优化
             // 控制流优化
             // 相对fp偏移非法但相对sp偏移不非法，转化一下
-            // MachineDeadCodeElim mdce(mUnit);
-            // mdce.pass(); // 死代码消除 // todo：等加速完再放上
+            MachineDeadCodeElim mdce(mUnit);
+            mdce.pass(); // 死代码消除
         }
         fprintf(stderr, "asm generated\n");
         mUnit->output();

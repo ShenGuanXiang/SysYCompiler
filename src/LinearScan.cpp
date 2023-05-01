@@ -94,7 +94,7 @@ void LinearScan::makeDuChains()
     do
     {
         change = false;
-        std::map<MachineOperand, std::set<MachineOperand*>> temp = {};
+        std::map<MachineOperand, std::set<MachineOperand *>> temp = {};
         func->AnalyzeLiveVariable(temp);
         std::map<MachineOperand, std::set<MachineOperand *>> all_uses;
         for (auto &block : func->getBlocks())
@@ -371,21 +371,24 @@ void LinearScan::makeDuChains()
             du_chain.second.clear();
             for (size_t i = 0; i != v.size(); i++)
             {
-                for (size_t j = i + 1; j != v.size(); j++)
-                {
-                    std::set<MachineOperand *> temp;
-                    set_intersection(v[i].uses.begin(), v[i].uses.end(), v[j].uses.begin(), v[j].uses.end(), inserter(temp, temp.end()));
-                    if (!temp.empty())
-                    {
-                        change = true;
-                        v[i].defs.insert(v[j].defs.begin(), v[j].defs.end());
-                        v[i].uses.insert(v[j].uses.begin(), v[j].uses.end());
-                        v[j].defs.clear();
-                        v[j].uses.clear();
-                    }
-                }
                 if (!v[i].defs.empty())
                 {
+                    for (size_t j = i + 1; j != v.size(); j++)
+                    {
+                        if (!v[j].defs.empty() && **v[i].defs.begin() == **v[j].defs.begin())
+                        {
+                            std::set<MachineOperand *> temp;
+                            set_intersection(v[i].uses.begin(), v[i].uses.end(), v[j].uses.begin(), v[j].uses.end(), inserter(temp, temp.end()));
+                            if (!temp.empty())
+                            {
+                                change = true;
+                                v[i].defs.insert(v[j].defs.begin(), v[j].defs.end());
+                                v[i].uses.insert(v[j].uses.begin(), v[j].uses.end());
+                                v[j].defs.clear();
+                                v[j].uses.clear();
+                            }
+                        }
+                    }
                     // assert(!v[i].uses.empty());
                     du_chain.second.insert(v[i]);
                 }

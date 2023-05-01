@@ -686,7 +686,7 @@ void Mem2Reg::Rename(Function *func)
             }
             else if (inst->isPHI())
             {
-                if (inst->getDef() == dynamic_cast<PhiInstruction *>(inst)->getAddr())
+                if (dynamic_cast<PhiInstruction *>(inst)->get_incomplete())
                 {
                     auto new_dst = new Operand(new TemporarySymbolEntry(dynamic_cast<PointerType *>(inst->getDef()->getType())->getValType(),
                                                                         /*dynamic_cast<TemporarySymbolEntry *>(inst->getDef()->getEntry())->getLabel()*/
@@ -701,7 +701,7 @@ void Mem2Reg::Rename(Function *func)
             worklist.push(std::make_pair(*succ, IncomingVals));
             for (auto phi = (*succ)->begin(); phi != (*succ)->end() && phi->isPHI(); phi = phi->getNext())
             {
-                if (IncomingVals.count(dynamic_cast<PhiInstruction *>(phi)->getAddr()))
+                if (dynamic_cast<PhiInstruction *>(phi)->get_incomplete() && IncomingVals.count(dynamic_cast<PhiInstruction *>(phi)->getAddr()))
                     dynamic_cast<PhiInstruction *>(phi)->addEdge(BB, IncomingVals[dynamic_cast<PhiInstruction *>(phi)->getAddr()]);
             }
         }
@@ -711,5 +711,8 @@ void Mem2Reg::Rename(Function *func)
         delete inst;
     freeInsts.clear();
     SimplifyCFG sc(func->getParent());
+    for (auto bb : func->getBlockList())
+        for (auto phi = bb->begin(); phi != bb->end() && phi->isPHI(); phi = phi->getNext())
+            dynamic_cast<PhiInstruction *>(phi)->get_incomplete() = false;
     sc.pass(func);
 }

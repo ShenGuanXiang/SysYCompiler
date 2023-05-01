@@ -10,6 +10,7 @@ void PeepholeOptimization::pass()
     {
         delete inst;
     }
+    freeInsts.clear();
 }
 
 void PeepholeOptimization::op1()
@@ -44,11 +45,11 @@ void PeepholeOptimization::op1()
 
                     if (*curr_inst->getUse()[1] == *next_inst->getUse()[0])
                     {
-                        if (curr_inst->getUse().size() <= 2 && next_inst->getUse().size() <= 1)
+                        if (curr_inst->getUse().size() == 2 && next_inst->getUse().size() == 1)
                         {
                             auto dst = new MachineOperand(*next_inst->getDef()[0]);
                             auto src = new MachineOperand(*curr_inst->getUse()[0]);
-                            MachineInstruction *new_inst = new MovMInstruction(block, dst->getValType()->isFloat() && src->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src);
+                            MachineInstruction *new_inst = new MovMInstruction(block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src);
 
                             block->insertBefore(next_inst, new_inst);
                             block->removeInst(next_inst);
@@ -59,7 +60,7 @@ void PeepholeOptimization::op1()
                         {
                             auto dst = new MachineOperand(*next_inst->getDef()[0]);
                             auto src = new MachineOperand(*curr_inst->getUse()[0]);
-                            MachineInstruction *new_inst = new MovMInstruction(block, dst->getValType()->isFloat() && src->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src);
+                            MachineInstruction *new_inst = new MovMInstruction(block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src);
 
                             block->insertBefore(next_inst, new_inst);
                             block->removeInst(next_inst);
@@ -80,11 +81,11 @@ void PeepholeOptimization::op1()
                     // in performance/fft
 
                     if (*curr_inst->getUse()[0] == *next_inst->getUse()[0] &&
-                        ((curr_inst->getUse().size() <= 1 && next_inst->getUse().size() <= 1) || (curr_inst->getUse().size() > 1 && next_inst->getUse().size() > 1 && *curr_inst->getUse()[1] == *next_inst->getUse()[1])))
+                        ((curr_inst->getUse().size() == 1 && next_inst->getUse().size() == 1) || (curr_inst->getUse().size() == 2 && next_inst->getUse().size() == 2 && *curr_inst->getUse()[1] == *next_inst->getUse()[1])))
                     {
                         auto src = new MachineOperand(*curr_inst->getDef()[0]);
                         auto dst = new MachineOperand(*next_inst->getDef()[0]);
-                        MachineInstruction *new_inst = new MovMInstruction(block, dst->getValType()->isFloat() && src->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src);
+                        MachineInstruction *new_inst = new MovMInstruction(block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src);
 
                         block->insertBefore(next_inst, new_inst);
                         block->removeInst(next_inst);
@@ -93,28 +94,28 @@ void PeepholeOptimization::op1()
                     }
                 }
 
-                // array optimization after constant eval in asm
-                // 这个test里好像没用到
-                else if (curr_inst->isMov() && next_inst->isAdd())
-                {
-                    // 	   mov v1, #-120
-                    //     add v0, fp, v1
-                    //     -----
-                    //     mov v1, #-120 (might be eliminated as dead code)
-                    //     add v0, fp, #-120
-                    if (*curr_inst->getDef()[0] == *next_inst->getUse()[1] && curr_inst->getUse()[0]->isImm())
-                    {
-                        auto dst = new MachineOperand(*next_inst->getDef()[0]);
-                        auto src1 = new MachineOperand(*next_inst->getUse()[0]);
-                        auto src2 = new MachineOperand(*curr_inst->getUse()[0]);
-                        auto new_inst = new BinaryMInstruction(block, BinaryMInstruction::ADD, dst, src1, src2);
+                // // array optimization after constant eval in asm
+                // // 这个test里好像没用到
+                // else if (curr_inst->isMov() && next_inst->isAdd())
+                // {
+                //     // 	   mov v1, #-120
+                //     //     add v0, fp, v1
+                //     //     -----
+                //     //     mov v1, #-120 (might be eliminated as dead code)
+                //     //     add v0, fp, #-120
+                //     if (*curr_inst->getDef()[0] == *next_inst->getUse()[1] && curr_inst->getUse()[0]->isImm())
+                //     {
+                //         auto dst = new MachineOperand(*next_inst->getDef()[0]);
+                //         auto src1 = new MachineOperand(*next_inst->getUse()[0]);
+                //         auto src2 = new MachineOperand(*curr_inst->getUse()[0]);
+                //         auto new_inst = new BinaryMInstruction(block, BinaryMInstruction::ADD, dst, src1, src2);
 
-                        block->insertBefore(next_inst, new_inst);
-                        block->removeInst(next_inst);
-                        freeInsts.push_back(next_inst);
-                        // *next_inst_iter = new_inst;
-                    }
-                }
+                //         block->insertBefore(next_inst, new_inst);
+                //         block->removeInst(next_inst);
+                //         freeInsts.push_back(next_inst);
+                //         // *next_inst_iter = new_inst;
+                //     }
+                // }
 
                 // fuse mul and add/sub
                 else if (curr_inst->isMul() && next_inst->isAdd())
@@ -144,8 +145,8 @@ void PeepholeOptimization::op1()
                     //     mul v0, v3, v0
                     //     add v3, v4, v0
                     //     -----
-                    //     mov a v0
-                    //     mov b v3
+                    //     mov a, v0
+                    //     mov b, v3
                     //     mul v0, v3, v0
                     //     mla v3, b, a, v4
 
@@ -153,23 +154,23 @@ void PeepholeOptimization::op1()
                     auto add_src1 = next_inst->getUse()[0];
                     auto add_src2 = next_inst->getUse()[1];
 
-                    if (mul_dst->getReg() == add_src1->getReg() || mul_dst->getReg() == add_src2->getReg())
+                    if (*mul_dst == *add_src1 || *mul_dst == *add_src2)
                     {
                         auto rd = new MachineOperand(*(next_inst->getDef()[0]));
                         auto rn = new MachineOperand(*(curr_inst->getUse()[0]));
                         auto rm = new MachineOperand(*(curr_inst->getUse()[1]));
                         MachineOperand *ra;
-                        if (mul_dst->getReg() == add_src1->getReg())
+                        if (*mul_dst == *add_src1)
                             ra = new MachineOperand(*(next_inst->getUse()[1]));
                         else
                             ra = new MachineOperand(*(next_inst->getUse()[0]));
 
-                        if (rn->isImm() || rm->isImm() || ra->isImm())
+                        if (ra->isImm())
                             continue;
 
                         if (!curr_inst->getDef()[0]->getValType()->isFloat() && !next_inst->getDef()[0]->getValType()->isFloat())
                         {
-                            if (mul_dst->getReg() == rd->getReg())
+                            if (*mul_dst == *rd)
                             {
                                 auto fused_inst = new MLASMInstruction(block, MLASMInstruction::MLA, rd, rn, rm, ra);
 
@@ -180,10 +181,10 @@ void PeepholeOptimization::op1()
                                 freeInsts.push_back(curr_inst);
                             }
                             // 交换顺序
-                            else if (mul_dst->getReg() == rn->getReg() || mul_dst->getReg() == rm->getReg())
+                            else if (*mul_dst == *rn || *mul_dst == *rm)
                             {
-                                // 特例：添加mov(多余的mov会在dce删除)
-                                if (rd->getReg() == rn->getReg() || rd->getReg() == rm->getReg())
+                                // 特例：添加mov(多余的mov会在寄存器分配删除)
+                                if (*rd == *rn || *rd == *rm)
                                 {
                                     auto new_rn = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
                                     auto new_rm = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
@@ -212,12 +213,8 @@ void PeepholeOptimization::op1()
                                 else
                                 {
                                     auto fused_inst = new MLASMInstruction(block, MLASMInstruction::MLA, rd, rn, rm, ra);
-                                    auto tem = curr_inst;
 
                                     block->insertBefore(curr_inst, fused_inst);
-                                    block->removeInst(curr_inst);
-                                    freeInsts.push_back(curr_inst);
-                                    block->insertBefore(next_inst, tem);
                                     block->removeInst(next_inst);
                                     freeInsts.push_back(next_inst);
                                 }
@@ -227,68 +224,70 @@ void PeepholeOptimization::op1()
                                 // 直接保留mul
                                 auto fused_inst = new MLASMInstruction(block, MLASMInstruction::MLA, rd, rn, rm, ra);
 
-                                block->insertBefore(next_inst, fused_inst);
+                                block->insertBefore(curr_inst, fused_inst);
                                 block->removeInst(next_inst);
                                 freeInsts.push_back(next_inst);
                                 // *next_inst_iter = fused_inst;
                             }
                         }
 
-                        else if (curr_inst->getDef()[0]->getValType()->isFloat() && next_inst->getDef()[0]->getValType()->isFloat())
-                        {
+                        // 效果不大，且vmla def-use关系混乱
+                        // else if (curr_inst->getDef()[0]->getValType()->isFloat() && next_inst->getDef()[0]->getValType()->isFloat())
+                        // {
 
-                            // vmul a b c
-                            // vadd d e a
-                            // -----------------
-                            // vmov nb b
-                            // vmov nc c
-                            // vmov ne e
-                            // vmul a nb nc
-                            // vmla e nb nc
-                            // vmov d e
-                            // vmov e ne
+                        //     // vmul a b c
+                        //     // vadd d e a
+                        //     // -----------------
+                        //     // vmov nb b
+                        //     // vmov nc c
+                        //     // vmul a nb nc
+                        //     // vmov ne e
+                        //     // vmla e nb nc
+                        //     // vmov d e
+                        //     // vmov e ne
 
-                            // 多余的vmov在寄存器分配会被删除
+                        //     // 多余的vmov在dce&寄存器分配会被删除
 
-                            // b
-                            auto new_rn = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
+                        //     // b
+                        //     auto new_rn = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
 
-                            // c
-                            auto new_rm = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
+                        //     // c
+                        //     auto new_rm = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
 
-                            // e
-                            auto new_ra = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
+                        //     // e
+                        //     auto new_ra = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
 
-                            // vmov
-                            auto mov_rn = new MovMInstruction(block, MovMInstruction::VMOV, new_rn, rn);
-                            auto mov_rm = new MovMInstruction(block, MovMInstruction::VMOV, new_rm, rm);
-                            auto mov_ra = new MovMInstruction(block, MovMInstruction::VMOV, new_ra, ra);
-                            // vmul
-                            auto new_mul_dst = new MachineOperand(*(curr_inst->getDef()[0]));
-                            new_rn = new MachineOperand(*new_rn);
-                            new_rm = new MachineOperand(*new_rm);
-                            auto new_mul = new BinaryMInstruction(block, BinaryMInstruction::MUL, new_mul_dst, new_rn, new_rm);
-                            // vmla
-                            new_rn = new MachineOperand(*new_rn);
-                            new_rm = new MachineOperand(*new_rm);
-                            auto fused_inst = new VMLASMInstruction(block, VMLASMInstruction::VMLA, new MachineOperand(*ra), new_rn, new_rm);
-                            // vmov
-                            auto mov_de = new MovMInstruction(block, MovMInstruction::VMOV, rd, new MachineOperand(*ra));
-                            auto mov_ene = new MovMInstruction(block, MovMInstruction::VMOV, new MachineOperand(*ra), new MachineOperand(*new_ra));
+                        //     // vmov
+                        //     auto mov_rn = new MovMInstruction(block, MovMInstruction::VMOV, new_rn, rn);
+                        //     auto mov_rm = new MovMInstruction(block, MovMInstruction::VMOV, new_rm, rm);
+                        //     // vmul
+                        //     auto new_mul_dst = new MachineOperand(*(curr_inst->getDef()[0]));
+                        //     new_rn = new MachineOperand(*new_rn);
+                        //     new_rm = new MachineOperand(*new_rm);
+                        //     auto new_mul = new BinaryMInstruction(block, BinaryMInstruction::MUL, new_mul_dst, new_rn, new_rm);
+                        //     // vmov
+                        //     auto mov_ra = new MovMInstruction(block, MovMInstruction::VMOV, new_ra, ra);
+                        //     // vmla
+                        //     new_rn = new MachineOperand(*new_rn);
+                        //     new_rm = new MachineOperand(*new_rm);
+                        //     auto fused_inst = new VMLASMInstruction(block, VMLASMInstruction::VMLA, new MachineOperand(*ra), new_rn, new_rm);
+                        //     // vmov
+                        //     auto mov_de = new MovMInstruction(block, MovMInstruction::VMOV, rd, new MachineOperand(*ra));
+                        //     auto mov_ene = new MovMInstruction(block, MovMInstruction::VMOV, new MachineOperand(*ra), new MachineOperand(*new_ra));
 
-                            block->insertBefore(curr_inst, mov_rn);
-                            block->insertBefore(curr_inst, mov_rm);
-                            block->insertBefore(curr_inst, mov_ra);
-                            block->insertBefore(curr_inst, new_mul);
-                            block->insertBefore(curr_inst, fused_inst);
-                            block->insertBefore(curr_inst, mov_de);
-                            block->insertBefore(curr_inst, mov_ene);
+                        //     block->insertBefore(curr_inst, mov_rn);
+                        //     block->insertBefore(curr_inst, mov_rm);
+                        //     block->insertBefore(curr_inst, new_mul);
+                        //     block->insertBefore(curr_inst, mov_ra);
+                        //     block->insertBefore(curr_inst, fused_inst);
+                        //     block->insertBefore(curr_inst, mov_de);
+                        //     block->insertBefore(curr_inst, mov_ene);
 
-                            block->removeInst(curr_inst);
-                            freeInsts.push_back(curr_inst);
-                            block->removeInst(next_inst);
-                            freeInsts.push_back(next_inst);
-                        }
+                        //     block->removeInst(curr_inst);
+                        //     freeInsts.push_back(curr_inst);
+                        //     block->removeInst(next_inst);
+                        //     freeInsts.push_back(next_inst);
+                        // }
                     }
                 }
 
@@ -299,23 +298,23 @@ void PeepholeOptimization::op1()
                     auto add_src1 = next_inst->getUse()[0];
                     auto add_src2 = next_inst->getUse()[1];
 
-                    if (mul_dst->getReg() == add_src1->getReg() || mul_dst->getReg() == add_src2->getReg())
+                    if (*mul_dst == *add_src1 || *mul_dst == *add_src2)
                     {
                         auto rd = new MachineOperand(*(next_inst->getDef()[0]));
                         auto rn = new MachineOperand(*(curr_inst->getUse()[0]));
                         auto rm = new MachineOperand(*(curr_inst->getUse()[1]));
                         MachineOperand *ra;
-                        if (mul_dst->getReg() == add_src1->getReg())
+                        if (*mul_dst == *add_src1)
                             ra = new MachineOperand(*(next_inst->getUse()[1]));
                         else
                             ra = new MachineOperand(*(next_inst->getUse()[0]));
 
-                        if (rn->isImm() || rm->isImm() || ra->isImm())
+                        if (ra->isImm())
                             continue;
 
                         if (!curr_inst->getDef()[0]->getValType()->isFloat() && !next_inst->getDef()[0]->getValType()->isFloat())
                         {
-                            if (mul_dst->getReg() == rd->getReg())
+                            if (*mul_dst == *rd)
                             {
                                 auto fused_inst = new MLASMInstruction(block, MLASMInstruction::MLS, rd, rn, rm, ra);
 
@@ -326,10 +325,10 @@ void PeepholeOptimization::op1()
                                 freeInsts.push_back(curr_inst);
                             }
                             // 交换顺序
-                            else if (mul_dst->getReg() == rn->getReg() || mul_dst->getReg() == rm->getReg())
+                            else if (*mul_dst == *rn || *mul_dst == *rm)
                             {
-                                // 特例：添加mov(多余的mov会在dce删除)
-                                if (rd->getReg() == rn->getReg() || rd->getReg() == rm->getReg())
+                                // 特例：添加mov(多余的mov会在寄存器分配删除)
+                                if (*rd == *rn || *rd == *rm)
                                 {
                                     auto new_rn = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
                                     auto new_rm = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
@@ -357,12 +356,8 @@ void PeepholeOptimization::op1()
                                 else
                                 {
                                     auto fused_inst = new MLASMInstruction(block, MLASMInstruction::MLS, rd, rn, rm, ra);
-                                    auto tem = curr_inst;
 
                                     block->insertBefore(curr_inst, fused_inst);
-                                    block->removeInst(curr_inst);
-                                    freeInsts.push_back(curr_inst);
-                                    block->insertBefore(next_inst, tem);
                                     block->removeInst(next_inst);
                                     freeInsts.push_back(next_inst);
                                 }
@@ -378,47 +373,48 @@ void PeepholeOptimization::op1()
                             }
                         }
 
-                        else if (curr_inst->getDef()[0]->getValType()->isFloat() && next_inst->getDef()[0]->getValType()->isFloat())
-                        {
-                            // b
-                            auto new_rn = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
+                        // else if (curr_inst->getDef()[0]->getValType()->isFloat() && next_inst->getDef()[0]->getValType()->isFloat())
+                        // {
+                        //     // b
+                        //     auto new_rn = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
 
-                            // c
-                            auto new_rm = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
+                        //     // c
+                        //     auto new_rm = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
 
-                            // e
-                            auto new_ra = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
+                        //     // e
+                        //     auto new_ra = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
 
-                            // vmov
-                            auto mov_rn = new MovMInstruction(block, MovMInstruction::VMOV, new_rn, rn);
-                            auto mov_rm = new MovMInstruction(block, MovMInstruction::VMOV, new_rm, rm);
-                            auto mov_ra = new MovMInstruction(block, MovMInstruction::VMOV, new_ra, ra);
-                            // vmul
-                            auto new_mul_dst = new MachineOperand(*(curr_inst->getDef()[0]));
-                            new_rn = new MachineOperand(*new_rn);
-                            new_rm = new MachineOperand(*new_rm);
-                            auto new_mul = new BinaryMInstruction(block, BinaryMInstruction::MUL, new_mul_dst, new_rn, new_rm);
-                            // vmls
-                            new_rn = new MachineOperand(*new_rn);
-                            new_rm = new MachineOperand(*new_rm);
-                            auto fused_inst = new VMLASMInstruction(block, VMLASMInstruction::VMLS, new MachineOperand(*ra), new_rn, new_rm);
-                            // vmov
-                            auto mov_de = new MovMInstruction(block, MovMInstruction::VMOV, rd, new MachineOperand(*ra));
-                            auto mov_ene = new MovMInstruction(block, MovMInstruction::VMOV, new MachineOperand(*ra), new MachineOperand(*new_ra));
+                        //     // vmov
+                        //     auto mov_rn = new MovMInstruction(block, MovMInstruction::VMOV, new_rn, rn);
+                        //     auto mov_rm = new MovMInstruction(block, MovMInstruction::VMOV, new_rm, rm);
+                        //     // vmul
+                        //     auto new_mul_dst = new MachineOperand(*(curr_inst->getDef()[0]));
+                        //     new_rn = new MachineOperand(*new_rn);
+                        //     new_rm = new MachineOperand(*new_rm);
+                        //     auto new_mul = new BinaryMInstruction(block, BinaryMInstruction::MUL, new_mul_dst, new_rn, new_rm);
+                        //     // vmov
+                        //     auto mov_ra = new MovMInstruction(block, MovMInstruction::VMOV, new_ra, ra);
+                        //     // vmls
+                        //     new_rn = new MachineOperand(*new_rn);
+                        //     new_rm = new MachineOperand(*new_rm);
+                        //     auto fused_inst = new VMLASMInstruction(block, VMLASMInstruction::VMLS, new MachineOperand(*ra), new_rn, new_rm);
+                        //     // vmov
+                        //     auto mov_de = new MovMInstruction(block, MovMInstruction::VMOV, rd, new MachineOperand(*ra));
+                        //     auto mov_ene = new MovMInstruction(block, MovMInstruction::VMOV, new MachineOperand(*ra), new MachineOperand(*new_ra));
 
-                            block->insertBefore(curr_inst, mov_rn);
-                            block->insertBefore(curr_inst, mov_rm);
-                            block->insertBefore(curr_inst, mov_ra);
-                            block->insertBefore(curr_inst, new_mul);
-                            block->insertBefore(curr_inst, fused_inst);
-                            block->insertBefore(curr_inst, mov_de);
-                            block->insertBefore(curr_inst, mov_ene);
+                        //     block->insertBefore(curr_inst, mov_rn);
+                        //     block->insertBefore(curr_inst, mov_rm);
+                        //     block->insertBefore(curr_inst, new_mul);
+                        //     block->insertBefore(curr_inst, mov_ra);
+                        //     block->insertBefore(curr_inst, fused_inst);
+                        //     block->insertBefore(curr_inst, mov_de);
+                        //     block->insertBefore(curr_inst, mov_ene);
 
-                            block->removeInst(curr_inst);
-                            freeInsts.push_back(curr_inst);
-                            block->removeInst(next_inst);
-                            freeInsts.push_back(next_inst);
-                        }
+                        //     block->removeInst(curr_inst);
+                        //     freeInsts.push_back(curr_inst);
+                        //     block->removeInst(next_inst);
+                        //     freeInsts.push_back(next_inst);
+                        // }
                     }
                 }
             }

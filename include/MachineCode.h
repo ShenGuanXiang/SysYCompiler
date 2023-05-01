@@ -4,6 +4,7 @@
 #include <set>
 #include <string>
 #include <algorithm>
+#include <unordered_map>
 #include <fstream>
 #include "SymbolTable.h"
 
@@ -329,21 +330,21 @@ public:
     void output();
 };
 
-class VMLASMInstruction : public MachineInstruction
-{
-public:
-    enum opType
-    {
-        VMLA,
-        VMLS
-    };
-    VMLASMInstruction(MachineBlock *p,
-                      int op,
-                      MachineOperand *dst,
-                      MachineOperand *src1,
-                      MachineOperand *src2);
-    void output();
-};
+// class VMLASMInstruction : public MachineInstruction
+// {
+// public:
+//     enum opType
+//     {
+//         VMLA,
+//         VMLS
+//     };
+//     VMLASMInstruction(MachineBlock *p,
+//                       int op,
+//                       MachineOperand *dst,
+//                       MachineOperand *src1,
+//                       MachineOperand *src2);
+//     void output();
+// };
 
 class MachineBlock
 {
@@ -369,14 +370,19 @@ public:
         this->no = no;
         this->IDom = nullptr;
     };
-    void insertInst(MachineInstruction *inst) { this->inst_list.push_back(inst); };
+    void insertInst(MachineInstruction *inst)
+    {
+        this->inst_list.push_back(inst);
+    };
     void removeInst(MachineInstruction *inst)
     {
         auto iter = std::find(inst_list.begin(), inst_list.end(), inst);
         if (iter != inst_list.end())
+        {
             inst_list.erase(iter);
-        inst->setParent(nullptr);
-    };
+            inst->setParent(nullptr);
+        };
+    }
     void addPred(MachineBlock *p) { this->preds.push_back(p); };
     void addSucc(MachineBlock *s) { this->succs.push_back(s); };
     void removePred(MachineBlock *p)

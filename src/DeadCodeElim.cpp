@@ -406,6 +406,9 @@ void DeadCodeElim::deadInstrEliminate(Function *f)
         /*Ret problem*/
         // assert(ta->isRet());
         // fprintf(stderr, "Block[%d] will remove instruction %d!\n", ta->getParent()->getNo(), ta->getInstType());
+
+        // auto p = ta->getParent();
+        // p->remove(ta);
         delete ta;
     }
 }
@@ -519,9 +522,10 @@ void MachineDeadCodeElim::pass(MachineFunction *f)
             if (next && next->isCondMov())
                 continue;
         }
-        if (t)
+        if (t != nullptr)
         {
-            delete t;
+            t->getParent()->removeInst(t);
+            // delete t;    // todo：为什么delete会导致color和many_params（有时）编译超时?
         }
     }
 }
