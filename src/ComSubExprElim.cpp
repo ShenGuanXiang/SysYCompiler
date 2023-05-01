@@ -298,7 +298,8 @@ void ComSubExprElimASM::pass()
     for (auto i : torm)
     {
         auto mbb = i->getParent();
-        mbb->removeInst(i);
+        if (mbb != nullptr)
+            mbb->removeInst(i);
     }
 }
 /*

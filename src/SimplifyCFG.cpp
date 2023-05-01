@@ -3,8 +3,8 @@
 #include <queue>
 #include <set>
 
-std::set<BasicBlock *> freeBBs;
-std::set<Instruction *> freeInsts;
+static std::set<BasicBlock *> freeBBs;
+static std::set<Instruction *> freeInsts;
 
 void SimplifyCFG::pass()
 {

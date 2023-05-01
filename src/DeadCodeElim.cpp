@@ -406,8 +406,7 @@ void DeadCodeElim::deadInstrEliminate(Function *f)
         /*Ret problem*/
         // assert(ta->isRet());
         // fprintf(stderr, "Block[%d] will remove instruction %d!\n", ta->getParent()->getNo(), ta->getInstType());
-        auto p = ta->getParent();
-        p->remove(ta);
+        delete ta;
     }
 }
 
@@ -570,10 +569,6 @@ void MachineDeadCodeElim::SingleBrDelete(MachineFunction *f)
 
     for (auto bb : delete_bbs)
     {
-        for (auto &pred : bb->getPreds())
-            pred->getSuccs().erase(std::find(pred->getSuccs().begin(), pred->getSuccs().end(), bb));
-        for (auto &succ : bb->getSuccs())
-            succ->getPreds().erase(std::find(succ->getPreds().begin(), succ->getPreds().end(), bb));
-        f->removeBlock(bb);
+        delete bb;
     }
 }

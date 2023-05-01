@@ -90,6 +90,7 @@ int main(int argc, char *argv[])
     ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
     // optimize = false;
+    // yyout = stdout;
     if (dump_ir && !optimize)
     {
         unit->output();
@@ -97,20 +98,22 @@ int main(int argc, char *argv[])
     }
     if (optimize)
     {
-        // AutoInliner autoinliner(unit);
-        // autoinliner.pass();  // 函数自动内联
-        Mem2Reg m2r(unit);
-        m2r.pass();
-        // todo:其它中间代码优化
-        // 代数化简
-        SparseCondConstProp sccp(unit);
-        sccp.pass(); // 常量传播
-        ComSubExprElim cse(unit);
-        cse.pass3(); // 公共子表达式消除
-        // 访存优化
-        DeadCodeElim dce(unit);
-        dce.pass(); // 死代码删除
-        // 函数自动内联
+        for(int i = 0; i < 4; i++)
+        {
+            // AutoInliner autoinliner(unit);
+            // autoinliner.pass();  // 函数自动内联
+            Mem2Reg m2r(unit);
+            m2r.pass();
+            // todo:其它中间代码优化
+            // 代数化简
+            SparseCondConstProp sccp(unit);
+            sccp.pass(); // 常量传播
+            ComSubExprElim cse(unit);
+            cse.pass3(); // 公共子表达式消除
+            // 访存优化
+            DeadCodeElim dce(unit);
+            dce.pass(); // 死代码删除
+        }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
@@ -134,10 +137,10 @@ int main(int argc, char *argv[])
 
             cseasm.pass();
             // 窥孔优化
-            // PeepholeOptimization ph(mUnit);
-            // ph.pass();
-            MachineDeadCodeElim mdce(mUnit);
-            mdce.pass();
+            PeepholeOptimization ph(mUnit);
+            ph.pass();
+            // MachineDeadCodeElim mdce(mUnit);
+            // mdce.pass();
         }
         LinearScan linearScan(mUnit);
         linearScan.pass();
@@ -150,8 +153,8 @@ int main(int argc, char *argv[])
             // ph.pass(); // 窥孔优化
             // 控制流优化
             // 相对fp偏移非法但相对sp偏移不非法，转化一下
-            MachineDeadCodeElim mdce(mUnit);
-            mdce.pass(); // 死代码消除
+            // MachineDeadCodeElim mdce(mUnit);
+            // mdce.pass(); // 死代码消除 // todo：等加速完再放上
         }
         fprintf(stderr, "asm generated\n");
         mUnit->output();

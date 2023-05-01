@@ -104,7 +104,8 @@ public:
         VCVT,
         VMRS,
         SMULL,
-        FUSE
+        MLAS,
+        VMLAS
     };
     enum condType
     {
@@ -311,17 +312,15 @@ public:
     void output();
 };
 
-class FuseMInstruction : public MachineInstruction
+class MLASMInstruction : public MachineInstruction
 {
 public:
     enum opType
     {
         MLA,
-        MLS,
-        VMLA,
-        VMLS
+        MLS
     };
-    FuseMInstruction(MachineBlock *p,
+    MLASMInstruction(MachineBlock *p,
                      int op,
                      MachineOperand *dst,
                      MachineOperand *src1,
@@ -330,12 +329,28 @@ public:
     void output();
 };
 
+class VMLASMInstruction : public MachineInstruction
+{
+public:
+    enum opType
+    {
+        VMLA,
+        VMLS
+    };
+    VMLASMInstruction(MachineBlock *p,
+                      int op,
+                      MachineOperand *dst,
+                      MachineOperand *src1,
+                      MachineOperand *src2);
+    void output();
+};
+
 class MachineBlock
 {
 private:
     MachineFunction *parent;
     int no;
-    std::vector<MachineBlock *> pred, succ;
+    std::vector<MachineBlock *> preds, succs;
     std::vector<MachineInstruction *> inst_list;
     std::set<MachineOperand *> live_in;
     std::set<MachineOperand *> live_out;
@@ -360,13 +375,26 @@ public:
         auto iter = std::find(inst_list.begin(), inst_list.end(), inst);
         if (iter != inst_list.end())
             inst_list.erase(iter);
+        inst->setParent(nullptr);
     };
-    void addPred(MachineBlock *p) { this->pred.push_back(p); };
-    void addSucc(MachineBlock *s) { this->succ.push_back(s); };
+    void addPred(MachineBlock *p) { this->preds.push_back(p); };
+    void addSucc(MachineBlock *s) { this->succs.push_back(s); };
+    void removePred(MachineBlock *p)
+    {
+        auto iter = std::find(this->preds.begin(), this->preds.end(), p);
+        if (iter != this->preds.end())
+            this->preds.erase(iter);
+    }
+    void removeSucc(MachineBlock *s)
+    {
+        auto iter = std::find(this->succs.begin(), this->succs.end(), s);
+        if (iter != this->succs.end())
+            this->succs.erase(iter);
+    }
     std::set<MachineOperand *> &getLiveIn() { return live_in; };
     std::set<MachineOperand *> &getLiveOut() { return live_out; };
-    std::vector<MachineBlock *> &getPreds() { return pred; };
-    std::vector<MachineBlock *> &getSuccs() { return succ; };
+    std::vector<MachineBlock *> &getPreds() { return preds; };
+    std::vector<MachineBlock *> &getSuccs() { return succs; };
     MachineFunction *getParent() { return parent; };
     int getNo() { return no; };
     void insertBefore(MachineInstruction *pos, MachineInstruction *inst);

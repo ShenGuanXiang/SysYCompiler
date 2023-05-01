@@ -82,20 +82,39 @@ void Mem2Reg::global2Local()
             unit->removeDecl(id_se);
             continue;
         }
-        // 将main函数开头的全局int/float变量写操作吸收到全局变量初始化中
+        std::set<SymbolEntry *> userFuncs;
+        for (auto userInst : id_se->getAddr()->getUses())
+        {
+            assert(userInst->isLoad() || userInst->isStore());
+            userFuncs.insert(userInst->getParent()->getParent()->getSymPtr());
+            // todo：调用图
+        }
+        // 优化main函数开头的全局int/float变量的读写
+        std::vector<Instruction *> useless_load;
         for (auto inst = main_func->getEntry()->begin(); inst != main_func->getEntry()->end(); inst = inst->getNext())
         {
-            if (inst->isStore() && inst->getUses()[0]->getEntry() == id_se && inst->getUses()[1]->getType()->isConst())
+            if (inst->isStore() && inst->getUses()[0] == id_se->getAddr() && inst->getUses()[1]->getType()->isConst())
             {
                 id_se->setValue(inst->getUses()[1]->getEntry()->getValue());
+                delete inst;
                 break;
             }
-            else if ((inst->isLoad() && inst->getUses()[0]->getEntry() == id_se) ||
-                     (inst->isStore() && inst->getUses()[0]->getEntry() == id_se))
+            else if (inst->isLoad() && inst->getUses()[0] == id_se->getAddr())
+            {
+                inst->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(Var2Const(id_se->getType()), id_se->getValue())));
+                useless_load.push_back(inst);
+            }
+            else if (inst->isStore() && inst->getUses()[0] == id_se->getAddr())
+            {
+                break;
+            }
+            else if (inst->isCall() && userFuncs.count(dynamic_cast<FuncCallInstruction *>(inst)->GetFuncSe()))
             {
                 break;
             }
         }
+        for (auto inst : useless_load)
+            delete inst;
         bool has_store = false, only_in_main = true;
         for (auto userInst : id_se->getAddr()->getUses())
         {
@@ -667,12 +686,14 @@ void Mem2Reg::Rename(Function *func)
             }
             else if (inst->isPHI())
             {
-                assert(inst->getDef()->getEntry()->getType()->isPTR());
-                auto new_dst = new Operand(new TemporarySymbolEntry(dynamic_cast<PointerType *>(inst->getDef()->getType())->getValType(),
-                                                                    /*dynamic_cast<TemporarySymbolEntry *>(inst->getDef()->getEntry())->getLabel()*/
-                                                                    SymbolTable::getLabel()));
-                IncomingVals[inst->getDef()] = new_dst;
-                dynamic_cast<PhiInstruction *>(inst)->updateDst(new_dst); // i32*->i32
+                if (inst->getDef() == dynamic_cast<PhiInstruction *>(inst)->getAddr())
+                {
+                    auto new_dst = new Operand(new TemporarySymbolEntry(dynamic_cast<PointerType *>(inst->getDef()->getType())->getValType(),
+                                                                        /*dynamic_cast<TemporarySymbolEntry *>(inst->getDef()->getEntry())->getLabel()*/
+                                                                        SymbolTable::getLabel()));
+                    IncomingVals[inst->getDef()] = new_dst;
+                    dynamic_cast<PhiInstruction *>(inst)->updateDst(new_dst); // i32*->i32
+                }
             }
         }
         for (auto succ = BB->succ_begin(); succ != BB->succ_end(); succ++)

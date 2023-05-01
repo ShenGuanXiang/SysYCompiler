@@ -1,8 +1,20 @@
 int k = 1;
 float c = 5;
 int d = 3;
+
+int a = 1;
+int b = 1;
+
+void f()
+{
+    a = a + b;
+}
+
 int main()
 {
+    a = a + b;
+    f();
+    b = 3;
     c = 4;
     int d = 2;
     c = c + 1;
