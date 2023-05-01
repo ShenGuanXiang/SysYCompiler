@@ -72,6 +72,7 @@ void Mem2Reg::pass()
 
 void Mem2Reg::global2Local()
 {
+    unit->getCallGraph();
     auto main_func = unit->getMainFunc();
     for (auto id_se : unit->getDeclList())
     {
@@ -87,7 +88,10 @@ void Mem2Reg::global2Local()
         {
             assert(userInst->isLoad() || userInst->isStore());
             userFuncs.insert(userInst->getParent()->getParent()->getSymPtr());
-            // todo：调用图
+            for (auto func : userInst->getParent()->getParent()->getCallers())
+            {
+                userFuncs.insert(func->getSymPtr());
+            }
         }
         // 优化main函数开头的全局int/float变量的读写
         std::vector<Instruction *> useless_load;

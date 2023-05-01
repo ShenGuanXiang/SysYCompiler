@@ -14,6 +14,8 @@ Function::Function(Unit *u, SymbolEntry *s)
     parent = u;
     ever_called = false;
     ((IdentifierSymbolEntry *)s)->Set_Function(this);
+    callers = std::set<Function *>();
+    callees = std::set<Function *>();
 }
 
 Function::~Function()

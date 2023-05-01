@@ -2,6 +2,31 @@
 #include <unordered_map>
 #include <queue>
 
+void Unit::getCallGraph()
+{
+    for (auto f : this->getFuncList())
+    {
+        f->getCallees().clear();
+        f->getCallers().clear();
+    }
+    for (auto f : this->getFuncList())
+    {
+        for (auto bb : f->getBlockList())
+            for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
+            {
+                if (instr->isCall())
+                {
+                    auto func_se = ((FuncCallInstruction *)instr)->GetFuncSe();
+                    if (!func_se->isLibFunc())
+                    {
+                        f->getCallees().insert(func_se->GetFunction());
+                        func_se->GetFunction()->getCallers().insert(f);
+                    }
+                }
+            }
+    }
+}
+
 // 在这里之判断是否是递归函数，如果是递归函数的话就不展开，日后可以在这个位置加一些对于可以内连的判断
 bool AutoInliner::ShouldBeinlined(Function *f)
 {
@@ -19,8 +44,8 @@ void AutoInliner::pass()
         if (!((IdentifierSymbolEntry *)f->getSymPtr())->isLibFunc())
         {
             bool flag = true;
-            for (auto ff : calls[f])
-                if (!calls[ff].empty())
+            for (auto ff : f->getCallees())
+                if (!ff->getCallees().empty())
                 {
                     flag = false;
                     break;
@@ -40,10 +65,10 @@ void AutoInliner::pass()
                     ShouldBeinlined(((IdentifierSymbolEntry *)((FuncCallInstruction *)instr)->GetFuncSe())->GetFunction()))
                     pass(instr);
             }
-        for (auto o : called[f])
+        for (auto o : f->getCallers())
         {
-            calls[o].erase(o);
-            if (calls[o].empty() && ShouldBeinlined(o))
+            o->getCallees().erase(o);
+            if (o->getCallees().empty() && ShouldBeinlined(o))
                 func_inline.push(o);
         }
     }
@@ -78,36 +103,22 @@ void AutoInliner::CallIntrNum()
 
 void AutoInliner::RecurDetect()
 {
-    for (auto f : unit->getFuncList())
+    unit->getCallGraph();
+    for (auto cur_f : unit->getFuncList())
     {
-        for (auto bb : f->getBlockList())
-            for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
-            {
-                if (instr->isCall())
-                {
-                    auto func_se = ((FuncCallInstruction *)instr)->GetFuncSe();
-                    if (!func_se->isLibFunc())
-                    {
-                        calls[f].insert(func_se->GetFunction());
-                        called[func_se->GetFunction()].push_back(f);
-                    }
-                }
-            }
-    }
-
-    for (auto pairs : calls)
-    {
-        auto cur_f = pairs.first;
-        if (cur_f->isRecur())
-            continue;
-        std::set<Function *> Path;
-        UpdateRecur(cur_f, Path);
+        for (auto pairs : cur_f->getCallees())
+        {
+            if (cur_f->isRecur())
+                continue;
+            std::set<Function *> Path;
+            UpdateRecur(cur_f, Path);
+        }
     }
 }
 
 void AutoInliner::UpdateRecur(Function *f, std::set<Function *> &Path)
 {
-    for (auto f_nxt : calls[f])
+    for (auto f_nxt : f->getCallees())
         if (Path.count(f_nxt))
         {
             f_nxt->SetRecur();

@@ -12,9 +12,7 @@ class AutoInliner
 private:
     Unit *unit;
     std::vector<Function *> removed_func;
-    std::unordered_map<Function *, std::set<Function *>> calls;
-    std::unordered_map<Function *, std::vector<Function *>> called;
-
+    
 public:
     AutoInliner(Unit *unit) : unit(unit){};
     void pass();

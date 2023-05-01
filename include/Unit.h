@@ -34,6 +34,9 @@ public:
     Function *getMainFunc();
     // DCE
     std::vector<Function *> getFuncList() { return func_list; };
+
+    // Inline
+    void getCallGraph();
 };
 
 #endif

@@ -24,6 +24,9 @@ private:
     Unit *parent;
     std::vector<SymbolEntry *> param_list;
 
+    std::set<Function *> callers;
+    std::set<Function *> callees;
+
     // DCE
     std::map<Function *, std::set<Instruction *>> preds_instr;
     std::set<BasicBlock *> Exit;
@@ -77,7 +80,9 @@ public:
     int isCalc() { return cal_inst_num; };
     void SetCalcInstNum(int num) { cal_inst_num = num; };
     bool isRecur() { return isrecur; };
-    void SetRecur() { isrecur = true; }
+    void SetRecur() { isrecur = true; };
+    std::set<Function *> &getCallers() { return callers; };
+    std::set<Function *> &getCallees() { return callees; };
 };
 
 #endif
