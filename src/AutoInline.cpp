@@ -19,8 +19,8 @@ void Unit::getCallGraph()
                     auto func_se = ((FuncCallInstruction *)instr)->GetFuncSe();
                     if (!func_se->isLibFunc())
                     {
-                        f->getCallees().insert(func_se->GetFunction());
-                        func_se->GetFunction()->getCallers().insert(f);
+                        f->getCallees().insert(func_se->getFunction());
+                        func_se->getFunction()->getCallers().insert(f);
                     }
                 }
             }
@@ -62,7 +62,7 @@ void AutoInliner::pass()
             for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
             {
                 if (instr->isCall() &&
-                    ShouldBeinlined(((IdentifierSymbolEntry *)((FuncCallInstruction *)instr)->GetFuncSe())->GetFunction()))
+                    ShouldBeinlined(((IdentifierSymbolEntry *)((FuncCallInstruction *)instr)->GetFuncSe())->getFunction()))
                     pass(instr);
             }
         for (auto o : f->getCallers())
@@ -78,7 +78,7 @@ void AutoInliner::pass()
 void AutoInliner::pass(Instruction *instr)
 {
     auto func_se = ((FuncCallInstruction *)instr)->GetFuncSe();
-    auto func = func_se->GetFunction(), Func = instr->getParent()->getParent();
+    auto func = func_se->getFunction(), Func = instr->getParent()->getParent();
     if (func_se->isLibFunc() || func == nullptr)
         return;
     auto instr_bb = instr->getParent(), exit_bb = new BasicBlock(Func);
@@ -106,7 +106,7 @@ void AutoInliner::RecurDetect()
     unit->getCallGraph();
     for (auto cur_f : unit->getFuncList())
     {
-        for (auto pairs : cur_f->getCallees())
+        for (size_t i = 0; i != cur_f->getCallees().size(); i++)
         {
             if (cur_f->isRecur())
                 continue;

@@ -67,7 +67,7 @@ bool Function::isCritical()
                     return iscritical = 1;
                 else
                 {
-                    auto func = funcSE->GetFunction();
+                    auto func = funcSE->getFunction();
                     if (func == this)
                         continue;
                     if (func->isCritical() == 1)
@@ -121,7 +121,7 @@ bool Instruction::isCritical()
     if (isCall())
     {
         IdentifierSymbolEntry *funcSE = (IdentifierSymbolEntry *)(((FuncCallInstruction *)this)->GetFuncSe());
-        if (funcSE->isLibFunc() || funcSE->GetFunction()->isCritical())
+        if (funcSE->isLibFunc() || funcSE->getFunction()->isCritical())
             return true;
     }
 
@@ -146,14 +146,13 @@ void DeadCodeElim::pass()
     deleteUselessFunc();
 }
 // 计算函数所有的Ret指令并且当作出口
-std::set<BasicBlock *> &Function::getExit()
+std::set<BasicBlock *> Function::getExits()
 {
-    if (Exit.size() != 0)
-        return Exit;
+    std::set<BasicBlock *> exits;
     for (auto b : block_list)
         if (b->rbegin()->isRet())
-            Exit.insert(b);
-    return Exit;
+            exits.insert(b);
+    return exits;
 }
 // 计算反向严格支配者
 void Function::ComputeRDom()
@@ -170,7 +169,8 @@ void Function::ComputeRDom()
         std::map<BasicBlock *, bool> is_visited;
         for (auto bb : getBlockList())
             is_visited[bb] = false;
-        for (auto b : getExit())
+        auto exits = getExits();
+        for (auto b : exits)
             if (b != removed_bb)
             {
                 visited.insert(b);
@@ -204,6 +204,7 @@ void Function::ComputeRDom()
 void Function::ComputeRiDom()
 {
     std::set<BasicBlock *> temp_RIDoms;
+    auto exits = getExits();
     for (auto bb : getBlockList())
     {
         temp_RIDoms = bb->getRSDoms();
@@ -213,7 +214,7 @@ void Function::ComputeRiDom()
             set_difference(temp_RIDoms.begin(), temp_RIDoms.end(), rsdom->getRSDoms().begin(), rsdom->getRSDoms().end(), inserter(diff_set, diff_set.end()));
             temp_RIDoms = diff_set;
         }
-        if (!getExit().count(bb) && temp_RIDoms.size())
+        if (!exits.count(bb) && temp_RIDoms.size())
             bb->getRIdom() = *temp_RIDoms.begin();
     }
     // for (auto bb : getBlockList())
@@ -229,7 +230,8 @@ void Function::ComputeRDF()
     for (auto bb : getBlockList())
         is_visited[bb] = false;
     std::queue<BasicBlock *> q;
-    for (auto e : getExit())
+    auto exits = getExits();
+    for (auto e : exits)
     {
         q.push(e);
         is_visited[e] = true;
@@ -244,7 +246,7 @@ void Function::ComputeRDF()
             auto x = a;
             while (b->getRSDoms().size() && !b->getRSDoms().count(x))
             {
-                assert(!getExit().count(x));
+                assert(!exits.count(x));
                 x->getRDF().insert(b);
                 x = x->getRIdom();
             }
@@ -339,9 +341,9 @@ void DeadCodeElim::deadInstrMark(Function *f)
         BasicBlock *bb = instr->getParent();
         if (!bb)
             continue;
-        for (auto bbrdf : bb->getRDF())
+        for (auto bb_rdf : bb->getRDF())
         {
-            auto instr_br = bbrdf->rbegin();
+            auto instr_br = bb_rdf->rbegin();
             if (instr_br != nullptr && (instr_br->isCond() || instr_br->isUncond()) && !instr_br->isDCEMarked())
             {
                 // fprintf(stderr, "RDFMark B%d instrType%d\n", instr_br->getParent()->getNo(), instr_br->getInstType());
@@ -439,7 +441,7 @@ void DeadCodeElim::deleteUselessFunc()
                 if (instr->isCall() &&
                     !((IdentifierSymbolEntry *)((FuncCallInstruction *)instr)->GetFuncSe())->isLibFunc())
                 {
-                    auto called_func = ((IdentifierSymbolEntry *)((FuncCallInstruction *)instr)->GetFuncSe())->GetFunction();
+                    auto called_func = ((IdentifierSymbolEntry *)((FuncCallInstruction *)instr)->GetFuncSe())->getFunction();
                     if (!called_func || called_func->isCalled())
                         continue;
                     called_func->SetCalled();
@@ -453,7 +455,7 @@ void DeadCodeElim::deleteUselessFunc()
 
 void MachineDeadCodeElim::pass()
 {
-    for (auto f : unit->getFuncs())
+    for (auto &f : unit->getFuncs())
     {
         pass(f);
         // SingleBrDelete(f);
@@ -472,8 +474,7 @@ MachineInstruction *MachineBlock::getNext(MachineInstruction *instr)
 
 void MachineDeadCodeElim::pass(MachineFunction *f)
 {
-    MLiveVariableAnalysis mlva(nullptr);
-    mlva.pass(f);
+    f->AnalyzeLiveVariable();
     std::map<MachineOperand, std::set<MachineOperand *>> out;
     std::vector<MachineInstruction *> deleteList;
     for (auto b : f->getBlocks())
@@ -502,7 +503,7 @@ void MachineDeadCodeElim::pass(MachineFunction *f)
 
             for (auto &def : defs)
             {
-                auto &O = mlva.getAllUses()[*def];
+                auto &O = f->getAllUses()[*def];
                 for (auto &o : O)
                     if (out[*def].find(o) != out[*def].end())
                         out[*def].erase(o);
@@ -524,8 +525,7 @@ void MachineDeadCodeElim::pass(MachineFunction *f)
         }
         if (t != nullptr)
         {
-            t->getParent()->removeInst(t);
-            // delete t;    // todo：为什么delete会导致color和many_params（有时）编译超时?
+            delete t;
         }
     }
 }

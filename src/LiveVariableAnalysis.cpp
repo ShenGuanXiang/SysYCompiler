@@ -59,19 +59,13 @@
 
 void MLiveVariableAnalysis::pass()
 {
-    std::map<MachineOperand, std::set<MachineOperand*>> temp;
     for (auto &func : unit->getFuncs())
-        func->AnalyzeLiveVariable(temp);
+        func->AnalyzeLiveVariable();
 }
 
-void MLiveVariableAnalysis::pass(MachineFunction* f) 
+void MachineFunction::AnalyzeLiveVariable()
 {
     all_uses.clear();
-    f->AnalyzeLiveVariable(all_uses);
-}
-
-void MachineFunction::AnalyzeLiveVariable(std::map<MachineOperand, std::set<MachineOperand*>>& all_uses)
-{
     std::map<MachineBlock *, std::set<MachineOperand *>> Def, LiveUse;
     for (auto &block : getBlocks())
     {

@@ -94,9 +94,8 @@ void LinearScan::makeDuChains()
     do
     {
         change = false;
-        std::map<MachineOperand, std::set<MachineOperand *>> temp = {};
-        func->AnalyzeLiveVariable(temp);
-        std::map<MachineOperand, std::set<MachineOperand *>> all_uses;
+        func->AnalyzeLiveVariable();
+        std::map<MachineOperand, std::set<MachineOperand *>> all_uses = {};
         for (auto &block : func->getBlocks())
         {
             for (auto &inst : block->getInsts())

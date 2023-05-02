@@ -29,7 +29,6 @@ private:
 
     // DCE
     std::map<Function *, std::set<Instruction *>> preds_instr;
-    std::set<BasicBlock *> Exit;
     int iscritical = -1;
 
 public:
@@ -71,7 +70,7 @@ public:
     bool isCalled() { return ever_called; };
     std::map<Function *, std::set<Instruction *>> getPreds() { return preds_instr; };
     BasicBlock *get_nearest_dom(Instruction *instr);
-    std::set<BasicBlock *> &getExit();
+    std::set<BasicBlock *> getExits();
     void removePred(Instruction *instr);
 
     // AutoInline

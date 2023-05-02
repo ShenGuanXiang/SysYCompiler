@@ -29,12 +29,10 @@ class MLiveVariableAnalysis
 {
 private:
     MachineUnit *unit;
-    std::map<MachineOperand, std::set<MachineOperand*>> all_uses;
+
 public:
     MLiveVariableAnalysis(MachineUnit *unit) : unit(unit){};
-    std::map<MachineOperand, std::set<MachineOperand*>>& getAllUses() { return all_uses; };
     void pass();
-    void pass(MachineFunction* f);
 };
 
 #endif

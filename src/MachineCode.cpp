@@ -1345,12 +1345,13 @@ void MLASMInstruction::output()
 //     this->parent = p;
 //     this->type = MachineInstruction::VMLAS;
 //     this->op = op;
-//     auto inplaced = new MachineOperand(*dst);
-//     this->def_list.push_back(inplaced);
+//     // auto inplaced = new MachineOperand(*dst);
+//     // this->def_list.push_back(inplaced);
+//     // this->def_list.push_back(dst); // todo
 //     this->use_list.push_back(dst);
 //     this->use_list.push_back(src1);
 //     this->use_list.push_back(src2);
-//     inplaced->setParent(this);
+//     // inplaced->setParent(this);
 //     dst->setParent(this);
 //     src1->setParent(this);
 //     src2->setParent(this);
@@ -1381,11 +1382,6 @@ void MLASMInstruction::output()
 void MachineBlock::insertBefore(MachineInstruction *pos, MachineInstruction *inst)
 {
     auto p = find(inst_list.begin(), inst_list.end(), pos);
-    if (p == inst_list.end())
-    {
-        inst_list.push_back(inst);
-        return;
-    }
     inst_list.insert(p, inst);
 }
 
@@ -1420,22 +1416,22 @@ MachineOperand *MachineBlock::insertLoadImm(MachineOperand *imm)
         if (is_Legal_VMOV_FloatImm((float)imm->getVal()))
         {
             MachineOperand *internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
-            this->insertInst(new MovMInstruction(this, MovMInstruction::VMOV, internal_reg, imm));
+            this->insertBack(new MovMInstruction(this, MovMInstruction::VMOV, internal_reg, imm));
             return new MachineOperand(*internal_reg);
         }
         MachineOperand *internal_reg1 = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
-        this->insertInst(new LoadMInstruction(this, internal_reg1, imm));
+        this->insertBack(new LoadMInstruction(this, internal_reg1, imm));
         MachineOperand *internal_reg2 = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
         internal_reg1 = new MachineOperand(*internal_reg1);
-        this->insertInst(new MovMInstruction(this, MovMInstruction::VMOV, internal_reg2, internal_reg1));
+        this->insertBack(new MovMInstruction(this, MovMInstruction::VMOV, internal_reg2, internal_reg1));
         return new MachineOperand(*internal_reg2);
         // MachineOperand *internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::floatType);
-        // this->insertInst(new LoadMInstruction(this, internal_reg, imm));
+        // this->insertBack(new LoadMInstruction(this, internal_reg, imm));
         // return new MachineOperand(*internal_reg);
     }
     assert(imm->getValType()->isInt());
     MachineOperand *internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
-    this->insertInst(new LoadMInstruction(this, internal_reg, imm));
+    this->insertBack(new LoadMInstruction(this, internal_reg, imm));
     return new MachineOperand(*internal_reg);
 }
 

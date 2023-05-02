@@ -6,6 +6,7 @@
 #include "MachineCode.h"
 #include "LinearScan.h"
 #include "SimplifyCFG.h"
+#include "AutoInline.h"
 #include "Mem2Reg.h"
 #include "ElimPHI.h"
 #include "LiveVariableAnalysis.h"
@@ -14,7 +15,6 @@
 #include "DeadCodeElim.h"
 #include "SparseCondConstProp.h"
 #include "PeepholeOptimization.h"
-#include "AutoInline.h"
 
 Ast ast;
 Unit *unit = new Unit();
@@ -140,7 +140,8 @@ int main(int argc, char *argv[])
             PeepholeOptimization ph(mUnit);
             ph.pass(); // 窥孔优化
             MachineDeadCodeElim mdce(mUnit);
-            mdce.pass();
+            mdce.pass(); // 死代码消除
+            // 指令调度
         }
         LinearScan linearScan(mUnit);
         linearScan.pass();

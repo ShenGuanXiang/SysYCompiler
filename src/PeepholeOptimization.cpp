@@ -117,7 +117,7 @@ void PeepholeOptimization::op1()
                 //     }
                 // }
 
-                // fuse mul and add/sub
+                // fuse mul and add
                 else if (curr_inst->isMul() && next_inst->isAdd())
                 {
 
@@ -291,26 +291,19 @@ void PeepholeOptimization::op1()
                     }
                 }
 
-                // fuse mul and add/sub
+                // fuse mul and sub
                 else if (curr_inst->isMul() && next_inst->isSub())
                 {
                     auto mul_dst = curr_inst->getDef()[0];
-                    auto add_src1 = next_inst->getUse()[0];
-                    auto add_src2 = next_inst->getUse()[1];
+                    // auto sub_src1 = next_inst->getUse()[0];
+                    auto sub_src2 = next_inst->getUse()[1];
 
-                    if (*mul_dst == *add_src1 || *mul_dst == *add_src2)
+                    if (*mul_dst == *sub_src2)
                     {
                         auto rd = new MachineOperand(*(next_inst->getDef()[0]));
                         auto rn = new MachineOperand(*(curr_inst->getUse()[0]));
                         auto rm = new MachineOperand(*(curr_inst->getUse()[1]));
-                        MachineOperand *ra;
-                        if (*mul_dst == *add_src1)
-                            ra = new MachineOperand(*(next_inst->getUse()[1]));
-                        else
-                            ra = new MachineOperand(*(next_inst->getUse()[0]));
-
-                        if (ra->isImm())
-                            continue;
+                        auto ra = new MachineOperand(*(next_inst->getUse()[0]));
 
                         if (!curr_inst->getDef()[0]->getValType()->isFloat() && !next_inst->getDef()[0]->getValType()->isFloat())
                         {

@@ -13,7 +13,7 @@ Function::Function(Unit *u, SymbolEntry *s)
     sym_ptr = s;
     parent = u;
     ever_called = false;
-    ((IdentifierSymbolEntry *)s)->Set_Function(this);
+    ((IdentifierSymbolEntry *)s)->setFunction(this);
     callers = std::set<Function *>();
     callees = std::set<Function *>();
 }

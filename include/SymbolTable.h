@@ -166,8 +166,8 @@ public:
         assert(func_se != nullptr);
         return func_se;
     };
-    Function *GetFunction() { return f; };
-    void Set_Function(Function *f) { this->f = f; };
+    Function *getFunction() { return f; };
+    void setFunction(Function *f) { this->f = f; };
     std::set<IdentifierSymbolEntry *> &getParamsSe() { return params_se; };
 
     // AutoInline

@@ -370,7 +370,7 @@ public:
         this->no = no;
         this->IDom = nullptr;
     };
-    void insertInst(MachineInstruction *inst)
+    void insertBack(MachineInstruction *inst)
     {
         this->inst_list.push_back(inst);
     };
@@ -427,6 +427,7 @@ private:
     MachineBlock *entry;
     std::vector<MachineOperand *> additional_args_offset;
     bool largeStack;
+    std::map<MachineOperand, std::set<MachineOperand *>> all_uses;
 
 public:
     std::vector<MachineBlock *> &getBlocks() { return block_list; };
@@ -457,7 +458,8 @@ public:
     std::vector<MachineOperand *> getAdditionalArgsOffset() { return additional_args_offset; };
     MachineBlock *getEntry() { return entry; };
     void setEntry(MachineBlock *entry) { this->entry = entry; };
-    void AnalyzeLiveVariable(std::map<MachineOperand, std::set<MachineOperand *>> &all_uses);
+    void AnalyzeLiveVariable();
+    std::map<MachineOperand, std::set<MachineOperand *>> &getAllUses() { return all_uses; };
     void outputStart();
     void outputEnd();
     void output();
