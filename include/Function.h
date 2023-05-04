@@ -26,6 +26,8 @@ private:
 
     std::set<Function *> callers;
     std::set<Function *> callees;
+    std::set<Instruction *> callers_instr;
+    int degree = 0;
 
     // DCE
     std::map<Function *, std::set<Instruction *>> preds_instr;
@@ -81,7 +83,9 @@ public:
     bool isRecur() { return isrecur; };
     void SetRecur() { isrecur = true; };
     std::set<Function *> &getCallers() { return callers; };
+    std::set<Instruction *> &getCallers_instr() { return callers_instr; };
     std::set<Function *> &getCallees() { return callees; };
+    int &getdegree() { return degree; };
 };
 
 #endif

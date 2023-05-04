@@ -89,7 +89,9 @@ int main(int argc, char *argv[])
     // ast.typeCheck();
     ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
-    // optimize = false;
+    optimize = false;
+    AutoInliner autoinliner(unit);
+    autoinliner.pass();  // 函数自动内联
     // yyout = stdout;
     if (dump_ir && !optimize)
     {
@@ -100,10 +102,10 @@ int main(int argc, char *argv[])
     {
         for (int i = 0; i < 4; i++)
         {
-            // AutoInliner autoinliner(unit);
-            // autoinliner.pass();  // 函数自动内联
             Mem2Reg m2r(unit);
             m2r.pass();
+            AutoInliner autoinliner(unit);
+            autoinliner.pass();  // 函数自动内联
             // todo:其它中间代码优化
             // 代数化简
             SparseCondConstProp sccp(unit);

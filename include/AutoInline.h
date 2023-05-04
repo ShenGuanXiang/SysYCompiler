@@ -3,6 +3,7 @@
 
 #include "Unit.h"
 #include "DeadCodeElim.h"
+#include <queue>
 
 /*
 
@@ -21,6 +22,7 @@ public:
     void RecurDetect();
     void UpdateRecur(Function *, std::set<Function *> &);
     bool ShouldBeinlined(Function *f);
+    void Print_Funcinline(std::queue<Function *>&);
 };
 
 #endif
