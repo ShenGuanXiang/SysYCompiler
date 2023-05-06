@@ -12,6 +12,8 @@ class BasicBlock;
 class Instruction
 {
 public:
+    bool hasDst() const { return !def_list.empty(); }
+
     Instruction(unsigned instType, BasicBlock *insert_bb = nullptr);
     virtual ~Instruction();
     BasicBlock *getParent();
@@ -24,6 +26,7 @@ public:
     bool isPHI() const { return instType == PHI; };
     bool isCall() const { return instType == CALL; };
     bool isGep() const { return instType == GEP; };
+    bool isBinary() const { return instType == BINARY; };
     void setParent(BasicBlock *);
     void setNext(Instruction *);
     void setPrev(Instruction *);

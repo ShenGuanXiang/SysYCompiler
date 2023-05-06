@@ -1,0 +1,84 @@
+kill
+%m1 %c1 %m11 %t4 %t60 %t8 %t9 %t58 %t62 
+
+dumptree
+domtree of 33: 
+domtree of 30: 34 37 44 
+domtree of 37: 
+domtree of 28: 30 33 
+domtree of 34: 
+domtree of 44: 
+domtree of 10: 28 
+
+htable
+%m1+1 : %t58
+%t9 : %t9
+%t8+%t0 : %t9
+%t8 : %t8
+%t3+%m11 : %t8
+%t0+%t5 : %t61
+%t3+%t5 : %t59
+%t3+%t57 : %t7
+%m1+%t58 : %t62
+%t4 : %t4
+%t56+%t0 : %t3
+%m11 : %m11
+%t6 : %t3
+%t56+1 : %t0
+%t57 : %t57
+%t3 : %t3
+1 : 1
+%t56 : %t56
+%t0 : %t0
+%c1 : %c1
+%t1 : %t1
+%t3+%m1 : %t60
+%t7 : %t7
+%m1+%t3 : %t4
+%t2 : %t2
+%t0+1 : %t5
+%m1 : %m1
+%t5 : %t5
+
+expr_gen
+expr_gen of 30: 
+expr_gen of 33: 
+expr_gen of 10: 
+expr_gen of 34: %t8->%t3+%m11  %m11->%m11  %t7->%t3+%t57  %t9->%t8+%t0  %t57->%t57  %t0->%t0  %t3->%t56+%t0  %t56->%t56  
+expr_gen of 44: %t5->%t0+1  1->1  %t0->%t0  
+expr_gen of 37: %t4->%m1+%t3  %m1->%m1  %t0->%t0  %t3->%t56+%t0  %t56->%t56  
+expr_gen of 28: %t0->%t56+1  1->1  %t56->%t56  
+
+phi_gen
+phi_gen of 34: %t57->%t57  
+phi_gen of 28: %t56->%t56  
+
+tmp_gen
+tmp_gen of 33: 
+tmp_gen of 10: 
+tmp_gen of 34: %t9->%t9  %t8->%t8  %t7->%t7  %t6->%t6  
+tmp_gen of 44: %t5->%t5  
+tmp_gen of 30: %t2->%t2  
+tmp_gen of 37: %t4->%t4  %t3->%t3  
+tmp_gen of 28: %t1->%t1  %t0->%t0  
+
+antic_out
+avail_out
+avail_out of 30: %t2->%t2  %t1->%t1  %t0->%t0  %t56->%t56  
+avail_out of 33: %t1->%t1  %t0->%t0  %t56->%t56  
+avail_out of 37: %t4->%t4  %t2->%t2  %t1->%t1  %t0->%t0  %t3->%t3  %t56->%t56  
+avail_out of 28: %t1->%t1  %t0->%t0  %t56->%t56  
+avail_out of 34: %t8->%t8  %t7->%t7  %t9->%t9  %t57->%t57  %t2->%t2  %t1->%t1  %t0->%t0  %t3->%t6  %t56->%t56  
+avail_out of 44: %t5->%t5  %t2->%t2  %t1->%t1  %t0->%t0  %t56->%t56  
+avail_out of 10: 
+
+
+antic_in
+antic_in of 33: 
+antic_in of 30: %t56->%t56  %t3->%t56+%t0  %t0->%t0  1->1  
+antic_in of 37: 1->1  %t0->%t0  %t3->%t56+%t0  %t56->%t56  
+antic_in of 28: %t0->%t56+1  1->1  %t3->%t56+%t0  %t56->%t56  
+antic_in of 34: 
+%t5->%t0+1  %t61->%t0+%t5  1->1  %t7->%t3+%t57  %t57->%t57  %t0->%t0  %t3->%t56+%t0  %t56->%t56  
+antic_in of 44: %t3-> %t56->%t56  %t59->%t3+%t5  %t5->%t0+1  1->1  %t0->%t0  
+antic_in of 10: 1->1  

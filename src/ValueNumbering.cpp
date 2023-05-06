@@ -370,8 +370,10 @@ void ValueNumberingASM::findredef(MachineBlock* bb)
         if(inst->getDef().size()==0) continue;
         auto def=inst->getDef()[0];
         if(def->isReg()) continue;
-        if(defset.count(*def))
+        if(defset.count(*def)){
             redef.insert(*def);
+            printf("redef %s",def->toStr().c_str());
+        }
         else defset.insert(*def);
     }
     for(auto mb : domtree[bb])

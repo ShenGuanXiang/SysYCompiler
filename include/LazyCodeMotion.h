@@ -19,6 +19,9 @@ struct  Edge{
 class LazyCodeMotion  {
     Unit* unit;
     std::unordered_map<std::string,Operand*>& htable;
+    std::unordered_map<BasicBlock*,std::unordered_map<Operand*,Operand*>> exprmap;
+    // map value number to actual expression
+    // we use value number to represent expression during data flow analysis    
 
     std::unordered_map<BasicBlock*, std::set<Operand*>> deexpr;
     std::unordered_map<BasicBlock*, std::set<Operand*>> ueexpr;
@@ -42,6 +45,7 @@ class LazyCodeMotion  {
     void printLater();
     void collectAllexpr();
     void computeLocal();
+    Instruction *cloneExpr(Instruction *inst);
 public:
   LazyCodeMotion(Unit *unit, ValueNumbering *vn) : unit(unit),htable(vn->getmap()) {}
   void computeAvail();
@@ -54,3 +58,4 @@ public:
 
 
 #endif
+

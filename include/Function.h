@@ -25,6 +25,7 @@ private:
     std::vector<SymbolEntry *> param_list;
 
 public:
+    std::vector<Operand*> paramOp;
     Function(Unit *, SymbolEntry *);
     ~Function();
     void insertBlock(BasicBlock *bb) { block_list.push_back(bb); };

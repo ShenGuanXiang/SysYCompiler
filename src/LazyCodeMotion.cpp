@@ -59,7 +59,10 @@ void LazyCodeMotion::collectAllexpr()
                 auto instStr=getOpString(curinst);
                 if(instStr=="") continue;
                 assert(htable.count(instStr));
-                exprs.insert(htable[instStr]);
+                Operand* vnr=htable[instStr];
+                exprs.insert(vnr);
+                if(vnr!=curinst->getDef())
+                    exprmap[*bb_it][vnr]=curinst->getDef();
             }
         }
     }
@@ -93,9 +96,21 @@ void LazyCodeMotion::computeLocal()
 
                 deexpr[curbb].insert(def);
 
+                // auto insts = def->getUses();
+                // for(auto i : insts){
+                //     if(i==curinst || !exprs.count(i->getDef())) continue;
+                //     killexpr[curbb].insert(i->getDef());
+                // }
+            }
+
+            for(auto curinst=(*bb_it)->begin();curinst!=(*bb_it)->end();curinst=curinst->getNext())
+            {
+                if(!curinst->hasDst()) continue;
+                auto def=curinst->getDef();
                 auto insts = def->getUses();
                 for(auto i : insts){
-                    if(i==curinst || !exprs.count(i->getDef())) continue;
+                    if(!i->hasDst()) continue;
+                    if(i==curinst  ||!exprs.count(i->getDef())) continue;
                     killexpr[curbb].insert(i->getDef());
                 }
             }
@@ -378,19 +393,18 @@ void LazyCodeMotion::rewrite()
         std::set<Operand*>& exprset=it->second;
         if(src->getNumOfSucc()==1){
             for(auto def : exprset){
-                auto inst = def->getDef();
-                inst->getParent()->remove(inst);
-                Instruction* i=src->begin();
-                while(i->getInstType()==Instruction::PHI) i=i->getNext();
-                src->insertBefore(i,inst);
+                auto inst = cloneExpr(def->getDef());
+                //llvm ir has only one br instruction at the end of basic block
+                src->insertBefore(inst,dst->rbegin());
             }
         }
         else if(dst->getNumOfPred()==1){
             for(auto def : exprset){
-                auto inst = def->getDef();
-                inst->getParent()->remove(inst);
-                //llvm ir has only one br instruction at the end of basic block
-                dst->insertBefore(inst,dst->rbegin());
+                auto inst = cloneExpr(def->getDef());
+               
+                Instruction* i=dst->begin();
+                while(i->getInstType()==Instruction::PHI) i=i->getNext();
+                dst->insertBefore(i,inst);
             }
         }
         else{
@@ -398,8 +412,7 @@ void LazyCodeMotion::rewrite()
             BasicBlock* bb = new BasicBlock(src->getParent());
             //insert expression and br
             for(auto def : exprset){
-                auto inst = def->getDef();
-                inst->getParent()->remove(inst);
+                auto inst = cloneExpr(def->getDef());
                 bb->insertBack(inst);
                 inst->setParent(bb);
             }
@@ -443,23 +456,23 @@ void LazyCodeMotion::rewrite()
             
     }
 
-    // for(auto it=deleteset.begin();it!=deleteset.end();it++){
-    //     if(it->second.empty()) continue;
-    //     auto bb=it->first;
-    //     auto& exprset=it->second;
-    //     for(auto def : exprset){
-    //         //TODO：直接通过def找到实际的指令，这里的def和实际的操作数不相同
-    //         for(auto inst=bb->begin();inst!=bb->end();inst=inst->getNext()){
-    //             auto dst=inst->getDef();
-    //             auto dst_str=dst->toStr();
-    //             if(htable.count(dst_str) && htable[dst_str]==def || dst==def){
-    //                 inst->replaceAllUsesWith(def);
-    //                 bb->remove(inst);
-    //                 break;
-    //             }
-    //         }
-    //     }
-    // }
+    for(auto it=deleteset.begin();it!=deleteset.end();it++){
+        if(it->second.empty()) continue;
+        auto bb=it->first;
+        auto& exprset=it->second;
+        for(auto def : exprset){
+            //TODO：直接通过def找到实际的指令，这里的def和实际的操作数不相同
+            Instruction* vnrdef = def->getDef();
+            if(vnrdef->getParent()==bb)
+                bb->remove(vnrdef);
+            else{
+                assert(exprmap[bb].count(def));
+                Instruction* expr = exprmap[bb][def]->getDef();
+                expr->replaceAllUsesWith(def);
+                bb->remove(expr);
+            }
+        }
+    }
 }
 
 void LazyCodeMotion::printAnt(){
@@ -556,4 +569,21 @@ void LazyCodeMotion::pass()
     }
     computeLater();
     rewrite();
+}
+
+Instruction* LazyCodeMotion::cloneExpr(Instruction* inst){
+    //clone expr of Instruction* type from inst, according to getInstType()
+    Instruction* newinst;
+    switch(inst->getInstType()){
+        case Instruction::BINARY :
+            newinst = new BinaryInstruction(*dynamic_cast<BinaryInstruction*>(inst));
+            break;
+        default:
+            assert(0);
+    }
+    newinst->setNext(nullptr);
+    newinst->setPrev(nullptr);
+//    newinst->getParent()->remove(newinst);
+    newinst->setParent(nullptr);
+    return newinst;
 }

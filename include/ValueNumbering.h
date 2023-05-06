@@ -14,6 +14,9 @@ class ValueNumbering
     Unit *unit;
     std::unordered_map<std::string,Operand*> htable;
     std::unordered_map<std::string,Operand*> global_htable;
+    // map value number to actual expression
+
+    
     // use def as value number, the hash is f: string->operand
     // construct operation's key from operand's name
     std::unordered_map<BasicBlock*,std::vector<BasicBlock*>>domtree;

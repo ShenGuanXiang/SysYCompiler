@@ -74,8 +74,32 @@ void Mem2Reg::pass()
 void Function::ComputeDom()
 {
     // 删除不可达的基本块。
-    SimplifyCFG sc(this->getParent());
-    sc.pass(this);
+    // SimplifyCFG sc(this->getParent());
+    // sc.pass(this);
+    std::set<BasicBlock *> visited;
+    std::queue<BasicBlock *> q1;
+    q1.push(getEntry());
+    visited.insert(getEntry());
+    while (!q1.empty())
+    {
+        auto bb = q1.front();
+        std::vector<BasicBlock *> succs(bb->succ_begin(), bb->succ_end());
+        q1.pop();
+        for (auto succ : succs)
+        {
+            if (!visited.count(succ))
+            {
+                q1.push(succ);
+                visited.insert(succ);
+            }
+        }
+    }
+    auto block_list_copy = getBlockList();
+    for (auto bb : block_list_copy)
+    {
+        if (!visited.count(bb))
+            delete bb;
+    }
     // Vertex-removal Algorithm, O(n^2)
     for (auto bb : getBlockList())
         bb->getSDoms() = std::set<BasicBlock *>();
