@@ -5,7 +5,7 @@
 #include <stack>
 
 extern FILE *yyout;
-static std::vector<SymbolEntry *> newSymbolEntries; // 用来回收new出来的SymbolEntry
+static std::vector<SymbolEntry *> newSymbolEntries = std::vector<SymbolEntry *>(); // 用来回收new出来的SymbolEntry
 
 // llvm的16进制float格式 reference: https://groups.google.com/g/llvm-dev/c/IlqV3TbSk6M/m/27dAggZOMb0J
 std::string Double2HexStr(double val)
@@ -36,10 +36,10 @@ std::string DeclArray(ArrayType *type, std::vector<double> initializer)
     auto dims = type->fetch();
     if (dims.size() == 1)
     {
-        decl = type->toStr() + " [" + type_str + " " + (elemType->isFloat() ? Double2HexStr(initializer[0]) : std::to_string((int)initializer[0]));
+        decl = type->toStr() + " [" + type_str + " " + (elemType->isFloat() ? Double2HexStr(double(float(initializer[0]))) : std::to_string((int)initializer[0]));
         for (size_t i = 1; i != initializer.size(); i++)
         {
-            decl += ", " + type_str + " " + (elemType->isFloat() ? Double2HexStr(initializer[i]) : std::to_string((int)initializer[i]));
+            decl += ", " + type_str + " " + (elemType->isFloat() ? Double2HexStr(double(float(initializer[0]))) : std::to_string((int)initializer[i]));
         }
         decl += "]";
         return decl;
@@ -75,7 +75,9 @@ std::vector<std::string> lib_funcs{
     "putch",
     "putfloat",
     "putarray",
-    "putfarray"};
+    "putfarray",
+    "memset",
+};
 
 bool IdentifierSymbolEntry::isLibFunc()
 {
@@ -83,62 +85,6 @@ bool IdentifierSymbolEntry::isLibFunc()
         if (name == lib_func)
             return true;
     return false;
-}
-
-void IdentifierSymbolEntry::decl_code()
-{
-    if (type->isFunc())
-    {
-        fprintf(yyout, "declare %s @%s(",
-                dynamic_cast<FunctionType *>(type)->getRetType()->toStr().c_str(), name.c_str());
-        fprintf(stderr, "declare %s @%s(",
-                dynamic_cast<FunctionType *>(type)->getRetType()->toStr().c_str(), name.c_str());
-        std::vector<Type *> paramslist = dynamic_cast<FunctionType *>(type)->getParamsType();
-        for (auto it = paramslist.begin(); it != paramslist.end(); it++)
-        {
-            if (it != paramslist.begin())
-            {
-                fprintf(yyout, ", ");
-                fprintf(stderr, ", ");
-            }
-            fprintf(yyout, "%s", (*it)->toStr().c_str());
-            fprintf(stderr, "%s", (*it)->toStr().c_str());
-        }
-        fprintf(yyout, ")\n");
-        fprintf(stderr, ")\n");
-    }
-    else if (type->isARRAY())
-    {
-        fprintf(yyout, "@%s = dso_local global ", this->toStr().c_str());
-        fprintf(stderr, "@%s = dso_local global ", this->toStr().c_str());
-        if (this->isAllZero())
-        {
-            fprintf(yyout, "%s zeroinitializer", type->toStr().c_str());
-            fprintf(stderr, "%s zeroinitializer", type->toStr().c_str());
-        }
-        else
-        {
-            fprintf(yyout, "%s", DeclArray((ArrayType *)type, getArrVals()).c_str());
-            fprintf(stderr, "%s", DeclArray((ArrayType *)type, getArrVals()).c_str());
-        }
-        fprintf(yyout, ", align 4\n");
-        fprintf(stderr, ", align 4\n");
-    }
-    else
-    {
-        if (type->isConst()) // 常量折叠
-            ;
-        else if (type->isInt())
-        {
-            fprintf(yyout, "@%s = dso_local global %s %d, align 4\n", name.c_str(), type->toStr().c_str(), (int)value);
-            fprintf(stderr, "@%s = dso_local global %s %d, align 4\n", name.c_str(), type->toStr().c_str(), (int)value);
-        }
-        else if (type->isFloat())
-        {
-            fprintf(yyout, "@%s = dso_local global %s %s, align 4\n", name.c_str(), type->toStr().c_str(), Double2HexStr(value).c_str());
-            fprintf(stderr, "@%s = dso_local global %s %s, align 4\n", name.c_str(), type->toStr().c_str(), Double2HexStr(value).c_str());
-        }
-    }
 }
 
 SymbolEntry::SymbolEntry(Type *type, int kind)
@@ -149,7 +95,7 @@ SymbolEntry::SymbolEntry(Type *type, int kind)
     newSymbolEntries.push_back(this);
 }
 
-ConstantSymbolEntry::ConstantSymbolEntry(Type *type, double value) : SymbolEntry(type, SymbolEntry::CONSTANT)
+ConstantSymbolEntry::ConstantSymbolEntry(Type *type, double value) : SymbolEntry(Var2Const(type), SymbolEntry::CONSTANT)
 {
     this->value = value;
 }
@@ -163,7 +109,7 @@ std::string ConstantSymbolEntry::toStr()
     {
         assert(type->isConstFloat());
         // return std::to_string((float)value);
-        return Double2HexStr(value);
+        return Double2HexStr(double(float(value)));
     }
 }
 
@@ -172,26 +118,25 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
     this->scope = scope;
     addr = nullptr;
     this->is8BytesAligned = type->isFunc() && isLibFunc() && name != "getint" && name != "putint" && name != "getch" && name != "putch" && name != "getarray" && name != "putarray";
-    if (type->isFunc() && isLibFunc()) // todo 库函数到底哪些寄存器
+    if (type->isFunc() && isLibFunc())
     {
-        if (name == "getint" || name == "putint" || name == "getch" || name == "putch" || name == "getarray" || name == "putarray")
+        if (name == "getint" || name == "putint" || name == "getch" || name == "putch" || name == "getarray" || name == "putarray" || name == "putfarray" || name == "memset")
         {
             occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(3, TypeSystem::intType));
         }
-        else if (name == "getfloat" || name == "putfloat")
+        else if (name == "getfloat" || name == "putfloat" || name == "getfarray")
         {
             occupiedRegs.insert(std::make_pair(0, TypeSystem::floatType));
             occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(3, TypeSystem::intType));
         }
-        else if (name == "getfarray" || name == "putfarray")
-        {
-            occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
-            occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
-            occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
-        }
+        else
+            assert(0);
     }
     func_se = nullptr;
     label = -1;
@@ -240,7 +185,7 @@ std::string IdentifierSymbolEntry::toStr()
         {
             assert(type->isConstFloat());
             // return std::to_string((float)value);
-            return Double2HexStr(value);
+            return Double2HexStr(double(float(value)));
         }
     }
     else if (isGlobal())
@@ -282,8 +227,7 @@ bool match(std::vector<Type *> paramsType, std::vector<Type *> paramsType_found)
 
 /*
     Description: lookup the symbol entry of an identifier in the symbol table
-    Parameters:
-        name: identifier name
+    name: identifier name
     Return: pointer to the symbol entry of the identifier
 
     hint:
@@ -355,6 +299,9 @@ SymbolTable *globals = &t;
 
 void clearSymbolEntries()
 {
-    for (auto se : newSymbolEntries)
+    for (auto &se : newSymbolEntries)
+    {
         delete se;
+        se = nullptr;
+    }
 }

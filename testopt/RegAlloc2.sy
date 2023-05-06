@@ -1,7 +1,0 @@
-int main()
-{
-    int a = getint(), b = getint();
-    int c =  a % b;
-    float t = c;
-    return t;
-}

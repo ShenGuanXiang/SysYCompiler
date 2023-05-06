@@ -30,16 +30,16 @@ public:
     virtual ~Type(){};
     virtual std::string toStr() = 0;
     bool isInt() const { return kind == INT || kind == CONST_INT; }; // int/bool/const int/const bool
-    bool isBool() const { return (kind == INT || kind == CONST_INT) && size == 1; };
+    bool isBool() const { return (kind == INT || kind == CONST_INT) && getSize() == 1; };
     bool isFloat() const { return kind == FLOAT || kind == CONST_FLOAT; };
     bool isVoid() const { return kind == VOID; };
     bool isFunc() const { return kind == FUNC; };
     bool isConstInt() const { return kind == CONST_INT; }; // const int/const bool
-    bool isConstBool() const { return kind == CONST_INT && size == 1; };
+    bool isConstBool() const { return kind == CONST_INT && getSize() == 1; };
     bool isConstFloat() const { return kind == CONST_FLOAT; };
     bool isConst() const { return (kind == CONST_INT) || (kind == CONST_FLOAT) || (kind == CONST_INT_ARRAY) || (kind == CONST_FLOAT_ARRAY); };
     bool isPTR() const { return kind == PTR; };
-    int getSize() const { return (size - 1) / 8 + 1; }; // 单位是字节数, TODO：Array
+    int getSize() const { return (size - 1) / 8 + 1; }; // 单位是字节数
     bool isIntArray() const { return kind == INT_ARRAY || kind == CONST_INT_ARRAY; };
     bool isConstIntArray() const { return kind == CONST_INT_ARRAY; };
     bool isFloatArray() const { return kind == FLOAT_ARRAY || kind == CONST_FLOAT_ARRAY; };
@@ -196,4 +196,5 @@ Type *relMax(Type *type1, Type *type2);
 Type *Var2Const(Type *type);
 Type *Const2Var(Type *type);
 bool convertible(Type *from, Type *to);
+ArrayType *arrTypeLike(ArrayType *old);
 #endif

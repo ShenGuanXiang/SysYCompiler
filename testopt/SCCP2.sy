@@ -1,0 +1,7 @@
+int main()
+{
+    int t = getint();
+    if(t != 1)
+        t = 1;
+    return t;
+}

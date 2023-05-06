@@ -2,7 +2,8 @@
 #define __OPERAND_H__
 
 #include "SymbolTable.h"
-#include <set>
+#include <vector>
+#include <algorithm>
 #include <assert.h>
 
 class Instruction;
@@ -20,8 +21,8 @@ private:
 public:
     Operand(SymbolEntry *se) : se(se)
     {
-        defs = std::set<Instruction *>{};
-        uses = std::set<Instruction *>{};
+        defs = std::set<Instruction *>();
+        uses = std::set<Instruction *>();
     };
     void setDef(Instruction *inst) { defs = std::set<Instruction *>{inst}; };
     void addDef(Instruction *inst) { defs.insert(inst); }; // 特例是消除PHI产生的add ..., ..., 0，会有多个Def

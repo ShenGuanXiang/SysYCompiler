@@ -22,6 +22,12 @@ private:
     BasicBlock *IDom;
     std::set<BasicBlock *> DomFrontiers;
 
+    // DCE
+    bool DCE_marked = false;
+    std::set<BasicBlock *> RSDoms;
+    BasicBlock *RiDom = nullptr;
+    std::set<BasicBlock *> RDF;
+
 public:
     BasicBlock(Function *);
     ~BasicBlock();
@@ -32,7 +38,7 @@ public:
     std::set<BasicBlock *> &getDomFrontiers() { return DomFrontiers; };
     void insertFront(Instruction *);
     void insertBack(Instruction *);
-    void insertBefore(Instruction *, Instruction *);
+    void insertBefore(Instruction *dst, Instruction *src);
     void remove(Instruction *);
     bool empty() const { return head->getNext() == head; }
     void output() const;
@@ -56,6 +62,16 @@ public:
     int getNumOfPred() const { return pred.size(); };
     int getNumOfSucc() const { return succ.size(); };
     void genMachineCode(AsmBuilder *);
+
+    // DCE
+    void clearDCEMark();
+    void SetBDCEMark();
+    bool isDCEMarked();
+    std::set<BasicBlock *> &getRSDoms();
+    BasicBlock *&getRIdom();
+    std::set<BasicBlock *> &getRDF();
+    void CleanSucc();
+    int getNumofInstr();
 };
 
 #endif

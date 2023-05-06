@@ -6,16 +6,19 @@ w#include <iostream>
 #include "MachineCode.h"
 #include "LinearScan.h"
 #include "SimplifyCFG.h"
+#include "AutoInline.h"
 #include "Mem2Reg.h"
 #include "ElimPHI.h"
 #include "LiveVariableAnalysis.h"
-#include "MulDivMod2Bit.h"
-#include "ValueNumbering.h"
-using namespace std;
+#include "StrengthReduction.h"
+#include "ComSubExprElim.h"
+#include "DeadCodeElim.h"
+#include "SparseCondConstProp.h"
+#include "PeepholeOptimization.h"
 
 Ast ast;
-Unit unit;
-MachineUnit mUnit;
+Unit *unit = new Unit();
+MachineUnit *mUnit = new MachineUnit();
 extern FILE *yyin;
 extern FILE *yyout;
 extern void clearSymbolEntries();
@@ -24,11 +27,11 @@ extern void clearMachineOperands();
 int yyparse();
 
 char outfile[256] = "a.out";
-bool dump_tokens;
-bool dump_ast;
-bool dump_ir;
-bool dump_asm;
-bool optimize;
+bool dump_tokens = false;
+bool dump_ast = false;
+bool dump_ir = false;
+bool dump_asm = false;
+bool optimize = false;
 
 int main(int argc, char *argv[])
 {
@@ -84,55 +87,84 @@ int main(int argc, char *argv[])
         fprintf(stderr, "ast output ok\n");
     }
     // ast.typeCheck();
-    ast.genCode(&unit);
+    ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
+    optimize = false;
+    AutoInliner autoinliner(unit);
+    autoinliner.pass();  // 函数自动内联
+    // yyout = stdout;
     if (dump_ir && !optimize)
     {
-        unit.output();
+        unit->output();
         fprintf(stderr, "ir output ok\n");
     }
     if (optimize)
     {
-        Mem2Reg m2r(&unit);
-        m2r.pass();
-        // todo:其它中间代码优化
-        // 自动内联
-        // 常量传播
-        // 强度削弱
-        // 公共子表达式消除，还有bug
-        ValueNumbering dvn(&unit);
-        dvn.pass3();
+        for (int i = 0; i < 4; i++)
+        {
+            Mem2Reg m2r(unit);
+            m2r.pass();
+            AutoInliner autoinliner(unit);
+            autoinliner.pass();  // 函数自动内联
+            // todo:其它中间代码优化
+            // 代数化简
+            SparseCondConstProp sccp(unit);
+            sccp.pass(); // 常量传播
+            ComSubExprElim cse(unit);
+            cse.pass3(); // 公共子表达式消除
+            // 访存优化
+            DeadCodeElim dce(unit);
+            dce.pass(); // 死代码删除
+        }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
-            unit.output();
+            unit->output();
             fprintf(stderr, "opt ir output ok\n");
         }
-        ElimPHI ep(&unit);
+        ElimPHI ep(unit);
         ep.pass();
     }
     if (dump_asm)
     {
-        unit.genMachineCode(&mUnit);
+        unit->genMachineCode(mUnit);
         if (optimize)
         {
             // todo: 汇编代码优化
-            MulDivMod2Bit mdm2b(&mUnit);
-            mdm2b.pass();
-            
-            ValueNumberingASM vnasm(&mUnit);
-            vnasm.pass();
+            ComSubExprElimASM cseasm(mUnit);
+            cseasm.pass(); // 后端cse
+
+            StrengthReduction sr(mUnit);
+            sr.pass(); // 强度削弱
+
+            cseasm.pass();
+
+            PeepholeOptimization ph(mUnit);
+            ph.pass(); // 窥孔优化
+            MachineDeadCodeElim mdce(mUnit);
+            mdce.pass(); // 死代码消除
+            // 指令调度
         }
-        LinearScan linearScan(&mUnit);
+        LinearScan linearScan(mUnit);
         linearScan.pass();
         if (optimize)
         {
             // todo: 汇编代码优化
+            ComSubExprElimASM cseasm(mUnit);
+            cseasm.pass(); // 公共子表达式删除
+            PeepholeOptimization ph(mUnit);
+            ph.pass(); // 窥孔优化
+            // 控制流优化
+            // 相对fp偏移非法但相对sp偏移不非法，转化一下
+            MachineDeadCodeElim mdce(mUnit);
+            mdce.pass(); // 死代码消除
         }
         fprintf(stderr, "asm generated\n");
-        mUnit.output();
+        mUnit->output();
         fprintf(stderr, "asm output ok\n");
     }
+    delete mUnit;
+    delete unit;
     clearSymbolEntries();
     clearTypes();
     clearMachineOperands();

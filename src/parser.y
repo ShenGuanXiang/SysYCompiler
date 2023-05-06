@@ -204,7 +204,7 @@ UnaryExpr
             delete [](char*)$1;
             assert(se != nullptr);
         }
-        //实参类型隐式转化
+        // 实参类型隐式转化
         if($3 != nullptr)
         {
             std::vector<ExprNode *> RParams = dynamic_cast<FuncCallParamsNode *>$3->getParams();
@@ -227,7 +227,7 @@ UnaryExpr
         Type *resType = unaryMax($2->getType(), TypeSystem::MINUS);
         ExprNode *t = typeCast($2, resType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, -(t->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -236,7 +236,7 @@ UnaryExpr
     | NOT UnaryExpr {
         Type *resType = unaryMax($2->getType(), TypeSystem::NOT);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, !($2->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -252,7 +252,7 @@ MulDivModExpr
         Type *resType = calcMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, resType), *t3 = typeCast($3, resType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (t1->getValue()) * (t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -262,7 +262,7 @@ MulDivModExpr
         Type *resType = calcMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, resType), *t3 = typeCast($3, resType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (t1->getValue()) / (t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -278,7 +278,7 @@ MulDivModExpr
         Type *resType = calcMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, resType), *t3 = typeCast($3, resType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (int)(t1->getValue()) % (int)(t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -291,7 +291,7 @@ AddSubExpr
         Type *resType = calcMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, resType), *t3 = typeCast($3, resType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (t1->getValue()) + (t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -301,7 +301,7 @@ AddSubExpr
         Type *resType = calcMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, resType), *t3 = typeCast($3, resType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (t1->getValue()) - (t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -316,7 +316,7 @@ RelExpr
         Type *maxType = relMax($1->getType(), $3->getType()), *resType = logicMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, maxType), *t3 = typeCast($3, maxType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (t1->getValue()) < (t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -326,7 +326,7 @@ RelExpr
         Type *maxType = relMax($1->getType(), $3->getType()), *resType = logicMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, maxType), *t3 = typeCast($3, maxType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (t1->getValue()) <= (t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -336,7 +336,7 @@ RelExpr
         Type *maxType = relMax($1->getType(), $3->getType()), *resType = logicMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, maxType), *t3 = typeCast($3, maxType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (t1->getValue()) > (t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -346,7 +346,7 @@ RelExpr
         Type *maxType = relMax($1->getType(), $3->getType()), *resType = logicMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, maxType), *t3 = typeCast($3, maxType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (t1->getValue()) >= (t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -359,7 +359,7 @@ LEqExpr
         Type *maxType = relMax($1->getType(), $3->getType()), *resType = logicMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, maxType), *t3 = typeCast($3, maxType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (t1->getValue()) == (t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -369,7 +369,7 @@ LEqExpr
         Type *maxType = relMax($1->getType(), $3->getType()), *resType = logicMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, maxType), *t3 = typeCast($3, maxType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (t1->getValue()) != (t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -382,7 +382,7 @@ LAndExpr
         Type *resType = logicMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, resType), *t3 = typeCast($3, resType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (t1->getValue()) && (t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -395,7 +395,7 @@ LOrExpr
         Type *resType = logicMax($1->getType(), $3->getType());
         ExprNode *t1 = typeCast($1, resType), *t3 = typeCast($3, resType);
         SymbolEntry *se;
-        if(resType->isConst()) // 常量传播
+        if(resType->isConst()) // 常量内联
             se = new ConstantSymbolEntry(resType, (t1->getValue()) || (t3->getValue()));
         else
             se = new TemporarySymbolEntry(resType, SymbolTable::getLabel());
@@ -581,7 +581,7 @@ VarDef
         }
         Id* new_Id = new Id(se_var_list);
         new_Id->setIndices(dynamic_cast<IndicesNode*>($2));
-        $$ = new DeclStmt(new_Id, nullptr, false, true);
+        $$ = new DeclStmt(new_Id, nullptr);
         delete []$1;
     }
     | ID ArrayConstIndices ASSIGN InitVal {
@@ -602,7 +602,7 @@ VarDef
         }
         Id* new_Id = new Id(se_var_list);
         new_Id->setIndices(dynamic_cast<IndicesNode*>($2));
-        $$ = new DeclStmt(new_Id, dynamic_cast<InitNode*>($4), false, true);
+        $$ = new DeclStmt(new_Id, dynamic_cast<InitNode*>($4));
         delete []$1;
     }
     ;
@@ -645,13 +645,13 @@ ConstDef
         }
         Id* new_Id = new Id(se_var_list);
         new_Id->setIndices(dynamic_cast<IndicesNode*>($2));
-        $$ = new DeclStmt(new_Id, dynamic_cast<InitNode*>($4), true, true);
+        $$ = new DeclStmt(new_Id, dynamic_cast<InitNode*>($4));
         delete []$1;
     }
     ;
 InitVal 
     : Exp {
-        InitNode* new_exp = new InitNode(false);
+        InitNode* new_exp = new InitNode();
         assert(convertible(dynamic_cast<ExprNode*>($1)->getType(), curType));
         ExprNode* new_expr = typeCast(dynamic_cast<ExprNode*>($1), curType);
         new_exp->setleaf(new_expr);
@@ -662,13 +662,13 @@ InitVal
         $$ = $2;;
     }
     | LBRACE RBRACE {
-        $$ = new InitNode(true);
+        $$ = new InitNode();
     }
     ;
 
 ConstInitVal
     : ConstExp {
-        InitNode* new_exp = new InitNode(true);
+        InitNode* new_exp = new InitNode();
         new_exp->setleaf(dynamic_cast<ExprNode*>($1));
         $$ = new_exp;
     }
@@ -676,12 +676,12 @@ ConstInitVal
         $$ = $2;
     }
     | LBRACE RBRACE {
-        $$ = new InitNode(true);
+        $$ = new InitNode();
     }
     ;
 InitValList
     : InitVal {
-        InitNode* new_expr = new InitNode(false);
+        InitNode* new_expr = new InitNode();
         new_expr->addleaf(dynamic_cast<InitNode*>($1));
         $$ = new_expr;
     }
@@ -693,7 +693,7 @@ InitValList
     ;
 ConstInitValList
     : ConstInitVal {
-        InitNode* new_expr = new InitNode(true);
+        InitNode* new_expr = new InitNode();
         new_expr->addleaf(dynamic_cast<InitNode*>($1));
         $$ = new_expr;
     }
@@ -763,7 +763,8 @@ FuncFParam
         if($1==TypeSystem::intType){
             arrayType = new IntArrayType();
         }
-        else if($1==TypeSystem::floatType){
+        else {
+            assert($1==TypeSystem::floatType);
             arrayType = new FloatArrayType();
         }
         arrayType->SetDim(arrayIdx);

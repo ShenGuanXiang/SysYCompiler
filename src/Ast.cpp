@@ -12,13 +12,13 @@ extern FILE *yyout;
 int Node::counter = 0;
 IRBuilder *Node::builder = nullptr;
 static int height = 0;
-static std::vector<WhileStmt *> whileStack;
-static Operand *arrayAddr;
+static std::vector<WhileStmt *> whileStack = std::vector<WhileStmt *>();
+static Operand *arrayAddr = nullptr;
 static Type *arrayType = nullptr;
-static std::vector<int> d;
-std::vector<int> cur_dim;
-ArrayType *cur_type;
-std::vector<ExprNode *> vec_val;
+static std::vector<int> d = std::vector<int>();
+std::vector<int> cur_dim = std::vector<int>();
+ArrayType *cur_type = nullptr;
+std::vector<ExprNode *> vec_val = std::vector<ExprNode *>();
 
 static void get_vec_val(InitNode *cur_node)
 {
@@ -27,25 +27,6 @@ static void get_vec_val(InitNode *cur_node)
     else
         for (auto l : cur_node->getleaves())
             get_vec_val(l);
-}
-
-static ArrayType *arrTypeLike(ArrayType *old)
-{
-    if (old->isIntArray())
-    {
-        if (old->isConst())
-            return new ConstIntArrayType();
-        else
-            return new IntArrayType();
-    }
-    else
-    {
-        assert(old->isFloatArray());
-        if (old->isConst())
-            return new ConstFloatArrayType();
-        else
-            return new FloatArrayType();
-    }
 }
 
 Node::Node()
@@ -65,14 +46,14 @@ Type *ExprNode::getType()
     if (symbolEntry->getType()->isPTR())
     {
         // TODO :
-        return ((PointerType*)symbolEntry->getType())->getValType();
+        return ((PointerType *)symbolEntry->getType())->getValType();
     }
     else
     {
         if (!is_array_ele)
             return symbolEntry->getType();
         else
-            return dynamic_cast<ArrayType *>(symbolEntry->getType())->getElemType();
+            return Const2Var(dynamic_cast<ArrayType *>(symbolEntry->getType())->getElemType());
     }
 }
 
@@ -89,8 +70,8 @@ void Id::output(int level)
     name = ((IdentifierSymbolEntry *)symbolEntry)->getName();
     type = symbolEntry->getType()->toStr();
     scope = dynamic_cast<IdentifierSymbolEntry *>(symbolEntry)->getScope();
-    fprintf(yyout, "%*cId \t name: %s \t scope: %d \t type: %s\n", level, ' ',
-            name.c_str(), scope, type.c_str());
+    fprintf(yyout, "%*cId \t name: %s \t scope: %d \t type: %s \t is_array: %d \t is_array_ele: %d\n", level, ' ',
+            name.c_str(), scope, type.c_str(), is_array, is_array_ele);
     if (indices != nullptr)
         indices->output(level + 4);
 }
@@ -384,6 +365,8 @@ void Ast::genCode(Unit *unit)
     Node::setIRBuilder(builder);
     assert(root != nullptr);
     root->genCode();
+    delete builder;
+    Node::setIRBuilder(nullptr);
 }
 
 void Id::genCode()
@@ -401,7 +384,7 @@ void Id::genCode()
     {
         bool isPtr = (symbolEntry->getType())->isPTR();
         if (!isPtr)
-                cur_type = ((ArrayType *)getSymPtr()->getType());
+            cur_type = ((ArrayType *)getSymPtr()->getType());
         else
             cur_type = (ArrayType *)((PointerType *)symbolEntry->getType())->getValType();
         if (indices != nullptr)
@@ -421,17 +404,20 @@ void Id::genCode()
                 currr_dim = ((ArrayType *)((PointerType *)getSymPtr()->getType())->getValType())->fetch();
             if (currr_dim.size() != indices->getExprList().size() && !isPtr)
                 is_FP = true;
-            
-            std::vector<Operand*> idx_operend;
-            if (!isPtr) 
+
+            std::vector<Operand *> idx_operend;
+            if (!isPtr)
                 idx_operend.push_back(nullptr);
             bool be_first = true;
-            for (auto idx : indices->getExprList()) {
+            for (auto idx : indices->getExprList())
+            {
                 idx->genCode();
-                if (!isPtr) currr_dim.erase(currr_dim.begin());
+                if (!isPtr)
+                    currr_dim.erase(currr_dim.begin());
                 else
                 {
-                    if (!be_first) {
+                    if (!be_first)
+                    {
                         currr_dim.erase(currr_dim.begin());
                     }
                     be_first = false;
@@ -439,40 +425,22 @@ void Id::genCode()
                 idx_operend.push_back(idx->getOperand());
             }
             ArrayType *curr_type;
-            PointerType* final_type;
-            if (currr_dim.size()) {
-                if (cur_type->isIntArray())
-                {
-                    if (cur_type->isConst())
-                        curr_type = new ConstIntArrayType();
-                    else
-                        curr_type = new IntArrayType();
-                }
-                else
-                {
-                    if (cur_type->isConst())
-                        curr_type = new ConstFloatArrayType();
-                    else
-                        curr_type = new FloatArrayType();
-                }
+            PointerType *final_type;
+            if (currr_dim.size())
+            {
+                curr_type = arrTypeLike(cur_type);
                 curr_type->SetDim(currr_dim);
                 final_type = new PointerType(curr_type);
             }
-            else {
-                if (cur_type->getElemType()->isInt())
-                    final_type = new PointerType(TypeSystem::intType);
-                else
-                    final_type = new PointerType(TypeSystem::floatType);
+            else
+            {
+                final_type = new PointerType(Const2Var(cur_type->getElemType()));
             }
             Operand *tempDst = new Operand(new TemporarySymbolEntry(final_type, SymbolTable::getLabel()));
+            if (is_FP)
+                idx_operend.push_back(nullptr);
             new GepInstruction(tempDst, tempSrc, idx_operend, bb);
             tempSrc = tempDst;
-            if (is_FP)
-            {
-                tempDst = new Operand(new TemporarySymbolEntry(final_type, SymbolTable::getLabel()));
-                new GepInstruction(tempDst, tempSrc, std::vector<Operand *>{nullptr, nullptr}, bb);
-                tempSrc = tempDst;
-            }
             if (is_left)
             {
                 arrayAddr = tempSrc;
@@ -481,10 +449,7 @@ void Id::genCode()
             }
             if (!isPtr)
             {
-                if (getType()->isInt())
-                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
-                else
-                    dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::floatType, SymbolTable::getLabel()));
+                dst1 = new Operand(new TemporarySymbolEntry(Const2Var(getType()), SymbolTable::getLabel()));
             }
             else
             {
@@ -498,7 +463,7 @@ void Id::genCode()
                 // dst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
                 // dst = new Operand(new TemporarySymbolEntry(new PointerType(((ArrayType*)final_type->getValType())->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
                 dst = tempSrc;
-                dst->getEntry()->setType(new PointerType(((ArrayType*)final_type->getValType())->getElemType()));
+                dst->getEntry()->setType(new PointerType(((ArrayType *)final_type->getValType())->getElemType()));
                 // assert(0);
                 is_FP = false;
                 return;
@@ -511,20 +476,7 @@ void Id::genCode()
             if (symbolEntry->getType()->isPTR())
             {
                 ArrayType *curr_type;
-                if (cur_type->isIntArray())
-                {
-                    if (cur_type->isConst())
-                        curr_type = new ConstIntArrayType();
-                    else
-                        curr_type = new IntArrayType();
-                }
-                else
-                {
-                    if (cur_type->isConst())
-                        curr_type = new ConstFloatArrayType();
-                    else
-                        curr_type = new FloatArrayType();
-                }
+                curr_type = arrTypeLike(cur_type);
                 std::vector<int> currdim = cur_type->fetch();
                 curr_type->SetDim(currdim);
                 Operand *dst1 = new Operand(new TemporarySymbolEntry(new PointerType(cur_type), SymbolTable::getLabel()));
@@ -833,30 +785,76 @@ void SeqStmt::genCode()
         stmt->genCode();
 }
 
-void InitNode::genCode(int level)
+void InitNode::genCode()
 {
+    std::vector<std::vector<Operand *>> non_zeros;
+    std::vector<int> expr_node;
+    size_t cur_z = 0;
     for (size_t i = 0; i < vec_val.size(); i++)
     {
-        int pos = i;
-        ArrayType *curr_type = arrTypeLike(cur_type);
-        std::vector<int> curr_dim(cur_dim);
-        Operand *addr = arrayAddr;
-        std::vector<Operand*> idx_operand{nullptr};
-        for (size_t j = 0; j < d.size(); j++)
+        size_t pos = i;
+        if (vec_val[i]->getValue() != 0 || !vec_val[i]->getSymPtr()->isConstant())
         {
-            curr_dim.erase(curr_dim.begin());
-            idx_operand.push_back(new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, pos / d[j])));
-            fprintf(stderr, "currdim is %s\n", addr->getType()->toStr().c_str());
-            pos %= d[j];
+            non_zeros.push_back(std::vector<Operand *>{nullptr});
+            for (size_t j = 0; j < d.size(); j++)
+            {
+                non_zeros[cur_z].push_back(new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, pos / d[j])));
+                pos %= d[j];
+            }
+            expr_node.push_back(i);
+            cur_z++;
         }
-        curr_type->SetDim(curr_dim);
-        Operand* final_offset = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
-        vec_val[i]->genCode();
-        Operand *src = vec_val[i]->getOperand();
-        new GepInstruction(final_offset, addr, idx_operand, builder->getInsertBB());
-        new StoreInstruction(final_offset, src, builder->getInsertBB());
-        curr_dim.clear();
-        // assert(cur_dim.empty());
+    }
+    if (
+        // 0
+        10 * cur_z < vec_val.size() && cur_z < 25)
+    {
+        auto val = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0)),
+             len = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 4 * vec_val.size()));
+        auto memset_func = new FunctionType(TypeSystem::intType, std::vector<Type *>{nullptr});
+        new FuncCallInstruction(new Operand(new TemporarySymbolEntry(new IntType(8), SymbolTable::getLabel())),
+                                std::vector<Operand *>{arrayAddr, val, len},
+                                new IdentifierSymbolEntry(memset_func, "memset", 0),
+                                builder->getInsertBB());
+        std::vector<int> curr_dim(cur_dim);
+        for (size_t j = 0; j < d.size(); j++)
+            curr_dim.erase(curr_dim.begin());
+        for (int i = 0; i < non_zeros.size(); i++)
+        {
+            ArrayType *curr_type = arrTypeLike(cur_type);
+            curr_type->SetDim(curr_dim);
+            Operand *final_offset = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
+            vec_val[expr_node[i]]->genCode();
+            Operand *src = vec_val[expr_node[i]]->getOperand();
+            new GepInstruction(final_offset, arrayAddr, non_zeros[i], builder->getInsertBB());
+            new StoreInstruction(final_offset, src, builder->getInsertBB());
+            curr_dim.clear();
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < vec_val.size(); i++)
+        {
+            int pos = i;
+            ArrayType *curr_type = arrTypeLike(cur_type);
+            std::vector<int> curr_dim(cur_dim);
+            Operand *addr = arrayAddr;
+            std::vector<Operand *> idx_operand{nullptr};
+            for (size_t j = 0; j < d.size(); j++)
+            {
+                curr_dim.erase(curr_dim.begin());
+                idx_operand.push_back(new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, pos / d[j])));
+                pos %= d[j];
+            }
+            curr_type->SetDim(curr_dim);
+            Operand *final_offset = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
+            vec_val[i]->genCode();
+            Operand *src = vec_val[i]->getOperand();
+            new GepInstruction(final_offset, addr, idx_operand, builder->getInsertBB());
+            new StoreInstruction(final_offset, src, builder->getInsertBB());
+            curr_dim.clear();
+            // assert(cur_dim.empty());
+        }
     }
 }
 
@@ -871,8 +869,7 @@ void IndicesNode::output(int level)
 
 void InitNode::output(int level)
 {
-    std::string constStr = isconst ? "true" : "false";
-    fprintf(yyout, "%*cInitValNode\tisConst:%s\n", level, ' ', constStr.c_str());
+    fprintf(yyout, "%*cInitValNode\n", level, ' ');
     for (auto l : leaves)
         l->output(level + 4);
     if (leaf != nullptr)
@@ -885,7 +882,7 @@ void IndicesNode::genCode()
         ele->genCode();
 }
 
-DeclStmt::DeclStmt(Id *id, InitNode *expr, bool isConst, bool isArray) : id(id), expr(expr), BeConst(isConst), BeArray(isArray)
+DeclStmt::DeclStmt(Id *id, InitNode *expr) : id(id), expr(expr)
 {
     next = nullptr;
 
@@ -900,7 +897,7 @@ DeclStmt::DeclStmt(Id *id, InitNode *expr, bool isConst, bool isArray) : id(id),
             std::vector<double> arrVals;
             for (auto elem : vec_val)
                 arrVals.push_back(elem->getValue());
-            id->getSymPtr()->setArrVals(arrVals);
+            id->getSymPtr()->getArrVals() = arrVals;
         }
     }
 
@@ -950,7 +947,7 @@ void DeclStmt::genCode()
                 for (int i = d.size() - 2; i >= 0; i--)
                     d[i] = d[i + 1] * d[i];
                 arrayAddr = addr;
-                expr->genCode(0);
+                expr->genCode();
             }
             else
             {
@@ -1042,8 +1039,7 @@ void ReturnStmt::genCode()
 
 void AssignStmt::genCode()
 {
-    if (lval->getType()->isConst()) // 常量不会被重新赋值，这里的折叠应该没有作用
-        return;
+    assert(!lval->getType()->isConst()); // 常量不会被重新赋值
     BasicBlock *bb = builder->getInsertBB();
     expr->genCode();
     if (lval->getSymPtr()->getType()->isARRAY() || lval->getSymPtr()->getType()->isPTR())
@@ -1405,7 +1401,7 @@ void InitNode::fill(int level, std::vector<int> d, Type *type)
             break;
     while (num % cap)
     {
-        InitNode *new_const_node = new InitNode(true);
+        InitNode *new_const_node = new InitNode();
         new_const_node->setleaf(new Constant(new ConstantSymbolEntry(Var2Const(type), 0)));
         addleaf(new_const_node);
         num++;
@@ -1413,7 +1409,7 @@ void InitNode::fill(int level, std::vector<int> d, Type *type)
     int t = getSize(cap);
     while (t < d[level])
     {
-        InitNode *new_node = new InitNode(true);
+        InitNode *new_node = new InitNode();
         addleaf(new_node);
         t++;
     }

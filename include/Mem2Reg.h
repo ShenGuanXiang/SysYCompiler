@@ -14,6 +14,7 @@ class Mem2Reg
 {
 private:
     Unit *unit;
+    void global2Local();
     void InsertPhi(Function *);
     void Rename(Function *);
 

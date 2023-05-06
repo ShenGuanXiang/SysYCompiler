@@ -27,6 +27,7 @@ public:
     bool isCall() const { return instType == CALL; };
     bool isGep() const { return instType == GEP; };
     bool isBinary() const { return instType == BINARY; };
+    bool isCalc() const { return isAlloca() && !isUncond() && !isCond(); };
     void setParent(BasicBlock *);
     void setNext(Instruction *);
     void setPrev(Instruction *);
@@ -44,8 +45,11 @@ public:
         assert(!def_list.empty());
         return def_list[0];
     };
+    bool hasNoDef() { return def_list.empty(); };
+    bool hasNoUse() { return use_list.empty(); };
     virtual std::vector<Operand *> &getUses() { return use_list; };
-    void replaceAllUsesWith(Operand *); // Mem2Reg
+    void replaceAllUsesWith(Operand *);                     // replace all uses of the def
+    void replaceUsesWith(Operand *old_op, Operand *new_op); // replace uses of this instruction
     enum
     {
         BINARY,
@@ -62,9 +66,19 @@ public:
         PHI,
         GEP
     };
-    //getting opcode/instruction type to construct string key for lvn
     unsigned getInstType() const { return instType; };
     unsigned getOpcode() const { return opcode; };
+
+    // DCE
+    void clearDCEMark();
+    void SetDCEMark();
+    bool isDCEMarked();
+    bool isCritical();
+
+    // Autoinline
+    virtual Instruction* copy() { return nullptr; };
+    virtual void setDef(Operand* def) {};
+
 protected:
     unsigned instType;
     unsigned opcode;
@@ -73,8 +87,10 @@ protected:
     BasicBlock *parent;
     std::vector<Operand *> def_list; // size <= 1;
     std::vector<Operand *> use_list;
+
+    // DCE
+    bool DCE_marked = false;
     // std::vector<Operand *> operands;
-    
 };
 
 // meaningless instruction, used as the head node of the instruction list.
@@ -84,6 +100,9 @@ public:
     DummyInstruction() : Instruction(-1, nullptr){};
     void output() const {};
     void genMachineCode(AsmBuilder *){};
+
+    // Autoinline
+    Instruction* copy() { return nullptr; };
 };
 
 class AllocaInstruction : public Instruction
@@ -92,6 +111,16 @@ public:
     AllocaInstruction(Operand *dst, SymbolEntry *se, BasicBlock *insert_bb = nullptr);
     void output() const;
     void genMachineCode(AsmBuilder *);
+    SymbolEntry *getSymPtr() { return se; };
+
+    // Autoinline
+    Instruction* copy() { return new AllocaInstruction(*this); };
+    void setDef(Operand* def)
+    {
+        def_list[0] = def;
+        def->setDef(this);
+    }
+
 
 private:
     SymbolEntry *se;
@@ -103,6 +132,14 @@ public:
     LoadInstruction(Operand *dst, Operand *src_addr, BasicBlock *insert_bb = nullptr);
     void output() const;
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction* copy() { return new LoadInstruction(*this); };
+    void setDef(Operand* def)
+    {
+        def_list[0] = def;
+        def->setDef(this);
+    }
 };
 
 class StoreInstruction : public Instruction
@@ -111,6 +148,14 @@ public:
     StoreInstruction(Operand *dst_addr, Operand *src, BasicBlock *insert_bb = nullptr);
     void output() const;
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction* copy() { return new StoreInstruction(*this); };
+    void setDef(Operand* def)
+    {
+        def_list[0] = def;
+        def->setDef(this);
+    }
 };
 
 class BinaryInstruction : public Instruction
@@ -127,6 +172,14 @@ public:
         DIV,
         MOD
     };
+
+    // Autoinline
+    Instruction* copy() { return new BinaryInstruction(*this); };
+    void setDef(Operand* def)
+    {
+        def_list[0] = def;
+        def->setDef(this);
+    }
 };
 
 class CmpInstruction : public Instruction
@@ -144,7 +197,14 @@ public:
         G,
         GE
     };
- 
+
+    // Autoinline
+    Instruction* copy() { return new CmpInstruction(*this); };
+    void setDef(Operand* def)
+    {
+        def_list[0] = def;
+        def->setDef(this);
+    }
 };
 
 // unconditional branch
@@ -156,6 +216,9 @@ public:
     void setBranch(BasicBlock *);
     BasicBlock *getBranch();
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction* copy() { return new UncondBrInstruction(*this); };
 
 protected:
     BasicBlock *branch;
@@ -172,6 +235,9 @@ public:
     void setFalseBranch(BasicBlock *);
     BasicBlock *getFalseBranch();
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction* copy() { return new CondBrInstruction(*this); };
 
 protected:
     BasicBlock *true_branch;
@@ -192,6 +258,13 @@ public:
     ZextInstruction(Operand *dst, Operand *src, BasicBlock *insert_bb = nullptr);
     void output() const;
     void genMachineCode(AsmBuilder *);
+    
+    // Autoinline
+    Instruction* copy() { return new ZextInstruction(*this); };
+    void setDef(Operand* def) {
+        def_list[0] = def;
+        def->setDef(this);
+    }
 };
 
 class IntFloatCastInstruction : public Instruction
@@ -205,6 +278,13 @@ public:
         S2F,
         F2S
     };
+
+    // Autoinline
+    Instruction* copy() { return new IntFloatCastInstruction(*this); };
+    void setDef(Operand* def) {
+        def_list[0] = def;
+        def->setDef(this);
+    }
 };
 
 class FuncCallInstruction : public Instruction
@@ -215,7 +295,15 @@ private:
 public:
     FuncCallInstruction(Operand *dst, std::vector<Operand *> params, IdentifierSymbolEntry *funcse, BasicBlock *insert_bb);
     void output() const;
+    IdentifierSymbolEntry *GetFuncSe() { return func_se; };
     void genMachineCode(AsmBuilder *);
+    
+    // Autoinline
+    Instruction* copy() { return new FuncCallInstruction(*this); };
+    void setDef(Operand* def) {
+        def_list[0] = def;
+        def->setDef(this);
+    }
 };
 
 class PhiInstruction : public Instruction
@@ -223,16 +311,27 @@ class PhiInstruction : public Instruction
 private:
     std::map<BasicBlock *, Operand *> srcs;
     Operand *addr; // old PTR
+    bool incomplete;
 
 public:
     PhiInstruction(Operand *dst, BasicBlock *insert_bb = nullptr);
     void output() const;
     void updateDst(Operand *);
     void addEdge(BasicBlock *block, Operand *src);
+    void removeEdge(BasicBlock *block);
+    void replaceEdge(BasicBlock *block, Operand *replVal);
     Operand *getAddr() { return addr; };
     std::map<BasicBlock *, Operand *> &getSrcs() { return srcs; };
+    bool &get_incomplete() { return this->incomplete; };
 
     void genMachineCode(AsmBuilder *){};
+    
+    // Autoinline
+    Instruction* copy() { return new PhiInstruction(*this); };
+    void setDef(Operand* def) {
+        def_list[0] = def;
+        def->setDef(this);
+    }
 };
 
 class GepInstruction : public Instruction
@@ -241,5 +340,16 @@ public:
     GepInstruction(Operand *dst, Operand *arr, std::vector<Operand *> idxList, BasicBlock *insert_bb = nullptr); // 普适，降维n-1次
     void output() const;
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction* copy() { return new GepInstruction(*this); };
+    void setDef(Operand* def) {
+        def_list[0] = def;
+        def->setDef(this);
+    }
+    void setUse(Operand* def, int pos) {
+        use_list[pos] = def;
+        def->addUse(this);
+    }
 };
 #endif

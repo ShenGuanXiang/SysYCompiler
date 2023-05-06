@@ -3,8 +3,8 @@
 #include <queue>
 #include <set>
 
-std::set<BasicBlock *> freeBBs;
-std::set<Instruction *> freeInsts;
+static std::set<BasicBlock *> freeBBs;
+static std::set<Instruction *> freeInsts;
 
 void SimplifyCFG::pass()
 {
@@ -13,9 +13,37 @@ void SimplifyCFG::pass()
         pass(func);
 }
 
-// todo:某些情况下phi增加来源的代价反而比消除控制流更高，可以判断一下
 void SimplifyCFG::pass(Function *func)
 {
+    // 删除非连通分支
+    std::set<BasicBlock *> visited;
+    std::queue<BasicBlock *> q1;
+    q1.push(func->getEntry());
+    visited.insert(func->getEntry());
+    while (!q1.empty())
+    {
+        auto bb = q1.front();
+        std::vector<BasicBlock *> succs(bb->succ_begin(), bb->succ_end());
+        q1.pop();
+        for (auto succ : succs)
+        {
+            if (!visited.count(succ))
+            {
+                q1.push(succ);
+                visited.insert(succ);
+            }
+        }
+    }
+    auto block_list_copy = func->getBlockList();
+    for (auto bb : block_list_copy)
+    {
+        if (!visited.count(bb))
+            delete bb;
+    }
+
+    // 简化PHI
+    func->SimplifyPHI();
+
     // bfs
     std::map<BasicBlock *, bool> is_visited;
     for (auto bb : func->getBlockList())
@@ -55,7 +83,7 @@ void SimplifyCFG::pass(Function *func)
             }
             func->remove(bb);
             freeBBs.insert(bb);
-            goto Next;
+            goto NextIter;
         }
         // 将两个目标基本块相同的条件分支削弱为无条件分支
         if (bb->rbegin()->isCond() && ((CondBrInstruction *)(bb->rbegin()))->getTrueBranch() == ((CondBrInstruction *)(bb->rbegin()))->getFalseBranch())
@@ -74,11 +102,12 @@ void SimplifyCFG::pass(Function *func)
             {
                 if (succs[0]->getNumOfPred() == 1)
                 {
+                    succs[0]->removePred(bb);
                     func->setEntry(succs[0]);
                     func->remove(bb);
                     freeBBs.insert(bb);
                 }
-                goto Next;
+                goto NextIter;
             }
             bool eliminable = true;
             for (auto i = succs[0]->begin(); i != succs[0]->end() && i->isPHI(); i = i->getNext())
@@ -125,9 +154,8 @@ void SimplifyCFG::pass(Function *func)
                     auto &srcs = ((PhiInstruction *)i)->getSrcs();
                     assert(srcs.count(bb));
                     for (auto pred : preds)
-                        // if (!srcs.count(pred))
-                        srcs[pred] = srcs[bb];
-                    srcs.erase(bb);
+                        ((PhiInstruction *)i)->replaceEdge(pred, srcs[bb]);
+                    ((PhiInstruction *)i)->removeEdge(bb);
                 }
                 if (bb == func->getEntry())
                     func->setEntry(succs[0]);
@@ -136,9 +164,10 @@ void SimplifyCFG::pass(Function *func)
             }
         }
         // 如果仅有一个前驱且该前驱仅有一个后继，将基本块与前驱合并
-        else if (bb->getNumOfPred() == 1 && (*(bb->pred_begin()))->getNumOfSucc() == 1 && bb != func->getEntry())
+        else if (bb->getNumOfPred() == 1 && (*bb->pred_begin())->getNumOfSucc() == 1 && bb != func->getEntry())
         {
             auto pred = *(bb->pred_begin());
+            assert(pred != bb);
             pred->removeSucc(bb);
             auto lastInst = pred->rbegin();
             assert(lastInst->isUncond() || (lastInst->isCond() && ((CondBrInstruction *)(lastInst))->getTrueBranch() == ((CondBrInstruction *)(lastInst))->getFalseBranch()));
@@ -149,10 +178,26 @@ void SimplifyCFG::pass(Function *func)
             auto insts = std::vector<Instruction *>();
             for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
             {
-                assert(!inst->isPHI());
-                insts.push_back(inst);
+                if (inst->isPHI())
+                {
+                    auto phi = dynamic_cast<PhiInstruction *>(inst);
+                    Operand *replVal = nullptr;
+                    for (auto [pre_bb, src] : phi->getSrcs())
+                    {
+                        if (pre_bb == pred)
+                        {
+                            assert(replVal == nullptr);
+                            replVal = src;
+                        }
+                    }
+                    assert(replVal != nullptr);
+                    phi->replaceAllUsesWith(replVal);
+                    freeInsts.insert(inst);
+                }
+                else
+                    insts.push_back(inst);
             }
-            for (auto inst : insts)
+            for (auto &inst : insts)
             {
                 bb->remove(inst);
                 freeInsts.erase(inst);
@@ -165,12 +210,9 @@ void SimplifyCFG::pass(Function *func)
                 {
                     auto &srcs = ((PhiInstruction *)i)->getSrcs();
                     assert(srcs.count(bb));
-                    for (auto pred : preds)
-                    {
-                        assert(!srcs.count(pred));
-                        srcs[pred] = srcs[bb];
-                    }
-                    srcs.erase(bb);
+                    assert(!srcs.count(pred));
+                    ((PhiInstruction *)i)->addEdge(pred, srcs[bb]);
+                    ((PhiInstruction *)i)->removeEdge(bb);
                 }
                 succ->removePred(bb);
                 succ->addPred(pred);
@@ -202,12 +244,8 @@ void SimplifyCFG::pass(Function *func)
             //             {
             //                 auto &srcs = ((PhiInstruction *)i)->getSrcs();
             //                 assert(srcs.count(bb));
-            //                 for (auto pred : preds)
-            //                 {
-            //                     assert(!srcs.count(pred));
-            //                     srcs[pred] = srcs[bb];
-            //                 }
-            //                 srcs.erase(bb);
+            //                 assert(!srcs.count(pred));
+            //                 ((PhiInstruction *)i)->addEdge(pred, srcs[bb]);
             //             }
             //         trueBB->addPred(pred);
             //         falseBB->addPred(pred);
@@ -218,6 +256,16 @@ void SimplifyCFG::pass(Function *func)
             // {
             //     trueBB->removePred(bb);
             //     falseBB->removePred(bb);
+            //     for (auto phi_bb : {falseBB, trueBB})
+            //     {
+            //         phi_bb->removePred(bb);
+            //         for (auto i = phi_bb->begin(); i != phi_bb->end() && i->isPHI(); i = i->getNext())
+            //         {
+            //             auto &srcs = ((PhiInstruction *)i)->getSrcs();
+            //             assert(srcs.count(bb));
+            //             ((PhiInstruction *)i)->removeEdge(bb);
+            //         }
+            //     }
             //     func->remove(bb);
             //     freeBBs.insert(bb);
             // }
@@ -272,14 +320,14 @@ void SimplifyCFG::pass(Function *func)
                         func->remove(pred);
                         freeBBs.insert(pred);
                     }
-                    if (bb->predEmpty())
+                    if (bb->predEmpty() && bb != func->getEntry())
                     {
                         func->remove(bb);
                         freeBBs.insert(bb);
                     }
                 }
         }
-    Next:
+    NextIter:
         q.pop();
         for (auto succ : succs)
         {
@@ -290,20 +338,13 @@ void SimplifyCFG::pass(Function *func)
             }
         }
     }
-    // 删除不可达的基本块。
+
+    // 删除不getExits
     auto blocks = func->getBlockList();
     for (auto bb : blocks)
         if (!is_visited[bb])
-        {
-            func->remove(bb);
-            std::vector<BasicBlock *> preds(bb->pred_begin(), bb->pred_end());
-            std::vector<BasicBlock *> succs(bb->succ_begin(), bb->succ_end());
-            for (auto pred : preds)
-                pred->removeSucc(bb);
-            for (auto succ : succs)
-                succ->removePred(bb);
             freeBBs.insert(bb);
-        }
+
     for (auto inst : freeInsts)
         delete inst;
     freeInsts.clear();

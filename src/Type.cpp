@@ -18,7 +18,7 @@ Type *TypeSystem::constIntType = &commonConstInt;
 Type *TypeSystem::constFloatType = &commonConstFloat;
 Type *TypeSystem::constBoolType = &commonConstBool;
 
-static std::vector<Type *> newTypes; // 用来回收new出来的Type
+static std::vector<Type *> newTypes = std::vector<Type *>(); // 用来回收new出来的Type
 
 FunctionType::FunctionType(Type *returnType, std::vector<Type *> paramsType) : Type(Type::FUNC), returnType(returnType), paramsType(paramsType)
 {
@@ -44,8 +44,6 @@ Type *ArrayType::getElemType()
            : isIntArray()        ? TypeSystem::intType
                                  : TypeSystem::floatType;
 }
-
-// to do : toStr 方法还需要修改
 
 std::string IntType::toStr()
 {
@@ -140,7 +138,6 @@ bool isIllegalOpType(Type *type)
 
 Type *unaryMax(Type *type, unsigned int opcode)
 {
-    // to do : consider array type
     assert(!isIllegalOpType(type));
     if (opcode == TypeSystem::NOT)
         return type->isConst() ? TypeSystem::constBoolType : TypeSystem::boolType;
@@ -152,7 +149,6 @@ Type *unaryMax(Type *type, unsigned int opcode)
 
 Type *calcMax(Type *type1, Type *type2)
 {
-    // to do : consider array type
     assert(!isIllegalOpType(type1));
     assert(!isIllegalOpType(type2));
     if (type1 == TypeSystem::floatType || type2 == TypeSystem::floatType ||
@@ -180,7 +176,6 @@ Type *relMax(Type *type1, Type *type2)
 
 Type *logicMax(Type *type1, Type *type2)
 {
-    // to do : consider array type
     assert(!isIllegalOpType(type1));
     assert(!isIllegalOpType(type2));
     if (type1 == TypeSystem::intType || type1 == TypeSystem::boolType || type1 == TypeSystem::floatType ||
@@ -199,7 +194,6 @@ Type *Var2Const(Type *type)
     if (type == TypeSystem::floatType)
         return TypeSystem::constFloatType;
 
-    // to do : array type
     assert(type->isConstInt() || type->isConstFloat());
     return type;
 }
@@ -219,15 +213,36 @@ Type *Const2Var(Type *type)
 
 bool convertible(Type *from, Type *to)
 {
-    // to do : array type
-    if (from->isARRAY() && to->isARRAY())
+    if (from->isARRAY() && to->isARRAY()) // 函数实参转形参时的判断会用
         return true;
     return from->isConst() ? (!to->isPTR() && !to->isFunc() && !to->isVoid()) : (from->isInt() || from->isFloat()) ? (!to->isPTR() && !to->isFunc() && !to->isVoid() && !to->isConst())
                                                                                                                    : false;
 }
 
+ArrayType *arrTypeLike(ArrayType *old)
+{
+    if (old->isIntArray())
+    {
+        if (old->isConst())
+            return new ConstIntArrayType();
+        else
+            return new IntArrayType();
+    }
+    else
+    {
+        assert(old->isFloatArray());
+        if (old->isConst())
+            return new ConstFloatArrayType();
+        else
+            return new FloatArrayType();
+    }
+}
+
 void clearTypes()
 {
-    for (auto type : newTypes)
+    for (auto &type : newTypes)
+    {
         delete type;
+        type = nullptr;
+    }
 }

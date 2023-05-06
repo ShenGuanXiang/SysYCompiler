@@ -10,6 +10,7 @@
 
 class Type;
 class Operand;
+class Function;
 class MachineOperand;
 
 class SymbolEntry
@@ -38,17 +39,17 @@ public:
     void setType(Type *type) { this->type = type; };
     double getValue() { return value; };
     void setValue(double val) { value = val; };
-    std::vector<double> getArrVals() { return arrVals; };
-    void setArrVals(std::vector<double> arrVals) { this->arrVals = arrVals; };
-    bool isAllZero()
+    std::vector<double> &getArrVals() { return arrVals; };
+    int getNonZeroCnt()
     {
+        int ans = 0;
         assert(type->isARRAY());
-        for (auto val : arrVals)
+        for (auto &val : arrVals)
             if (val)
-                return false;
-        return true;
+                ans++;
+        return ans;
     };
-    int getKind() { return kind; };
+    int getKind() { return kind; }; // for comparison
     virtual std::string toStr() = 0;
     // You can add any function you need here.
 };
@@ -66,7 +67,7 @@ public:
     SymbolTable();
     SymbolTable(SymbolTable *prev);
     bool install(std::string name, SymbolEntry *entry);
-    SymbolEntry *lookup(std::string name, bool isFunc = false, std::vector<Type *> ParamsType = std::vector<Type *>{});
+    SymbolEntry *lookup(std::string name, bool isFunc = false, std::vector<Type *> ParamsType = std::vector<Type *>());
     SymbolTable *getPrev() { return prev; };
     int getLevel() { return level; };
     static int getLabel() { return counter++; };
@@ -113,12 +114,6 @@ public:
 class IdentifierSymbolEntry : public SymbolEntry
 {
 private:
-    enum
-    {
-        GLOBAL,
-        PARAM,
-        LOCAL
-    };
     std::string name;
     int label; // Vreg no for param
     int scope;
@@ -130,8 +125,16 @@ private:
     std::set<IdentifierSymbolEntry *> params_se; // for func
     Operand *paramOpe;                           // for param
     // You can add any field you need here.
+    // DCE
+    Function *f;
 
 public:
+    enum
+    {
+        GLOBAL,
+        PARAM,
+        LOCAL
+    };
     IdentifierSymbolEntry(Type *type, std::string name, int scope);
     virtual ~IdentifierSymbolEntry(){};
     std::string toStr();
@@ -139,6 +142,7 @@ public:
     bool isParam() const { return scope == PARAM; };
     bool isLocal() const { return scope >= LOCAL; };
     int getScope() const { return scope; };
+    void setScope(int scope) { this->scope = scope; };
     void setAddr(Operand *addr) { this->addr = addr; };
     Operand *getAddr() { return addr; };
     // You can add any function you need here.
@@ -162,7 +166,12 @@ public:
         assert(func_se != nullptr);
         return func_se;
     };
+    Function *getFunction() { return f; };
+    void setFunction(Function *f) { this->f = f; };
     std::set<IdentifierSymbolEntry *> &getParamsSe() { return params_se; };
+
+    // AutoInline
+    bool isMain() { return name == "main"; };
 };
 
 /*
