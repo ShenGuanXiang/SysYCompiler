@@ -602,7 +602,7 @@ void Mem2Reg::InsertPhi(Function *func)
                 {
                     if (LiveInBlocks.find(df) != LiveInBlocks.end())
                     {
-                        auto phi = new PhiInstruction(alloca->getDef()); // 现在PHI的dst是PTR
+                        auto phi = new PhiInstruction(alloca->getDef(), true); // 现在PHI的dst是PTR
                         df->insertFront(phi);
                     }
                     is_visited[df] = true;

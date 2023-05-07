@@ -5,6 +5,7 @@ static std::vector<MachineInstruction *> freeInsts;
 void PeepholeOptimization::pass()
 {
     op1();
+    op2();
 
     for (auto inst : freeInsts)
     {
@@ -231,7 +232,7 @@ void PeepholeOptimization::op1()
                             }
                         }
 
-                        // 效果不大，且vmla def-use关系混乱
+                        // 效果不大，且vmla def-use关系混乱 TODO：在寄存器分配完毕后分情况讨论
                         // else if (curr_inst->getDef()[0]->getValType()->isFloat() && next_inst->getDef()[0]->getValType()->isFloat())
                         // {
 
@@ -408,6 +409,151 @@ void PeepholeOptimization::op1()
                         //     block->removeInst(next_inst);
                         //     freeInsts.push_back(next_inst);
                         // }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 跟op1不能合并（会相互影响）
+void PeepholeOptimization::op2()
+{
+
+    for (auto func_iter = unit->begin(); func_iter != unit->end(); func_iter++)
+    {
+        auto func = *func_iter;
+        for (auto block_iter = func->begin(); block_iter != func->end(); block_iter++)
+        {
+            auto block = *block_iter;
+            if (block->getInsts().empty())
+                continue;
+
+            std::vector<MachineInstruction *> insts;
+            insts.assign(block->begin(), block->end());
+            auto curr_inst_iter = insts.begin();
+            auto next_inst_iter = next(curr_inst_iter, 1);
+
+            for (; next_inst_iter != insts.end(); curr_inst_iter++, next_inst_iter++)
+            {
+                auto curr_inst = *curr_inst_iter;
+                auto next_inst = *next_inst_iter;
+
+                if (curr_inst->isBinary() && next_inst->isMov())
+                {
+                    auto binary_def = curr_inst->getDef()[0];
+                    auto mov_src = next_inst->getUse()[0];
+                    if (*binary_def == *mov_src && next_inst->getCond() == MachineInstruction::NONE)
+                    {
+                        auto binary_src1 = curr_inst->getUse()[0];
+                        auto binary_src2 = curr_inst->getUse()[1];
+                        auto mov_dst = next_inst->getDef()[0];
+
+                        auto new_inst = new BinaryMInstruction(block, curr_inst->getOpType(), new MachineOperand(*mov_dst), new MachineOperand(*binary_src1), new MachineOperand(*binary_src2));
+
+                        block->insertBefore(next_inst, new_inst);
+                        block->removeInst(next_inst);
+                    }
+                }
+
+                else if (curr_inst->isBinary() && next_inst->isVmov() && curr_inst->getDef()[0]->getValType()->isFloat())
+                {
+                    auto binary_def = curr_inst->getDef()[0];
+                    auto mov_src = next_inst->getUse()[0];
+                    if (*binary_def == *mov_src && next_inst->getCond() == MachineInstruction::NONE)
+                    {
+                        auto binary_src1 = curr_inst->getUse()[0];
+                        auto binary_src2 = curr_inst->getUse()[1];
+                        auto mov_dst = next_inst->getDef()[0];
+
+                        auto new_inst = new BinaryMInstruction(block, curr_inst->getOpType(), new MachineOperand(*mov_dst), new MachineOperand(*binary_src1), new MachineOperand(*binary_src2));
+
+                        block->insertBefore(next_inst, new_inst);
+                        block->removeInst(next_inst);
+                    }
+                }
+
+                else if (curr_inst->isMov() && next_inst->isMov())
+                {
+                    if (*curr_inst->getDef()[0] == *next_inst->getUse()[0] && curr_inst->getCond() == MachineInstruction::NONE && next_inst->getCond() == MachineInstruction::NONE)
+                    {
+                        auto src1 = curr_inst->getUse()[0];
+                        auto mov_dst = next_inst->getDef()[0];
+                        auto new_inst = new MovMInstruction(block, MovMInstruction::MOV, new MachineOperand(*mov_dst), new MachineOperand(*src1));
+                        block->insertBefore(next_inst, new_inst);
+                        block->removeInst(next_inst);
+                    }
+                }
+
+                else if (curr_inst->isVmov() && next_inst->isVmov())
+                {
+                    if (*curr_inst->getDef()[0] == *next_inst->getUse()[0] && curr_inst->getCond() == MachineInstruction::NONE && next_inst->getCond() == MachineInstruction::NONE)
+                    {
+                        auto src1 = curr_inst->getUse()[0];
+                        auto mov_dst = next_inst->getDef()[0];
+                        auto new_inst = new MovMInstruction(block, MovMInstruction::VMOV, new MachineOperand(*mov_dst), new MachineOperand(*src1));
+                        block->insertBefore(next_inst, new_inst);
+                        block->removeInst(next_inst);
+                    }
+                }
+
+                // TODO：next_inst为vmov/mov && next_inst目标为r0~r3/s0~s3 && curr_inst目标 = next_inst源, curr_inst可以是其它指令=>
+
+                else if (curr_inst->isMovShift() && (next_inst->isAdd() || next_inst->isSub() || next_inst->isRsb()) && !next_inst->getDef()[0]->getValType()->isFloat())
+                {
+                    // 浮点没有移位
+                    // mov v5, v2, lsl #2
+                    // add v4, v3, v5 (add v4, v5, v3)
+                    // --->
+                    // add v4, v3, v2, lsl #2
+                    // mov v5, v2, lsl #2
+
+                    auto mov_dst = curr_inst->getDef()[0];
+                    auto mov_src = curr_inst->getUse()[0];
+                    auto mov_imm = curr_inst->getUse()[1];
+                    auto bin_dst = next_inst->getDef()[0];
+                    auto bin_src1 = next_inst->getUse()[0];
+                    auto bin_src2 = next_inst->getUse()[1];
+
+                    if (!bin_src1->isImm() && !bin_src2->isImm() &&
+                        ((*mov_dst == *bin_src1 && next_inst->isAdd()) || *mov_dst == *bin_src2) && !(*bin_dst == *mov_src) && !(*bin_dst == *mov_dst))
+                    {
+                        MachineOperand *tem_src = (*mov_dst == *bin_src1) ? bin_src2 : bin_src1;
+                        int op;
+                        switch (curr_inst->getOpType())
+                        {
+                        case MovMInstruction::MOVASR:
+                            if (next_inst->isAdd())
+                                op = BinaryMInstruction::ADDASR;
+                            else if (next_inst->isSub())
+                                op = BinaryMInstruction::SUBASR;
+                            else
+                                op = BinaryMInstruction::RSBASR;
+                            break;
+                        case MovMInstruction::MOVLSL:
+                            if (next_inst->isAdd())
+                                op = BinaryMInstruction::ADDLSL;
+                            else if (next_inst->isSub())
+                                op = BinaryMInstruction::SUBLSL;
+                            else
+                                op = BinaryMInstruction::RSBLSL;
+                            break;
+                        case MovMInstruction::MOVLSR:
+                            if (next_inst->isAdd())
+                                op = BinaryMInstruction::ADDLSR;
+                            else if (next_inst->isSub())
+                                op = BinaryMInstruction::SUBLSR;
+                            else
+                                op = BinaryMInstruction::RSBLSR;
+                            break;
+                        default:
+                            assert(0);
+                            break;
+                        }
+                        auto new_bin = new BinaryMInstruction(block, op, new MachineOperand(*bin_dst), new MachineOperand(*tem_src), new MachineOperand(*mov_src), new MachineOperand(*mov_imm));
+
+                        block->insertBefore(curr_inst, new_bin);
+                        block->removeInst(next_inst);
                     }
                 }
             }

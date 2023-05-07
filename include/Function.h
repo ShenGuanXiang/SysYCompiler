@@ -26,6 +26,8 @@ private:
 
     std::set<Function *> callers;
     std::set<Function *> callees;
+    std::set<Instruction *> callers_instr;
+    int degree = 0;
 
     // DCE
     std::map<Function *, std::set<Instruction *>> preds_instr;
@@ -43,6 +45,15 @@ public:
     void output() const;
     std::vector<BasicBlock *> &getBlockList() { return block_list; };
     std::vector<SymbolEntry *> &getParamsList() { return param_list; };
+    std::vector<Operand *> getParamsOp()
+    {
+        std::vector<Operand *> paramOps;
+        for (auto id_se : param_list)
+        {
+            paramOps.push_back(dynamic_cast<IdentifierSymbolEntry *>(id_se)->getParamOpe());
+        }
+        return paramOps;
+    };
     iterator begin() { return block_list.begin(); };
     iterator end() { return block_list.end(); };
     reverse_iterator rbegin() { return block_list.rbegin(); };
@@ -81,7 +92,9 @@ public:
     bool isRecur() { return isrecur; };
     void SetRecur() { isrecur = true; };
     std::set<Function *> &getCallers() { return callers; };
+    std::set<Instruction *> &getCallers_instr() { return callers_instr; };
     std::set<Function *> &getCallees() { return callees; };
+    int &getdegree() { return degree; };
 };
 
 #endif

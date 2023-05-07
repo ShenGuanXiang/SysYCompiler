@@ -539,6 +539,11 @@ bool MachineInstruction::isVmov() const
     return type == MOV && op == MovMInstruction::VMOV;
 }
 
+bool MachineInstruction::isMovShift() const
+{
+    return type == MOV && (op == MovMInstruction::MOVASR || op == MovMInstruction::MOVLSL || op == MovMInstruction::MOVLSR);
+}
+
 bool MachineInstruction::isBL() const
 {
     return type == BRANCH && op == BranchMInstruction::BL;
@@ -622,6 +627,7 @@ void DummyMInstruction::output()
 BinaryMInstruction::BinaryMInstruction(
     MachineBlock *p, int op,
     MachineOperand *dst, MachineOperand *src1, MachineOperand *src2,
+    MachineOperand *shifter,
     int cond)
 {
     this->parent = p;
@@ -634,6 +640,13 @@ BinaryMInstruction::BinaryMInstruction(
     dst->setParent(this);
     src1->setParent(this);
     src2->setParent(this);
+    if (shifter != nullptr)
+    {
+        assert(op == ADDASR || op == ADDLSL || op == ADDLSR || op == SUBASR || op == SUBLSL || op == SUBLSR || op == RSBASR || op == RSBLSL || op == RSBLSR);
+        assert(shifter->isImm() && shifter->getValType()->isInt());
+        this->use_list.push_back(shifter);
+        shifter->setParent(this);
+    }
 }
 
 void BinaryMInstruction::output()
@@ -698,9 +711,15 @@ void BinaryMInstruction::output()
         switch (this->op)
         {
         case BinaryMInstruction::ADD:
+        case BinaryMInstruction::ADDLSR:
+        case BinaryMInstruction::ADDASR:
+        case BinaryMInstruction::ADDLSL:
             fprintf(yyout, "\tadd");
             break;
         case BinaryMInstruction::SUB:
+        case BinaryMInstruction::SUBLSR:
+        case BinaryMInstruction::SUBASR:
+        case BinaryMInstruction::SUBLSL:
             fprintf(yyout, "\tsub");
             break;
         case BinaryMInstruction::MUL:
@@ -713,6 +732,9 @@ void BinaryMInstruction::output()
             fprintf(yyout, "\tand");
             break;
         case BinaryMInstruction::RSB:
+        case BinaryMInstruction::RSBLSR:
+        case BinaryMInstruction::RSBASR:
+        case BinaryMInstruction::RSBLSL:
             fprintf(yyout, "\trsb");
             break;
         default:
@@ -726,6 +748,34 @@ void BinaryMInstruction::output()
     this->use_list[0]->output();
     fprintf(yyout, ", ");
     this->use_list[1]->output();
+
+    switch (this->op)
+    {
+    case BinaryMInstruction::ADDLSL:
+    case BinaryMInstruction::SUBLSL:
+    case BinaryMInstruction::RSBLSL:
+        if ((int)this->use_list[2]->getVal())
+            fprintf(yyout, ", LSL #%d", (int)this->use_list[2]->getVal());
+        break;
+
+    case BinaryMInstruction::ADDLSR:
+    case BinaryMInstruction::SUBLSR:
+    case BinaryMInstruction::RSBLSR:
+        if ((int)this->use_list[2]->getVal())
+            fprintf(yyout, ", LSR #%d", (int)this->use_list[2]->getVal());
+        break;
+
+    case BinaryMInstruction::ADDASR:
+    case BinaryMInstruction::SUBASR:
+    case BinaryMInstruction::RSBASR:
+        if ((int)this->use_list[2]->getVal())
+            fprintf(yyout, ", ASR #%d", (int)this->use_list[2]->getVal());
+        break;
+
+    default:
+        break;
+    }
+
     fprintf(yyout, "\n");
 }
 
@@ -932,8 +982,15 @@ MovMInstruction::MovMInstruction(MachineBlock *p, int op,
     {
         assert(op == MOVASR || op == MOVLSL || op == MOVLSR);
         assert(shifter->isImm() && shifter->getValType()->isInt());
-        this->use_list.push_back(shifter);
-        shifter->setParent(this);
+        if (shifter->getVal() == 0)
+        {
+            this->op = MOV;
+        }
+        else
+        {
+            this->use_list.push_back(shifter);
+            shifter->setParent(this);
+        }
     }
 }
 

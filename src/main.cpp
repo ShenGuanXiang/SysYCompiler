@@ -15,6 +15,7 @@
 #include "DeadCodeElim.h"
 #include "SparseCondConstProp.h"
 #include "PeepholeOptimization.h"
+#include "gvnpre.h"
 
 Ast ast;
 Unit *unit = new Unit();
@@ -90,7 +91,7 @@ int main(int argc, char *argv[])
     ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
     // optimize = false;
-    // yyout = stderr;
+    // yyout = stdout;
     if (dump_ir && !optimize)
     {
         unit->output();
@@ -105,6 +106,8 @@ int main(int argc, char *argv[])
             Mem2Reg m2r(unit);
             m2r.pass();
             // TODO:其它中间代码优化
+            // GVNPRE gvnpre(unit);
+            // gvnpre.pass(); // 局部冗余消除&循环不变外提
             // 代数化简
             SparseCondConstProp sccp(unit);
             sccp.pass(); // 常量传播

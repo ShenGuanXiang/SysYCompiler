@@ -24,6 +24,7 @@ public:
     bool isPHI() const { return instType == PHI; };
     bool isCall() const { return instType == CALL; };
     bool isGep() const { return instType == GEP; };
+    bool isBinary() const { return instType == BINARY; };
     bool isCalc() const { return isAlloca() && !isUncond() && !isCond(); };
     void setParent(BasicBlock *);
     void setNext(Instruction *);
@@ -72,6 +73,16 @@ public:
     bool isDCEMarked();
     bool isCritical();
 
+    // Autoinline
+    virtual Instruction *copy() { return nullptr; };
+    virtual void setDef(Operand *def)
+    {
+        assert(def_list.size() == 1);
+        def_list[0]->removeDef(this);
+        def_list[0] = def;
+        def->setDef(this);
+    };
+
 protected:
     unsigned instType;
     unsigned opcode;
@@ -93,6 +104,9 @@ public:
     DummyInstruction() : Instruction(-1, nullptr){};
     void output() const {};
     void genMachineCode(AsmBuilder *){};
+
+    // Autoinline
+    Instruction *copy() { return nullptr; };
 };
 
 class AllocaInstruction : public Instruction
@@ -102,6 +116,9 @@ public:
     void output() const;
     void genMachineCode(AsmBuilder *);
     SymbolEntry *getSymPtr() { return se; };
+
+    // Autoinline
+    Instruction *copy() { return new AllocaInstruction(*this); };
 
 private:
     SymbolEntry *se;
@@ -113,6 +130,9 @@ public:
     LoadInstruction(Operand *dst, Operand *src_addr, BasicBlock *insert_bb = nullptr);
     void output() const;
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction *copy() { return new LoadInstruction(*this); };
 };
 
 class StoreInstruction : public Instruction
@@ -121,6 +141,9 @@ public:
     StoreInstruction(Operand *dst_addr, Operand *src, BasicBlock *insert_bb = nullptr);
     void output() const;
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction *copy() { return new StoreInstruction(*this); };
 };
 
 class BinaryInstruction : public Instruction
@@ -137,6 +160,9 @@ public:
         DIV,
         MOD
     };
+
+    // Autoinline
+    Instruction *copy() { return new BinaryInstruction(*this); };
 };
 
 class CmpInstruction : public Instruction
@@ -154,6 +180,9 @@ public:
         G,
         GE
     };
+
+    // Autoinline
+    Instruction *copy() { return new CmpInstruction(*this); };
 };
 
 // unconditional branch
@@ -165,6 +194,9 @@ public:
     void setBranch(BasicBlock *);
     BasicBlock *getBranch();
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction *copy() { return new UncondBrInstruction(*this); };
 
 protected:
     BasicBlock *branch;
@@ -181,6 +213,9 @@ public:
     void setFalseBranch(BasicBlock *);
     BasicBlock *getFalseBranch();
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction *copy() { return new CondBrInstruction(*this); };
 
 protected:
     BasicBlock *true_branch;
@@ -201,6 +236,9 @@ public:
     ZextInstruction(Operand *dst, Operand *src, BasicBlock *insert_bb = nullptr);
     void output() const;
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction *copy() { return new ZextInstruction(*this); };
 };
 
 class IntFloatCastInstruction : public Instruction
@@ -214,6 +252,9 @@ public:
         S2F,
         F2S
     };
+
+    // Autoinline
+    Instruction *copy() { return new IntFloatCastInstruction(*this); };
 };
 
 class FuncCallInstruction : public Instruction
@@ -226,6 +267,9 @@ public:
     void output() const;
     IdentifierSymbolEntry *GetFuncSe() { return func_se; };
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction *copy() { return new FuncCallInstruction(*this); };
 };
 
 class PhiInstruction : public Instruction
@@ -236,7 +280,7 @@ private:
     bool incomplete;
 
 public:
-    PhiInstruction(Operand *dst, bool incomplete = true, BasicBlock *insert_bb = nullptr);
+    PhiInstruction(Operand *dst, bool incomplete = false, BasicBlock *insert_bb = nullptr);
     void output() const;
     void updateDst(Operand *);
     void addEdge(BasicBlock *block, Operand *src);
@@ -247,6 +291,9 @@ public:
     bool &get_incomplete() { return this->incomplete; };
 
     void genMachineCode(AsmBuilder *){};
+
+    // Autoinline
+    Instruction *copy() { return new PhiInstruction(*this); };
 };
 
 class GepInstruction : public Instruction
@@ -255,5 +302,8 @@ public:
     GepInstruction(Operand *dst, Operand *arr, std::vector<Operand *> idxList, BasicBlock *insert_bb = nullptr); // 普适，降维n-1次
     void output() const;
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction *copy() { return new GepInstruction(*this); };
 };
 #endif
