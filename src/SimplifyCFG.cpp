@@ -277,6 +277,9 @@ void SimplifyCFG::pass(Function *func)
                 if (pred->getNumOfSucc() == 1)
                 {
                     auto lastInst = pred->rbegin();
+                    // if(!lastInst->isUncond()){
+                    //     pred->output();
+                    // }
                     assert(lastInst->isUncond());
                     pred->removeSucc(bb);
                     bb->removePred(pred);

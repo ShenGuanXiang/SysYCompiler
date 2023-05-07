@@ -148,7 +148,6 @@ public:
     bool isAdd() const;
     bool isBranch() const;
     bool isStack() const { return type == STACK; };
-    bool isBinary() const { return type == BINARY; };
     bool isSub() const;
     bool isRsb() const;
     bool isMul() const;
@@ -157,7 +156,6 @@ public:
     bool isLoad() const { return type == LOAD; };
     bool isMov() const;
     bool isVmov() const;
-    bool isMovShift() const;
     bool isBL() const;
     bool isZext() const { return type == ZEXT; };
     bool isCondMov() const;
@@ -184,20 +182,10 @@ public:
         MUL,
         DIV,
         AND,
-        RSB,
-        ADDLSL,
-        ADDLSR,
-        ADDASR,
-        SUBLSL,
-        SUBLSR,
-        SUBASR,
-        RSBLSL,
-        RSBLSR,
-        RSBASR
+        RSB
     };
     BinaryMInstruction(MachineBlock *p, int op,
                        MachineOperand *dst, MachineOperand *src1, MachineOperand *src2,
-                       MachineOperand *shifter = nullptr,
                        int cond = MachineInstruction::NONE);
     void output();
 };

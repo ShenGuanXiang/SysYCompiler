@@ -34,6 +34,7 @@ private:
     int iscritical = -1;
 
 public:
+    std::vector<Operand*> paramOp;
     Function(Unit *, SymbolEntry *);
     ~Function();
     void insertBlock(BasicBlock *bb) { block_list.push_back(bb); };
