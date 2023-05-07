@@ -11,7 +11,8 @@ public:
     PeepholeOptimization(MachineUnit* unit): unit(unit) {};
     void pass();
     void op1();
-
+    void op2();
+    void op3();
 };
 
 #endif 

@@ -250,6 +250,33 @@ std::string ComSubExprElimASM::getOpString(MachineInstruction *minst, bool lvn)
         case BinaryMInstruction::RSB:
             instString += "RSB";
             break;
+        case BinaryMInstruction::ADDASR:
+            instString += "ADDASR";
+            break;
+        case BinaryMInstruction::ADDLSL:
+            instString += "ADDLSL";
+            break;
+        case BinaryMInstruction::ADDLSR:
+            instString += "ADDLSR";
+            break;
+        case BinaryMInstruction::SUBASR:
+            instString += "SUBASR";
+            break;
+        case BinaryMInstruction::SUBLSL:
+            instString += "SUBLSL";
+            break;
+        case BinaryMInstruction::SUBLSR:
+            instString += "SUBLSR";
+            break;
+        case BinaryMInstruction::RSBASR:
+            instString += "RSBASR";
+            break;
+        case BinaryMInstruction::RSBLSL:
+            instString += "RSBLSL";
+            break;
+        case BinaryMInstruction::RSBLSR:
+            instString += "RSBLSR";
+            break;
         default:
             assert(0);
         }
