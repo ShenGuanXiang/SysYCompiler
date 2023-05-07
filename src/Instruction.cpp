@@ -727,7 +727,7 @@ void LoadInstruction::genMachineCode(AsmBuilder *builder)
             if (offset->getVal() >= 852) // 后面分配好寄存器后偏移量会增加，所以这里直接做一个严格的判断
                 offset = cur_block->insertLoadImm(offset);
         }
-        if (offset->getVal() < 0 && offset->isIllegalShifterOperand())
+        if (offset->getVal() < 0 && ((dst->getValType()->isInt() && offset->getVal() < -4095) || (dst->getValType()->isFloat() && offset->isIllegalShifterOperand())))
             offset = cur_block->insertLoadImm(offset);
         if (dst->getValType()->isFloat() && !offset->isImm())
         {
@@ -800,7 +800,7 @@ void StoreInstruction::genMachineCode(AsmBuilder *builder)
             if (offset->getVal() >= 852) // 后面分配好寄存器后偏移量会增加，所以这里直接做一个严格的判断
                 offset = cur_block->insertLoadImm(offset);
         }
-        if (offset->getVal() < 0 && offset->isIllegalShifterOperand())
+        if (offset->getVal() < 0 && ((src->getValType()->isInt() && offset->getVal() < -4095) || (src->getValType()->isFloat() && offset->isIllegalShifterOperand())))
             offset = cur_block->insertLoadImm(offset);
         if (src->getValType()->isFloat() && !offset->isImm())
         {

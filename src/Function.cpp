@@ -178,7 +178,7 @@ void Function::genMachineCode(AsmBuilder *builder)
                 auto offset = new MachineOperand(MachineOperand::IMM, below_dist);
                 // 由于函数栈帧初始化时会将一些寄存器压栈，在FuncDef打印时还需要偏移一个值，这里保存未偏移前的值，方便后续调整
                 cur_func->addAdditionalArgsOffset(offset);
-                if (offset->getVal() >= 852) // TODO：想办法优化栈偏移合法的情况，寄存器分配后再窥孔？
+                if ((type->isFloat() && offset->getVal() >= 852) || offset->getVal() >= 3924) // TODO：想办法优化栈偏移合法的情况，寄存器分配后再窥孔？
                 {
                     MachineOperand *internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
                     auto inst1 = new LoadMInstruction(bb2mbb[entry], internal_reg, offset);

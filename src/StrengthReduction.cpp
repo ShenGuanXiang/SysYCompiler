@@ -110,11 +110,12 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                 if (multi_def.count(*inst->getDef()[0]))
                     multi_def_ops.insert(*inst->getDef()[0]);
             }
-            if (inst->getUse().size() == 2 && op2val.count(*inst->getUse()[1]) && isSignedShifterOperandVal(op2val[*inst->getUse()[1]]))
-            {
-                inst->getUse()[1] = new MachineOperand(MachineOperand::IMM, op2val[*inst->getUse()[1]]);
-                inst->getUse()[1]->setParent(inst);
-            }
+            // vldr.32和ldr的立即数偏移范围不同，还没确定
+            // if (inst->getUse().size() == 2 && op2val.count(*inst->getUse()[1]) && isSignedShifterOperandVal(op2val[*inst->getUse()[1]]))
+            // {
+            //     inst->getUse()[1] = new MachineOperand(MachineOperand::IMM, op2val[*inst->getUse()[1]]);
+            //     inst->getUse()[1]->setParent(inst);
+            // }
         }
         else if (inst->isMov() || inst->isVmov())
         {

@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
     ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
     // optimize = false;
-    // yyout = stdout;
+    // yyout = stderr;
     if (dump_ir && !optimize)
     {
         unit->output();
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
             m2r.pass();
             // TODO:其它中间代码优化
             // GVNPRE gvnpre(unit);
-            // gvnpre.pass(); // 局部冗余消除&循环不变外提
+            // gvnpre.pass(); // 部分冗余消除&循环不变外提
             // 代数化简
             SparseCondConstProp sccp(unit);
             sccp.pass(); // 常量传播

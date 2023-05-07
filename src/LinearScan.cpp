@@ -587,7 +587,7 @@ void LinearScan::genSpillCode()
             if (!pos->isBL() && !pos->isDummy())
             {
                 auto offset = new MachineOperand(MachineOperand::IMM, -interval->disp);
-                if (offset->isIllegalShifterOperand())
+                if ((use->getValType()->isInt() && (offset->getVal() < -4095 || offset->getVal() > 4095)) || (use->getValType()->isFloat() && offset->isIllegalShifterOperand()))
                 {
                     auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
                     auto ldr = new LoadMInstruction(block, internal_reg, offset);
@@ -612,7 +612,7 @@ void LinearScan::genSpillCode()
             if (!pos->isBL() && !pos->isDummy())
             {
                 auto offset = new MachineOperand(MachineOperand::IMM, -interval->disp);
-                if (offset->isIllegalShifterOperand())
+                if ((def->getValType()->isInt() && (offset->getVal() < -4095 || offset->getVal() > 4095)) || (def->getValType()->isFloat() && offset->isIllegalShifterOperand()))
                 {
                     auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
                     auto ldr = new LoadMInstruction(block, internal_reg, offset);
