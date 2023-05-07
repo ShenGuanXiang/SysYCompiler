@@ -42,7 +42,7 @@ public:
 typedef std::unordered_map<Operand*,Expr> Exprset;
 
 
-// #define DEBUG_GVNPRE
+#define DEBUG_GVNPRE
 
 void logf(const char* formmat,...);
 void printset(Exprset set);

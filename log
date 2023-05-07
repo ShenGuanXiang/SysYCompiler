@@ -1,0 +1,112 @@
+ast built
+ir generated
+insert bb29 between (6,12)
+insert bb30 between (6,15)
+insert bb31 between (15,12)
+insert bb32 between (15,15)
+domtree of 15:
+31 32 
+domtree of 30:
+15 
+domtree of 6:
+12 29 30 
+toplist: of bb12:
+
+toplist: of bb15:
+%t0 %t26 %t1 %t27 1 %t0+%t1 %t26+1 %t27+%t3 
+copy %t0+%t1 from bb15 to bb30
+gen fresh tmp %t37
+VALNR: %t3
+toplist: of bb12:
+
+toplist: of bb15:
+%t0 %t26 %t1 %t27 1 %t0+%t1 %t26+1 %t27+%t3 
+-----------------
+avail_out of 32:
+%t22:%t22
+%t5:%t5
+%t4:%t4
+%t27:%t27
+%t38:%t38
+%t3:%t37
+%t2:%t2
+%t1:%t1
+%t26:%t26
+%t0:%t0
+
+avail_out of 15:
+%t22:%t22
+%t5:%t5
+%t4:%t4
+%t27:%t27
+%t38:%t38
+%t3:%t37
+%t2:%t2
+%t1:%t1
+%t26:%t26
+%t0:%t0
+
+avail_out of 12:
+%t28:%t28
+%t2:%t2
+%t1:%t1
+%t0:%t0
+
+avail_out of 29:
+%t2:%t2
+%t1:%t1
+%t0:%t0
+
+avail_out of 31:
+%t22:%t22
+%t5:%t5
+%t4:%t4
+%t27:%t27
+%t38:%t38
+%t3:%t37
+%t2:%t2
+%t1:%t1
+%t26:%t26
+%t0:%t0
+
+avail_out of 30:
+%t3:%t37
+%t2:%t2
+%t1:%t1
+%t0:%t0
+
+avail_out of 6:
+%t2:%t2
+%t1:%t1
+%t0:%t0
+
+opt ir generated
+declare i32 @getint()
+define dso_local i32 @main() #0{
+B6:                               	; succs = %B30, %B29
+  %t0 = call i32 @getint()
+  %t1 = call i32 @getint()
+  %t2 = icmp slt i32 0, 100
+  br i1 %t2, label %B30, label %B29
+B30:                               	; preds = %B6                               	; succs = %B15
+  %t37 = add i32 %t0, %t1
+  br label %B15
+B29:                               	; preds = %B6                               	; succs = %B12
+  br label %B12
+B15:                               	; preds = %B30, %B32                               	; succs = %B31, %B32
+  %t38 = phi i32 [ %t37 , %B30 ], [ %t37 , %B32 ]
+  %t26 = phi i32 [ 0 , %B30 ], [ %t5 , %B32 ]
+  %t27 = phi i32 [ 0 , %B30 ], [ %t4 , %B32 ]
+  %t4 = add i32 %t27, %t37
+  %t5 = add i32 %t26, 1
+  %t22 = icmp slt i32 %t5, 100
+  br i1 %t22, label %B32, label %B31
+B12:                               	; preds = %B31, %B29
+  %t28 = phi i32 [ %t4 , %B31 ], [ 0 , %B29 ]
+  ret i32 %t28
+B31:                               	; preds = %B15                               	; succs = %B12
+  br label %B12
+B32:                               	; preds = %B15                               	; succs = %B15
+  br label %B15
+}
+opt ir output ok

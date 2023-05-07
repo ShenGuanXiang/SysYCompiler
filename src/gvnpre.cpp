@@ -528,44 +528,15 @@ void GVNPRE::gvnpre(Function *func)
 {
     for(auto param : func->paramOp){
         htable[genExpr(param)]=param;
-        kill.insert(param);
-        //only for test, not required later in practice
     }
     rmcEdge(func);
     buildDomTree(func);
     buildSets(func);
     buildAntic(func);
-    //print dom tree
-    for(auto it = domtree.begin();it!=domtree.end();it++){
-        logf("domtree of %d:\n",it->first->getNo());
-        for(auto bb : it->second){
-            logf("%d ",bb->getNo());
-        }
-        logf("\n");
-    }
-    logf("-------before insert-------\n");
-    //print antic_in
-    // for(auto it = antic_in.begin();it!=antic_in.end();it++){
-    //     logf("antic_in of %d:\n",it->first->getNo());
-    //     printset(it->second);    
-    // }
-    logf("\n");
-    for(auto it = avail_out.begin();it!=avail_out.end();it++){
-        logf("avail_out of %d:\n",it->first->getNo());
-        printset(it->second);
-    }
     insert(func);
-    // logf("-------after insert-------\n");
-    //     for(auto it = antic_in.begin();it!=antic_in.end();it++){
-    //     logf("antic_in of %d:\n",it->first->getNo());
-    //     printset(it->second);    
-    // }
-    logf("\n");
-    for(auto it = avail_out.begin();it!=avail_out.end();it++){
-        logf("avail_out of %d:\n",it->first->getNo());
-        printset(it->second);
-    }
+    buildSets(func);
     elminate(func);
+
 }
 
 void GVNPRE::buildSets(Function *func)
@@ -620,8 +591,9 @@ void GVNPRE::buildSets(Function *func)
 
         // for(auto succ : domtree[bb])
         //     q.push(succ);
-        for(auto succ_it = domtree[bb].rbegin();succ_it!=domtree[bb].rend();succ_it++)
-            q.push(*succ_it);
+        if(domtree.count(bb))
+            for(auto succ_it = domtree[bb].rbegin();succ_it!=domtree[bb].rend();succ_it++)
+                q.push(*succ_it);
     }
 
 }
@@ -689,8 +661,9 @@ void GVNPRE::buildAntic(Function *func)
 
             // for(auto succ : domtree[bb])
             //     q.push(succ);
-            for(auto succ_it = domtree[bb].rbegin();succ_it!=domtree[bb].rend();succ_it++)
-                q.push(*succ_it);
+            if(domtree.count(bb))
+                for(auto succ_it = domtree[bb].rbegin();succ_it!=domtree[bb].rend();succ_it++)
+                    q.push(*succ_it);
         }
 
         
@@ -713,11 +686,11 @@ void GVNPRE::insert(Function *func)
             if(visited.count(bb)) continue;
             visited.insert(bb);
             BasicBlock* dom = bb->getIDom();
-            if(dom){
-                new_sets[bb]=new_sets[dom];
-                for(auto pair: new_sets[dom])
-                    avail_out[bb][pair.first]=pair.second;
-            }
+            // if(dom){
+            //     new_sets[bb]=new_sets[dom];
+            //     for(auto pair: new_sets[dom])
+            //         avail_out[bb][pair.first]=pair.second;
+            // }
             
             
             if(bb->getNumOfPred()>1){
@@ -731,7 +704,6 @@ void GVNPRE::insert(Function *func)
                 for(auto e : toplist){
                     Operand* val = lookup(e);
                     if(e.op!=0){// v1 op v2 etc.
-                        logf("find valuenr%s in avail_out[bb=%d]:%p\n",val->toStr().c_str(),dom->getNo(),find_leader(avail_out[dom],val));
                         if(find_leader(avail_out[dom],val))
                             continue;
                         std::unordered_map<BasicBlock*,Expr> avail;
@@ -777,23 +749,28 @@ void GVNPRE::insert(Function *func)
                                         leaders.push_back(leader);
                                     }
                                     Operand* t = gen_fresh_tmep(e);
+                                    logf("gen fresh tmp %s\n",t->toStr().c_str());
                                     auto freash_inst = genInst(t,e.op,leaders);
                                     // t <- inst
                                     for(auto inst=pred->rbegin();inst!=pred->rend();inst=inst->getPrev()){
-                                        if(inst->isCond() || inst->isUncond())
+                                        if(inst->isCond() || inst->isUncond()){
                                             pred->insertBefore(freash_inst,inst);
+                                            break;
+                                        }
                                     }
                                     if(!lookup(avail_e))
                                         htable[avail_e]=t;
                                     ValueNr val = lookup(avail_e);
+                                    logf("VALNR: %s\n",val->toStr().c_str());
                                     htable[genExpr(t)]=val;
-                                    // avail_out[pred][val]=genExpr(t);
-                                    vinsert(avail_out[pred],genExpr(t));
+                                    avail_out[pred][val]=genExpr(t);
+                                    // vinsert(avail_out[pred],genExpr(t));
                                     avail[pred]=genExpr(t);
                                     new_expr=true;
+                                    new_stuff=true;
                                 }
                             }
-                            if(new_expr){
+                            if(new_expr ){
                                 Operand* t= gen_fresh_tmep(e);
                                 htable[genExpr(t)]=lookup(e);
                                 avail_out[bb][lookup(e)]=genExpr(t);
@@ -808,7 +785,7 @@ void GVNPRE::insert(Function *func)
                                 bb->insertFront(phi);
                                 //t <- phi
                                 // avail_out[bb][t]=genExpr(t);
-                                new_sets[bb][lookup(e)]=genExpr(t);
+                                // new_sets[bb][lookup(e)]=genExpr(t);
                                 vinsert(avail_out[bb],genExpr(t));
                                 
                                 // vinsert(new_sets[bb],t);
@@ -824,7 +801,13 @@ void GVNPRE::insert(Function *func)
             for(auto succ : domtree[bb])
                 q.push(succ);
         }
-
+        for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
+            avail_out[*bb_it].clear();
+            expr_gen[*bb_it].clear();
+            tmp_gen[*bb_it].clear();
+            phi_gen[*bb_it].clear();
+        }
+        buildSets(func);
     }
 }
 
@@ -852,5 +835,7 @@ void GVNPRE::pass()
 {
     for(auto func_it = unit->begin();func_it!=unit->end();func_it++)
         gvnpre(*func_it);
+    SimplifyCFG scfg(unit);
+    // scfg.pass();
 }
 

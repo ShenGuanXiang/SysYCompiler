@@ -19,7 +19,7 @@ private:
     std::set<Operand *> live_in;
     std::set<Operand *> live_out;
     std::set<BasicBlock *> SDoms;
-    BasicBlock *IDom;
+    BasicBlock *IDom = nullptr;
     std::set<BasicBlock *> DomFrontiers;
 
     // DCE
