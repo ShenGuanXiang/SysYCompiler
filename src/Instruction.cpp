@@ -472,13 +472,21 @@ void FuncCallInstruction::output() const
     fprintf(stderr, ")\n");
 }
 
-PhiInstruction::PhiInstruction(Operand *dst, BasicBlock *insert_bb) : Instruction(PHI, insert_bb)
+PhiInstruction::PhiInstruction(Operand *dst, bool incomplete, BasicBlock *insert_bb) : Instruction(PHI, insert_bb)
 {
-    def_list.push_back(dst);
-    // if (dst->getDef() == nullptr)
-    //     dst->setDef(this);
-    addr = dst;
-    incomplete = true;
+    this->incomplete = incomplete;
+    if (incomplete)
+    {
+        def_list.push_back(dst);
+        // if (dst->getDef() == nullptr)
+        //     dst->setDef(this);
+        addr = dst;
+    }
+    else
+    {
+        def_list.push_back(dst);
+        dst->setDef(this);
+    }
 }
 
 void PhiInstruction::output() const
@@ -1195,7 +1203,7 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
         cur_block->insertBack(cur_inst);
     }
     // 如果函数执行结果被用到，还需要保存 r0/s0 寄存器中的返回值。
-    if (def_list[0]->getType() != TypeSystem::voidType)
+    if (!dynamic_cast<FunctionType *>(func_se->getType())->getRetType()->isVoid())
     {
         auto dst = genMachineOperand(def_list[0]);
         auto src = new MachineOperand(MachineOperand::REG, 0, dst->getValType()); // r0/s0

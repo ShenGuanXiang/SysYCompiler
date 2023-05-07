@@ -101,6 +101,7 @@ void ComSubExprElim::dumpTable()
 
 void ComSubExprElim::computeDomTree(Function *func)
 {
+    domtree.clear();
     func->ComputeDom();
     for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
     {
@@ -171,7 +172,6 @@ void ComSubExprElim::pass3()
     for (auto it_func = unit->begin(); it_func != unit->end(); it_func++)
     {
         auto entry = (*it_func)->getEntry();
-        domtree.clear();
         computeDomTree(*it_func);
         dvnt(entry);
     }
@@ -181,6 +181,7 @@ void ComSubExprElim::pass3()
 
 void ComSubExprElimASM::computeDomTree(MachineFunction *func)
 {
+    domtree.clear();
     func->computeDom();
     for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
     {
@@ -290,17 +291,15 @@ void ComSubExprElimASM::pass()
     for (auto it_mfunc = munit->begin(); it_mfunc != munit->end(); it_mfunc++)
     {
         auto entry = (*it_mfunc)->getEntry();
-        domtree.clear();
         computeDomTree(*it_mfunc);
         findredef(entry);
         dvnt(entry);
     }
-    for (auto i : torm)
+    for (auto i : freeInsts)
     {
-        auto mbb = i->getParent();
-        if (mbb != nullptr)
-            mbb->removeInst(i);
+        delete i;
     }
+    freeInsts.clear();
 }
 /*
 后端cse：
@@ -311,6 +310,8 @@ void ComSubExprElimASM::dvnt(MachineBlock *bb)
     std::unordered_map<std::string, MachineOperand *> prehtable;
 
     prehtable = htable; // store current htable, to restore after processing children
+
+    std::vector<MachineInstruction *> torm;
 
     for (auto it_minst = bb->begin(); it_minst != bb->end(); it_minst++)
     {
@@ -372,7 +373,15 @@ void ComSubExprElimASM::dvnt(MachineBlock *bb)
         else
             htable[instString] = dst;
     }
+
+    for (auto i : torm)
+    {
+        bb->removeInst(i);
+        freeInsts.insert(i);
+    }
+
     lvn(bb);
+
     for (auto mb : domtree[bb])
         dvnt(mb);
 
@@ -438,7 +447,10 @@ void ComSubExprElimASM::lvn(MachineBlock *bb)
         }
     }
     for (auto i : torm)
+    {
         bb->removeInst(i);
+        freeInsts.insert(i);
+    }
 }
 
 void ComSubExprElimASM::dumpTable()
@@ -452,6 +464,8 @@ void ComSubExprElimASM::dumpTable()
 void ComSubExprElimASM::findredef(MachineBlock *entry)
 {
     // bfs from the entry
+    // defset.clear();
+    // redef.clear();
     std::queue<MachineBlock *> q;
     std::unordered_set<MachineBlock *> visited;
     q.push(entry);

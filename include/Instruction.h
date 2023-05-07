@@ -236,7 +236,7 @@ private:
     bool incomplete;
 
 public:
-    PhiInstruction(Operand *dst, BasicBlock *insert_bb = nullptr);
+    PhiInstruction(Operand *dst, bool incomplete = true, BasicBlock *insert_bb = nullptr);
     void output() const;
     void updateDst(Operand *);
     void addEdge(BasicBlock *block, Operand *src);

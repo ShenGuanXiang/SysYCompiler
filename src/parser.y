@@ -151,7 +151,7 @@ Exp
 ConstExp
     : 
     AddSubExpr {
-        assert($1->getType()->isConst()); // to do：考虑数组类型
+        assert($1->getType()->isConst()); // TODO：考虑数组类型
         $$ = $1;
     }
     ;

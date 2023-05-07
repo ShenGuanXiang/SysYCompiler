@@ -35,8 +35,8 @@ private:
 
 public:
     MachineDeadCodeElim(MachineUnit *unit) : unit(unit){};
-    void pass();
-    void pass(MachineFunction *f);
+    void pass(bool iter = true);
+    void pass(MachineFunction *f, bool iter);
     void SingleBrDelete(MachineFunction *f);
 };
 

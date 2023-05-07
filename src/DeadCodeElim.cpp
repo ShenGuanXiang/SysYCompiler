@@ -453,11 +453,11 @@ void DeadCodeElim::deleteUselessFunc()
             delete f;
 }
 
-void MachineDeadCodeElim::pass()
+void MachineDeadCodeElim::pass(bool iter)
 {
     for (auto &f : unit->getFuncs())
     {
-        pass(f);
+        pass(f, iter);
         // SingleBrDelete(f);
     }
 }
@@ -472,62 +472,68 @@ MachineInstruction *MachineBlock::getNext(MachineInstruction *instr)
     return nullptr;
 }
 
-void MachineDeadCodeElim::pass(MachineFunction *f)
+void MachineDeadCodeElim::pass(MachineFunction *f, bool iter)
 {
-    f->AnalyzeLiveVariable();
-    std::map<MachineOperand, std::set<MachineOperand *>> out;
-    std::vector<MachineInstruction *> deleteList;
-    for (auto b : f->getBlocks())
+    bool change;
+    do
     {
-        out.clear();
-
-        for (auto liveout : b->getLiveOut())
-            out[*liveout].insert(liveout);
-
-        auto &Insts = b->getInsts();
-        for (auto itr = Insts.rbegin(); itr != Insts.rend(); itr++)
+        change = false;
+        f->AnalyzeLiveVariable();
+        std::map<MachineOperand, std::set<MachineOperand *>> out;
+        std::vector<MachineInstruction *> deleteList;
+        for (auto b : f->getBlocks())
         {
-            auto defs = (*itr)->getDef();
-            if (!defs.empty())
+            out.clear();
+
+            for (auto liveout : b->getLiveOut())
+                out[*liveout].insert(liveout);
+
+            auto &Insts = b->getInsts();
+            for (auto itr = Insts.rbegin(); itr != Insts.rend(); itr++)
             {
-                MachineOperand *def = nullptr;
-                if ((*itr)->isSmull())
+                auto defs = (*itr)->getDef();
+                if (!defs.empty())
                 {
-                    def = defs[1];
+                    MachineOperand *def = nullptr;
+                    if ((*itr)->isSmull())
+                    {
+                        def = defs[1];
+                    }
+                    else
+                        def = defs[0];
+                    if (out[*def].empty())
+                        deleteList.push_back(*itr);
                 }
-                else
-                    def = defs[0];
-                if (out[*def].empty())
-                    deleteList.push_back(*itr);
-            }
 
-            for (auto &def : defs)
-            {
-                auto &O = f->getAllUses()[*def];
-                for (auto &o : O)
-                    if (out[*def].find(o) != out[*def].end())
-                        out[*def].erase(o);
+                for (auto &def : defs)
+                {
+                    auto &O = f->getAllUses()[*def];
+                    for (auto &o : O)
+                        if (out[*def].find(o) != out[*def].end())
+                            out[*def].erase(o);
+                }
+                auto uses = (*itr)->getUse();
+                for (auto &use : uses)
+                    out[*use].insert(use);
             }
-            auto uses = (*itr)->getUse();
-            for (auto &use : uses)
-                out[*use].insert(use);
         }
-    }
-    for (auto t : deleteList)
-    {
-        if (t->isCritical())
-            continue;
-        if (t->isCondMov())
+        for (auto t : deleteList)
         {
-            auto next = t->getParent()->getNext(t);
-            if (next && next->isCondMov())
+            if (t->isCritical())
                 continue;
+            if (t->isCondMov())
+            {
+                auto next = t->getParent()->getNext(t);
+                if (next && next->isCondMov())
+                    continue;
+            }
+            if (t != nullptr)
+            {
+                change = true;
+                delete t;
+            }
         }
-        if (t != nullptr)
-        {
-            delete t;
-        }
-    }
+    } while (change && iter);
 }
 
 void MachineDeadCodeElim::SingleBrDelete(MachineFunction *f)

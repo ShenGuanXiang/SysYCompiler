@@ -41,6 +41,9 @@ void SparseCondConstProp::pass(Function *func)
     ssa_worklist.clear();
     eq_cond_worklist.clear();
 
+    SimplifyCFG sc(unit);
+    sc.pass(func);
+
     // initialize status_map & value_map
     for (auto &block : func->getBlockList())
         for (auto inst = block->begin(); inst != block->end(); inst = inst->getNext())
@@ -58,7 +61,7 @@ void SparseCondConstProp::pass(Function *func)
                         if (dynamic_cast<PointerType *>(ope->getType())->getValType()->isConst())
                             status_map[ope] = CONST;
                         else
-                            status_map[ope] = NAC; // todo : 副作用优化
+                            status_map[ope] = NAC; // TODO : 副作用优化
                     }
                     else if (ope->getType()->isARRAY())
                     {

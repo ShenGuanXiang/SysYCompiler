@@ -352,7 +352,7 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                         bb->removeInst(inst);
                         freeInsts.insert(inst);
                     }
-                    // todo：非2的幂次
+                    // TODO：非2的幂次
                 }
             }
             else if (op2val.count(*inst->getUse()[1]))
@@ -391,12 +391,12 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                         bb->removeInst(inst);
                         freeInsts.insert(inst);
                     }
-                    // todo：非2的幂次
+                    // TODO：非2的幂次
                 }
             }
         }
 
-        // div2asr
+        // mod2and、div2asr
         else if (inst->isDiv())
         {
             if (op2val.count(*inst->getUse()[0]) && op2val.count(*inst->getUse()[1]))
@@ -409,6 +409,21 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                 bb->removeInst(inst);
                 freeInsts.insert(inst);
             }
+            // // 取模会翻译为div、mul、sub
+            // bool isMod = false;
+            // MachineInstruction *nxt = bb->getNext(inst), *nxt_nxt = nullptr;
+            // if (nxt != nullptr && nxt->isMul() && *inst->getDef()[0] == *nxt->getUse()[0] && *inst->getUse()[1] == *nxt->getUse()[1])
+            // {
+            //     nxt_nxt = bb->getNext(nxt);
+            //     if (nxt_nxt != nullptr && nxt_nxt->isSub() && *inst->getUse()[0] == *nxt_nxt->getUse()[0] && *nxt->getDef()[0] == *nxt_nxt->getUse()[1])
+            //     {
+            //         isMod = true;
+            //     }
+            // }
+            // if (isMod && op2val.count(*inst->getUse()[1]))
+            // {
+            //     ; // TODO：mod2and
+            // }
             else if (op2val.count(*inst->getUse()[1]))
             {
                 assert(inst->getDef()[0]->getValType()->isInt());
@@ -456,7 +471,7 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                         }
                         else
                         {
-                            // todo: 2^s-1为非法立即数,<32种情况
+                            // TODO: 2^s-1为非法立即数,<32种情况
                             continue;
                         }
                     }
@@ -466,13 +481,11 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                 else
                 {
                     assert(d != 0);
-                    // todo：非2的幂次
+                    // TODO：非2的幂次
                 }
             }
         }
     }
-
-    // todo: 取模，取模会翻译为多条汇编指令
 
     for (auto op : multi_def_ops)
         op2val.erase(op);
@@ -484,7 +497,7 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
 // 浮点操作优化
 void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, float> op2val)
 {
-    // todo
+    // TODO
     return;
 }
 
