@@ -9,8 +9,7 @@ SYSLIB_PATH ?= sysyruntimelibrary
 TIMING ?= 1
 
 INC = $(addprefix -I, $(INC_PATH))
-# SRC = $(shell find $(SRC_PATH)  -name "*.cpp")
-SRC = $(shell find $(SRC_PATH)  -name "*.cpp" -not -name "main.cpp")
+SRC = $(shell find $(SRC_PATH)  -name "*.cpp" -not -name "Main.cpp")
 CFLAGS = -O2 -g -Wall -std=c++17 $(INC)
 FLEX ?= $(SRC_PATH)/lexer.l
 LEXER ?= $(addsuffix .cpp, $(basename $(FLEX)))

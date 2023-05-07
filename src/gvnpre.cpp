@@ -527,7 +527,9 @@ void GVNPRE::buildDomTree(Function *func)
 void GVNPRE::gvnpre(Function *func)
 {
     for(auto param : func->paramOp){
-        htable[genExpr(param)]=param;
+        Expr newexpr;   
+        newexpr.vals.push_back(param);
+        htable[newexpr]=param;
     }
     rmcEdge(func);
     buildDomTree(func);
@@ -826,8 +828,10 @@ void GVNPRE::elminate(Function *func)
                 torm.push_back(inst);
             }
         }
-        for(auto i : torm)
+        for(auto i : torm){
             bb->remove(i);
+            delete i;
+        }
     }
 }
 
@@ -836,6 +840,6 @@ void GVNPRE::pass()
     for(auto func_it = unit->begin();func_it!=unit->end();func_it++)
         gvnpre(*func_it);
     SimplifyCFG scfg(unit);
-    // scfg.pass();
+    scfg.pass();
 }
 

@@ -15,6 +15,7 @@
 #include "DeadCodeElim.h"
 #include "SparseCondConstProp.h"
 #include "PeepholeOptimization.h"
+#include "gvnpre.h"
 
 Ast ast;
 Unit *unit = new Unit();
@@ -89,9 +90,9 @@ int main(int argc, char *argv[])
     // ast.typeCheck();
     ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
-    optimize = false;
-    AutoInliner autoinliner(unit);
-    autoinliner.pass();  // 函数自动内联
+    // optimize = false;
+    // AutoInliner autoinliner(unit);
+    // autoinliner.pass();  // 函数自动内联
     // yyout = stdout;
     if (dump_ir && !optimize)
     {
@@ -104,8 +105,8 @@ int main(int argc, char *argv[])
         {
             Mem2Reg m2r(unit);
             m2r.pass();
-            AutoInliner autoinliner(unit);
-            autoinliner.pass();  // 函数自动内联
+            // AutoInliner autoinliner(unit);
+            // autoinliner.pass();  // 函数自动内联
             // todo:其它中间代码优化
             // 代数化简
             SparseCondConstProp sccp(unit);
@@ -116,6 +117,8 @@ int main(int argc, char *argv[])
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
         }
+        GVNPRE gvnpre(unit);
+        gvnpre.pass();
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
@@ -145,6 +148,7 @@ int main(int argc, char *argv[])
             mdce.pass(); // 死代码消除
             // 指令调度
         }
+        
         LinearScan linearScan(mUnit);
         linearScan.pass();
         if (optimize)

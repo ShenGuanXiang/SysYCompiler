@@ -11,6 +11,12 @@
 
 #define ValueNr Operand*
 
+/*
+TODO : 
+1. use std::string to replace struct expr
+2. add to avail_out dynamically, rather than recalculate it every time
+*/
+
 class Expr{
 public:
     enum{ADD=1,SUB,MUL,DIV,MOD,PHI};
@@ -42,7 +48,7 @@ public:
 typedef std::unordered_map<Operand*,Expr> Exprset;
 
 
-#define DEBUG_GVNPRE
+// #define DEBUG_GVNPRE
 
 void logf(const char* formmat,...);
 void printset(Exprset set);
@@ -55,10 +61,10 @@ namespace std{
     template<>
     struct hash<Expr>{
         size_t operator() (const Expr& expr) const{
-            if(!expr.op) return std::hash<void*>()((void*)expr.vals[0]);
+            if(!expr.op) return std::hash<void*>()(expr.vals[0]);
             size_t hvals=0;
             for(auto val : expr.vals)
-                hvals^=std::hash<void*>()((void*)val);
+                hvals^=std::hash<void*>()(val);
             return hvals ^ std::hash<unsigned>()(expr.op);
         }
     };
