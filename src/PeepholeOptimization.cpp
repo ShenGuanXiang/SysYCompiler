@@ -6,10 +6,17 @@ void PeepholeOptimization::pass()
 {
     op1();
     op2();
+    op3();
 
     for (auto inst : freeInsts)
     {
-        delete inst;
+        if(inst)
+        {
+            delete inst;
+            inst = NULL;
+        }
+        else
+            assert(0);
     }
     freeInsts.clear();
 }
@@ -35,8 +42,47 @@ void PeepholeOptimization::op1()
             {
                 auto curr_inst = *curr_inst_iter;
                 auto next_inst = *next_inst_iter;
+
+
+                if (curr_inst->isAdd() && next_inst->isLoad())
+                {
+                    // add r0, fp, #-12
+                    // ldr r1, [r0]
+                    // --->
+                    // add r0, fp, #-12
+                    // ldr r1, [fp, #-12]
+
+                    if (  next_inst->getUse().size()==1 &&
+                         *curr_inst->getDef()[0] == *next_inst->getUse()[0] && curr_inst->getUse()[1]->isImm() )
+                    {
+                        auto new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]));
+                        block->insertBefore(next_inst, new_inst);
+                        block->removeInst(next_inst);
+                        freeInsts.push_back(next_inst);
+                    }
+                }
+
+                else if (curr_inst->isSub() && next_inst->isLoad())
+                {
+                    // sub r0, fp, #12
+                    // ldr r1, [r0]
+                    // --->
+                    // sub r0, fp, #12
+                    // ldr r1, [fp, #-12]
+
+                    if (  next_inst->getUse().size()==1 &&
+                         *curr_inst->getDef()[0] == *next_inst->getUse()[0] && curr_inst->getUse()[1]->isImm() )
+                    {
+                        auto src_imm = new MachineOperand(MachineOperand::IMM, -1 * curr_inst->getUse()[1]->getVal(), TypeSystem::intType);
+                        auto new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*curr_inst->getUse()[0]), src_imm);
+                        block->insertBefore(next_inst, new_inst);
+                        block->removeInst(next_inst);
+                        freeInsts.push_back(next_inst);
+                    }
+                }
+
                 // convert store and load into store and move
-                if (curr_inst->isStore() && next_inst->isLoad())
+                else if (curr_inst->isStore() && next_inst->isLoad())
                 {
                     //     str v355, [v11]
                     //     ldr v227, [v11]
@@ -367,6 +413,7 @@ void PeepholeOptimization::op1()
                             }
                         }
 
+                        // 效果不大，且vmla def-use关系混乱 TODO：在寄存器分配完毕后分情况讨论
                         // else if (curr_inst->getDef()[0]->getValType()->isFloat() && next_inst->getDef()[0]->getValType()->isFloat())
                         // {
                         //     // b
@@ -416,6 +463,7 @@ void PeepholeOptimization::op1()
     }
 }
 
+
 // 跟op1不能合并（会相互影响）
 void PeepholeOptimization::op2()
 {
@@ -453,6 +501,7 @@ void PeepholeOptimization::op2()
 
                         block->insertBefore(next_inst, new_inst);
                         block->removeInst(next_inst);
+                        freeInsts.push_back(next_inst);
                     }
                 }
 
@@ -470,6 +519,7 @@ void PeepholeOptimization::op2()
 
                         block->insertBefore(next_inst, new_inst);
                         block->removeInst(next_inst);
+                        freeInsts.push_back(next_inst);
                     }
                 }
 
@@ -482,6 +532,7 @@ void PeepholeOptimization::op2()
                         auto new_inst = new MovMInstruction(block, MovMInstruction::MOV, new MachineOperand(*mov_dst), new MachineOperand(*src1));
                         block->insertBefore(next_inst, new_inst);
                         block->removeInst(next_inst);
+                        freeInsts.push_back(next_inst);
                     }
                 }
 
@@ -494,6 +545,7 @@ void PeepholeOptimization::op2()
                         auto new_inst = new MovMInstruction(block, MovMInstruction::VMOV, new MachineOperand(*mov_dst), new MachineOperand(*src1));
                         block->insertBefore(next_inst, new_inst);
                         block->removeInst(next_inst);
+                        freeInsts.push_back(next_inst);
                     }
                 }
 
@@ -554,9 +606,86 @@ void PeepholeOptimization::op2()
 
                         block->insertBefore(curr_inst, new_bin);
                         block->removeInst(next_inst);
+                        freeInsts.push_back(next_inst);
                     }
                 }
             }
         }
     }
 }
+
+
+// 窗口 = 3
+void PeepholeOptimization::op3() {
+
+    for (auto func_iter = unit->begin(); func_iter != unit->end(); func_iter++) 
+    {
+        auto func = *func_iter;
+        for (auto block_iter = func->begin(); block_iter != func->end(); block_iter++) 
+        {
+            auto block = *block_iter;
+            if (block->getInsts().empty() || block->getInsts().size()<=3 )  continue;
+
+            std::vector<MachineInstruction*> insts;
+            insts.assign(block->begin(), block->end());
+            auto curr_inst_iter = insts.begin();
+            auto second_inst_iter = next(curr_inst_iter, 1);
+            auto third_inst_iter = next(second_inst_iter, 1);
+
+            for (; third_inst_iter != insts.end(); curr_inst_iter++, second_inst_iter++, third_inst_iter++)
+            {
+                auto curr_inst = *curr_inst_iter;
+                auto second_inst = *second_inst_iter;
+                auto third_inst = *third_inst_iter;
+
+                if(curr_inst->isAdd() && third_inst->isStore())
+                {
+                    // add vr7279, fp, #-12
+                    // mov vr28908, #0
+                    // str vr28908, [vr7279]
+                    // --->
+                    // add vr7279, fp, #-12
+                    // mov vr28908, #0
+                    // str vr28908, [fp, #-12]
+                    if (  third_inst->getUse().size()==2 &&
+                         *curr_inst->getDef()[0] == *third_inst->getUse()[1] && curr_inst->getUse()[1]->isImm() &&
+                         !(*second_inst->getDef()[0] == *curr_inst->getDef()[0]))
+                    {
+                        int val_imm = curr_inst->getUse()[1]->getVal();
+                        if(val_imm > 4095 || val_imm < -4095) continue;
+                        auto new_inst = new StoreMInstruction(block, new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]));
+                        block->insertBefore(third_inst, new_inst);
+                        block->removeInst(third_inst);
+                        freeInsts.push_back(third_inst);
+                    }
+
+                }
+
+                else if(curr_inst->isSub() && third_inst->isStore())
+                {
+                    // sub vr7279, fp, #12
+                    // mov vr28908, #0
+                    // str vr28908, [vr7279]
+                    // --->
+                    // sub vr7279, fp, #12
+                    // mov vr28908, #0
+                    // str vr28908, [fp, #-12]
+                    if (  third_inst->getUse().size()==2 &&
+                         *curr_inst->getDef()[0] == *third_inst->getUse()[1] && curr_inst->getUse()[1]->isImm() &&
+                         !(*second_inst->getDef()[0] == *curr_inst->getDef()[0]))
+                    {
+                        int val_imm = curr_inst->getUse()[1]->getVal();
+                        if(val_imm > 4095 || val_imm < -4095) continue;
+                        auto src_imm = new MachineOperand(MachineOperand::IMM, -1 * val_imm, TypeSystem::intType);
+                        auto new_inst = new StoreMInstruction(block, new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), src_imm);
+                        block->insertBefore(third_inst, new_inst);
+                        block->removeInst(third_inst);
+                        freeInsts.push_back(third_inst);
+                    }
+                }
+
+            }
+        }
+    }
+}
+

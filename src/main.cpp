@@ -32,7 +32,7 @@ bool dump_tokens = false;
 bool dump_ast = false;
 bool dump_ir = false;
 bool dump_asm = false;
-bool optimize = false;
+bool optimize = 1;
 
 int main(int argc, char *argv[])
 {
