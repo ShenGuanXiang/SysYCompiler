@@ -749,8 +749,6 @@ void BinaryMInstruction::output()
     fprintf(yyout, ", ");
     this->use_list[1]->output();
 
-
-
     switch (this->op)
     {
     case BinaryMInstruction::ADDLSL:
@@ -777,7 +775,6 @@ void BinaryMInstruction::output()
     default:
         break;
     }
-
 
     fprintf(yyout, "\n");
 }
@@ -985,8 +982,15 @@ MovMInstruction::MovMInstruction(MachineBlock *p, int op,
     {
         assert(op == MOVASR || op == MOVLSL || op == MOVLSR);
         assert(shifter->isImm() && shifter->getValType()->isInt());
-        this->use_list.push_back(shifter);
-        shifter->setParent(this);
+        if (shifter->getVal() == 0)
+        {
+            this->op = MOV;
+        }
+        else
+        {
+            this->use_list.push_back(shifter);
+            shifter->setParent(this);
+        }
     }
 }
 
@@ -1049,7 +1053,7 @@ void MovMInstruction::output()
         //     break;
     case MovMInstruction::VMOV:
     {
-        fprintf(yyout, "\tvmov.f32"); // todo:到底用哪个
+        fprintf(yyout, "\tvmov.f32"); // TODO:到底用哪个
         // fprintf(yyout, "\tvmov");
         break;
     }
@@ -1400,7 +1404,7 @@ void MLASMInstruction::output()
 //     this->op = op;
 //     // auto inplaced = new MachineOperand(*dst);
 //     // this->def_list.push_back(inplaced);
-//     // this->def_list.push_back(dst); // todo
+//     // this->def_list.push_back(dst); // TODO
 //     this->use_list.push_back(dst);
 //     this->use_list.push_back(src1);
 //     this->use_list.push_back(src2);
@@ -1463,7 +1467,7 @@ MachineBlock::~MachineBlock()
 
 MachineOperand *MachineBlock::insertLoadImm(MachineOperand *imm)
 {
-    // ToDo:有些浮点字面常量可以直接vldr到s寄存器
+    // TODO:有些浮点字面常量可以直接vldr到s寄存器
     if (imm->getValType()->isFloat())
     {
         if (is_Legal_VMOV_FloatImm((float)imm->getVal()))
@@ -1574,7 +1578,7 @@ void MachineFunction::outputStart()
     inst->output();
     delete inst;
     // fp = sp
-    fprintf(yyout, "\tmov fp, sp\n"); // to do：判断一下，没用过fp的话这句就省了
+    fprintf(yyout, "\tmov fp, sp\n"); // TODO：判断一下，没用过fp的话这句就省了
     if (dynamic_cast<IdentifierSymbolEntry *>(sym_ptr)->need8BytesAligned() &&
         (4 * (rregs.size() + sregs.size() + std::max(0, (int)dynamic_cast<FunctionType *>(sym_ptr->getType())->getParamsType().size() - 4)) + stack_size) % 8)
         stack_size += 4;

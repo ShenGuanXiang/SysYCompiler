@@ -128,7 +128,7 @@ std::string PointerType::toStr()
 
 bool isIllegalOpType(Type *type)
 {
-    // to do : array type
+    // TODO : array type
     bool ret = (!type->isInt()) && (!type->isConstInt()) && (!type->isFloat()) && (!type->isConstFloat());
     // 类型检查3：不合理运算数类型
     if (ret)

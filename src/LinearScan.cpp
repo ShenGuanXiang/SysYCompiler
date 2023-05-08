@@ -59,7 +59,7 @@ void LinearScan::releaseAllRegs()
     sregs.clear();
 
     rregs.push_back(14);
-    for (int i = 12; i >= 0; i--) // todo：r12现在还叫不准
+    for (int i = 12; i >= 0; i--) // TODO：r12现在还叫不准
         rregs.push_back(i);
     for (int i = 31; i >= 4; i--) // 参数也放进去容易导致 'non-contiguous register range -- vpush/vpop'
         sregs.push_back(i);
@@ -177,7 +177,7 @@ void LinearScan::makeDuChains()
                 auto def = *du.defs.begin();
                 if (du.uses.empty() && // def not use
                     !def->getParent()->isCritical() &&
-                    def->getParent()->getDef().size() == 1) // todo：定义多个的还没删
+                    def->getParent()->getDef().size() == 1) // TODO：定义多个的还没删
                 {
                     change = true;
                     for (auto &inst_use : def->getParent()->getUse())
@@ -587,7 +587,7 @@ void LinearScan::genSpillCode()
             if (!pos->isBL() && !pos->isDummy())
             {
                 auto offset = new MachineOperand(MachineOperand::IMM, -interval->disp);
-                if (offset->isIllegalShifterOperand())
+                if ((use->getValType()->isInt() && (offset->getVal() < -4095 || offset->getVal() > 4095)) || (use->getValType()->isFloat() && offset->isIllegalShifterOperand()))
                 {
                     auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
                     auto ldr = new LoadMInstruction(block, internal_reg, offset);
@@ -612,7 +612,7 @@ void LinearScan::genSpillCode()
             if (!pos->isBL() && !pos->isDummy())
             {
                 auto offset = new MachineOperand(MachineOperand::IMM, -interval->disp);
-                if (offset->isIllegalShifterOperand())
+                if ((def->getValType()->isInt() && (offset->getVal() < -4095 || offset->getVal() > 4095)) || (def->getValType()->isFloat() && offset->isIllegalShifterOperand()))
                 {
                     auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
                     auto ldr = new LoadMInstruction(block, internal_reg, offset);

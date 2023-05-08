@@ -91,9 +91,7 @@ int main(int argc, char *argv[])
     ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
     // optimize = false;
-    // AutoInliner autoinliner(unit);
-    // autoinliner.pass();  // 函数自动内联
-    // yyout = stdout;
+    // yyout = stderr;
     if (dump_ir && !optimize)
     {
         unit->output();
@@ -103,11 +101,13 @@ int main(int argc, char *argv[])
     {
         for (int i = 0; i < 4; i++)
         {
-            Mem2Reg m2r(unit);
-            m2r.pass();
             // AutoInliner autoinliner(unit);
             // autoinliner.pass();  // 函数自动内联
-            // todo:其它中间代码优化
+            Mem2Reg m2r(unit);
+            m2r.pass();
+            // TODO:其它中间代码优化
+            // GVNPRE gvnpre(unit);
+            // gvnpre.pass(); // 部分冗余消除&循环不变外提
             // 代数化简
             SparseCondConstProp sccp(unit);
             sccp.pass(); // 常量传播
@@ -117,8 +117,6 @@ int main(int argc, char *argv[])
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
         }
-        GVNPRE gvnpre(unit);
-        gvnpre.pass();
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
@@ -133,27 +131,29 @@ int main(int argc, char *argv[])
         unit->genMachineCode(mUnit);
         if (optimize)
         {
-            // todo: 汇编代码优化
+            // TODO: 汇编代码优化
+            MachineDeadCodeElim mdce(mUnit);
+
             ComSubExprElimASM cseasm(mUnit);
             cseasm.pass(); // 后端cse
 
             StrengthReduction sr(mUnit);
-            sr.pass(); // 强度削弱
+            sr.pass();        // 强度削弱
+            mdce.pass(false); // 死代码消除
 
-            cseasm.pass();
+            // cseasm.pass();
 
             PeepholeOptimization ph(mUnit);
             ph.pass(); // 窥孔优化
-            MachineDeadCodeElim mdce(mUnit);
-            mdce.pass(); // 死代码消除
+
+            mdce.pass(true); // 死代码消除
             // 指令调度
         }
-        
         LinearScan linearScan(mUnit);
         linearScan.pass();
         if (optimize)
         {
-            // todo: 汇编代码优化
+            // TODO: 汇编代码优化
             ComSubExprElimASM cseasm(mUnit);
             cseasm.pass(); // 公共子表达式删除
             PeepholeOptimization ph(mUnit);
@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
             // 控制流优化
             // 相对fp偏移非法但相对sp偏移不非法，转化一下
             MachineDeadCodeElim mdce(mUnit);
-            mdce.pass(); // 死代码消除
+            mdce.pass(true); // 死代码消除
         }
         fprintf(stderr, "asm generated\n");
         mUnit->output();

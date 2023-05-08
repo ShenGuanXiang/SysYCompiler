@@ -811,7 +811,7 @@ void InitNode::genCode()
     {
         auto val = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0)),
              len = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 4 * vec_val.size()));
-        auto memset_func = new FunctionType(TypeSystem::intType, std::vector<Type *>{nullptr});
+        auto memset_func = new FunctionType(TypeSystem::voidType, std::vector<Type *>{nullptr});
         new FuncCallInstruction(new Operand(new TemporarySymbolEntry(new IntType(8), SymbolTable::getLabel())),
                                 std::vector<Operand *>{arrayAddr, val, len},
                                 new IdentifierSymbolEntry(memset_func, "memset", 0),
@@ -1205,7 +1205,6 @@ void FuncDefParamsNode::genCode()
         entry->insertFront(alloca);                            // allocate instructions should be inserted into the begin of the entry block.
         se->setAddr(addr);
         Operand *src = it->getOperand();
-        func->paramOp.push_back(src);
         /***
          * We haven't implemented array yet, the lval can only be ID. So we just store the result of the `expr` to the addr of the id.
          * If you want to implement array, you have to caculate the address first and then store the result into it.

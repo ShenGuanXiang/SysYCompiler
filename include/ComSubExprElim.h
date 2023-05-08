@@ -45,7 +45,7 @@ class ComSubExprElimASM
     std::set<MachineOperand> defset;
     std::set<MachineOperand> redef;
 
-    std::vector<MachineInstruction *> torm;
+    std::set<MachineInstruction *> freeInsts;
 
 public:
     ComSubExprElimASM(MachineUnit *munit) : munit(munit){};

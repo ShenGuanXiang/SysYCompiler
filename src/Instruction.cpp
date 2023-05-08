@@ -472,13 +472,21 @@ void FuncCallInstruction::output() const
     fprintf(stderr, ")\n");
 }
 
-PhiInstruction::PhiInstruction(Operand *dst, BasicBlock *insert_bb) : Instruction(PHI, insert_bb)
+PhiInstruction::PhiInstruction(Operand *dst, bool incomplete, BasicBlock *insert_bb) : Instruction(PHI, insert_bb)
 {
-    def_list.push_back(dst);
-    // if (dst->getDef() == nullptr)
-    //     dst->setDef(this);
-    addr = dst;
-    incomplete = true;
+    this->incomplete = incomplete;
+    if (incomplete)
+    {
+        def_list.push_back(dst);
+        // if (dst->getDef() == nullptr)
+        //     dst->setDef(this);
+        addr = dst;
+    }
+    else
+    {
+        def_list.push_back(dst);
+        dst->setDef(this);
+    }
 }
 
 void PhiInstruction::output() const
@@ -719,7 +727,7 @@ void LoadInstruction::genMachineCode(AsmBuilder *builder)
             if (offset->getVal() >= 852) // 后面分配好寄存器后偏移量会增加，所以这里直接做一个严格的判断
                 offset = cur_block->insertLoadImm(offset);
         }
-        if (offset->getVal() < 0 && offset->isIllegalShifterOperand())
+        if (offset->getVal() < 0 && ((dst->getValType()->isInt() && offset->getVal() < -4095) || (dst->getValType()->isFloat() && offset->isIllegalShifterOperand())))
             offset = cur_block->insertLoadImm(offset);
         if (dst->getValType()->isFloat() && !offset->isImm())
         {
@@ -792,7 +800,7 @@ void StoreInstruction::genMachineCode(AsmBuilder *builder)
             if (offset->getVal() >= 852) // 后面分配好寄存器后偏移量会增加，所以这里直接做一个严格的判断
                 offset = cur_block->insertLoadImm(offset);
         }
-        if (offset->getVal() < 0 && offset->isIllegalShifterOperand())
+        if (offset->getVal() < 0 && ((src->getValType()->isInt() && offset->getVal() < -4095) || (src->getValType()->isFloat() && offset->isIllegalShifterOperand())))
             offset = cur_block->insertLoadImm(offset);
         if (src->getValType()->isFloat() && !offset->isImm())
         {
@@ -1195,7 +1203,7 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
         cur_block->insertBack(cur_inst);
     }
     // 如果函数执行结果被用到，还需要保存 r0/s0 寄存器中的返回值。
-    if (def_list[0]->getType() != TypeSystem::voidType)
+    if (!dynamic_cast<FunctionType *>(func_se->getType())->getRetType()->isVoid())
     {
         auto dst = genMachineOperand(def_list[0]);
         auto src = new MachineOperand(MachineOperand::REG, 0, dst->getValType()); // r0/s0

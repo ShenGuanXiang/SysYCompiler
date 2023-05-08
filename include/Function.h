@@ -34,7 +34,6 @@ private:
     int iscritical = -1;
 
 public:
-    std::vector<Operand*> paramOp;
     Function(Unit *, SymbolEntry *);
     ~Function();
     void insertBlock(BasicBlock *bb) { block_list.push_back(bb); };
@@ -46,6 +45,15 @@ public:
     void output() const;
     std::vector<BasicBlock *> &getBlockList() { return block_list; };
     std::vector<SymbolEntry *> &getParamsList() { return param_list; };
+    std::vector<Operand *> getParamsOp()
+    {
+        std::vector<Operand *> paramOps;
+        for (auto id_se : param_list)
+        {
+            paramOps.push_back(dynamic_cast<IdentifierSymbolEntry *>(id_se)->getParamOpe());
+        }
+        return paramOps;
+    };
     iterator begin() { return block_list.begin(); };
     iterator end() { return block_list.end(); };
     reverse_iterator rbegin() { return block_list.rbegin(); };

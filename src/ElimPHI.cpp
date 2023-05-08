@@ -21,7 +21,7 @@ void ElimPHI::pass()
             for (auto pred : preds)
             {
                 // split
-                if (pred->getNumOfSucc() > 1) // == 2
+                if (pred->getNumOfSucc() > 1 && preds.size() > 1) // == 2
                 {
                     BasicBlock *splitBlock = new BasicBlock(func);
                     // pred->splitBlock

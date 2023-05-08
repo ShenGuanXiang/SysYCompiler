@@ -232,7 +232,7 @@ void PeepholeOptimization::op1()
                             }
                         }
 
-                        // 效果不大，且vmla def-use关系混乱
+                        // 效果不大，且vmla def-use关系混乱 TODO：在寄存器分配完毕后分情况讨论
                         // else if (curr_inst->getDef()[0]->getValType()->isFloat() && next_inst->getDef()[0]->getValType()->isFloat())
                         // {
 
@@ -416,19 +416,20 @@ void PeepholeOptimization::op1()
     }
 }
 
-
 // 跟op1不能合并（会相互影响）
-void PeepholeOptimization::op2() {
+void PeepholeOptimization::op2()
+{
 
-    for (auto func_iter = unit->begin(); func_iter != unit->end(); func_iter++) 
+    for (auto func_iter = unit->begin(); func_iter != unit->end(); func_iter++)
     {
         auto func = *func_iter;
-        for (auto block_iter = func->begin(); block_iter != func->end(); block_iter++) 
+        for (auto block_iter = func->begin(); block_iter != func->end(); block_iter++)
         {
             auto block = *block_iter;
-            if (block->getInsts().empty())  continue;
+            if (block->getInsts().empty())
+                continue;
 
-            std::vector<MachineInstruction*> insts;
+            std::vector<MachineInstruction *> insts;
             insts.assign(block->begin(), block->end());
             auto curr_inst_iter = insts.begin();
             auto next_inst_iter = next(curr_inst_iter, 1);
@@ -442,7 +443,7 @@ void PeepholeOptimization::op2() {
                 {
                     auto binary_def = curr_inst->getDef()[0];
                     auto mov_src = next_inst->getUse()[0];
-                    if( *binary_def == *mov_src && next_inst->getCond() == MachineInstruction::NONE)
+                    if (*binary_def == *mov_src && next_inst->getCond() == MachineInstruction::NONE)
                     {
                         auto binary_src1 = curr_inst->getUse()[0];
                         auto binary_src2 = curr_inst->getUse()[1];
@@ -459,7 +460,7 @@ void PeepholeOptimization::op2() {
                 {
                     auto binary_def = curr_inst->getDef()[0];
                     auto mov_src = next_inst->getUse()[0];
-                    if( *binary_def == *mov_src && next_inst->getCond() == MachineInstruction::NONE )
+                    if (*binary_def == *mov_src && next_inst->getCond() == MachineInstruction::NONE)
                     {
                         auto binary_src1 = curr_inst->getUse()[0];
                         auto binary_src2 = curr_inst->getUse()[1];
@@ -474,7 +475,7 @@ void PeepholeOptimization::op2() {
 
                 else if (curr_inst->isMov() && next_inst->isMov())
                 {
-                    if( *curr_inst->getDef()[0] == *next_inst->getUse()[0] && curr_inst->getCond() == MachineInstruction::NONE && next_inst->getCond() == MachineInstruction::NONE)
+                    if (*curr_inst->getDef()[0] == *next_inst->getUse()[0] && curr_inst->getCond() == MachineInstruction::NONE && next_inst->getCond() == MachineInstruction::NONE)
                     {
                         auto src1 = curr_inst->getUse()[0];
                         auto mov_dst = next_inst->getDef()[0];
@@ -486,7 +487,7 @@ void PeepholeOptimization::op2() {
 
                 else if (curr_inst->isVmov() && next_inst->isVmov())
                 {
-                    if( *curr_inst->getDef()[0] == *next_inst->getUse()[0] && curr_inst->getCond() == MachineInstruction::NONE && next_inst->getCond() == MachineInstruction::NONE)
+                    if (*curr_inst->getDef()[0] == *next_inst->getUse()[0] && curr_inst->getCond() == MachineInstruction::NONE && next_inst->getCond() == MachineInstruction::NONE)
                     {
                         auto src1 = curr_inst->getUse()[0];
                         auto mov_dst = next_inst->getDef()[0];
@@ -496,9 +497,9 @@ void PeepholeOptimization::op2() {
                     }
                 }
 
+                // TODO：next_inst为vmov/mov && next_inst目标为r0~r3/s0~s3 && curr_inst目标 = next_inst源, curr_inst可以是其它指令=>
 
-
-                else if (curr_inst->isMovShift() && (next_inst->isAdd() || next_inst->isSub() || next_inst->isRsb()) && !next_inst->getDef()[0]->getValType()->isFloat()) 
+                else if (curr_inst->isMovShift() && (next_inst->isAdd() || next_inst->isSub() || next_inst->isRsb()) && !next_inst->getDef()[0]->getValType()->isFloat())
                 {
                     // 浮点没有移位
                     // mov v5, v2, lsl #2
@@ -510,55 +511,52 @@ void PeepholeOptimization::op2() {
                     auto mov_dst = curr_inst->getDef()[0];
                     auto mov_src = curr_inst->getUse()[0];
                     auto mov_imm = curr_inst->getUse()[1];
-                    auto add_dst = next_inst->getDef()[0];
-                    auto add_src1 = next_inst->getUse()[0];
-                    auto add_src2 = next_inst->getUse()[1];
+                    auto bin_dst = next_inst->getDef()[0];
+                    auto bin_src1 = next_inst->getUse()[0];
+                    auto bin_src2 = next_inst->getUse()[1];
 
-                    if (!(add_src1->isImm()) && !(add_src2->isImm()) &&
-                        (*mov_dst == *add_src1 || *mov_dst == *add_src2) && !(*add_dst == *mov_src) && !(*add_dst == *mov_dst) )
+                    if (!bin_src1->isImm() && !bin_src2->isImm() &&
+                        ((*mov_dst == *bin_src1 && next_inst->isAdd()) || *mov_dst == *bin_src2) && !(*bin_dst == *mov_src) && !(*bin_dst == *mov_dst))
                     {
-                        MachineOperand* tem_src = (*mov_dst == *add_src1) ? add_src2 : add_src1;
+                        MachineOperand *tem_src = (*mov_dst == *bin_src1) ? bin_src2 : bin_src1;
                         int op;
                         switch (curr_inst->getOpType())
                         {
                         case MovMInstruction::MOVASR:
-                            if(next_inst->isAdd())
+                            if (next_inst->isAdd())
                                 op = BinaryMInstruction::ADDASR;
-                            else if(next_inst->isSub())
+                            else if (next_inst->isSub())
                                 op = BinaryMInstruction::SUBASR;
-                            else 
+                            else
                                 op = BinaryMInstruction::RSBASR;
                             break;
                         case MovMInstruction::MOVLSL:
-                            if(next_inst->isAdd())
+                            if (next_inst->isAdd())
                                 op = BinaryMInstruction::ADDLSL;
-                            else if(next_inst->isSub())
+                            else if (next_inst->isSub())
                                 op = BinaryMInstruction::SUBLSL;
-                            else 
-                                op = BinaryMInstruction::RSBLSL;                            
+                            else
+                                op = BinaryMInstruction::RSBLSL;
                             break;
                         case MovMInstruction::MOVLSR:
-                            if(next_inst->isAdd())
+                            if (next_inst->isAdd())
                                 op = BinaryMInstruction::ADDLSR;
-                            else if(next_inst->isSub())
+                            else if (next_inst->isSub())
                                 op = BinaryMInstruction::SUBLSR;
-                            else 
-                                op = BinaryMInstruction::RSBLSR;                              
+                            else
+                                op = BinaryMInstruction::RSBLSR;
                             break;
                         default:
                             assert(0);
                             break;
                         }
-                        auto new_add = new BinaryMInstruction(block, op, new MachineOperand(*add_dst), new MachineOperand(*tem_src), new MachineOperand(*mov_src), new MachineOperand(*mov_imm));
+                        auto new_bin = new BinaryMInstruction(block, op, new MachineOperand(*bin_dst), new MachineOperand(*tem_src), new MachineOperand(*mov_src), new MachineOperand(*mov_imm));
 
-                        block->insertBefore(curr_inst, new_add);
+                        block->insertBefore(curr_inst, new_bin);
                         block->removeInst(next_inst);
                     }
                 }
-
             }
         }
     }
 }
-
-

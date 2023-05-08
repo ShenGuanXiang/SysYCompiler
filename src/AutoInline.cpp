@@ -316,8 +316,7 @@ void AutoInliner::pass(Instruction* instr)
         Instruction* newIn;
         int size = retOpes.size();
         if (size > 1) {
-            PhiInstruction* phi = new PhiInstruction(Ret);
-            phi->get_incomplete() = false;
+            PhiInstruction* phi = new PhiInstruction(Ret, false);
             for (int i = 0; i < size; i++)
                 phi->addEdge(retBlocks[i], retOpes[i]);
             newIn = phi;

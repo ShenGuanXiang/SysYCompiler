@@ -76,7 +76,7 @@ void Mem2Reg::global2Local()
     auto main_func = unit->getMainFunc();
     for (auto id_se : unit->getDeclList())
     {
-        if (id_se->getType()->isARRAY() || id_se->getType()->isFunc()) // todo ：数组全局转局部
+        if (id_se->getType()->isARRAY() || id_se->getType()->isFunc()) // TODO ：数组全局转局部
             continue;
         if (id_se->getAddr() == nullptr)
         {
@@ -125,7 +125,7 @@ void Mem2Reg::global2Local()
             assert(userInst->isLoad() || userInst->isStore());
             if (userInst->isStore())
                 has_store = true;
-            if (userInst->getParent()->getParent() != main_func) // todo ：这里应该还有优化空间
+            if (userInst->getParent()->getParent() != main_func) // TODO ：这里应该还有优化空间
                 only_in_main = false;
         }
         // 对于全局从未发生store的全局变量，将其视为常数处理。
@@ -317,7 +317,7 @@ static bool isAllocaPromotable(AllocaInstruction *alloca)
     if (dynamic_cast<PointerType *>(alloca->getDef()->getEntry()->getType())->isARRAY())
     {
         allocaPromotable[alloca] = false;
-        return false; // toDo ：数组拟采用sroa、向量化优化
+        return false; // TODO ：数组拟采用sroa、向量化优化
     }
     auto users = alloca->getDef()->getUses();
     for (auto &user : users)
@@ -602,7 +602,7 @@ void Mem2Reg::InsertPhi(Function *func)
                 {
                     if (LiveInBlocks.find(df) != LiveInBlocks.end())
                     {
-                        auto phi = new PhiInstruction(alloca->getDef()); // 现在PHI的dst是PTR
+                        auto phi = new PhiInstruction(alloca->getDef(), true); // 现在PHI的dst是PTR
                         df->insertFront(phi);
                     }
                     is_visited[df] = true;
