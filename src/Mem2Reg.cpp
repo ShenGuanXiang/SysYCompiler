@@ -710,7 +710,6 @@ void Mem2Reg::Rename(Function *func)
             }
         }
     }
-    func->SimplifyPHI();
     for (auto inst : freeInsts)
         delete inst;
     freeInsts.clear();

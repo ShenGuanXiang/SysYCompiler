@@ -33,6 +33,8 @@ void MemoryOpt::pass(Function *func)
         }
     }
 
+    // TODO：内联后传参用的Gep可以合并到被内联函数体的定义中
+
     auto entry = func->getEntry();
     std::list<BasicBlock *> q;
     std::set<BasicBlock *> visited;

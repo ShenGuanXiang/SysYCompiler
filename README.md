@@ -14,7 +14,7 @@
 
 - 对于全局从未发生store的int/float类型变量，将其视为常数处理。
   
-- 对于全局int/float类型变量，转换为main函数内的局部变量。
+- 部分全局int/float类型变量转换为main函数内的局部变量。
   
 - 优化main函数开头的全局int/float变量的读写
 ## Mem2Reg
