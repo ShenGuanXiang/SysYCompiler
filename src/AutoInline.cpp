@@ -22,6 +22,7 @@ void Unit::getCallGraph()
         f->getCallers().clear();
         f->getCallers_instr().clear();
         f->getdegree() = 0;
+        f->ClearCalled();
     }
     for (auto f : this->getFuncList())
     {
@@ -37,6 +38,7 @@ void Unit::getCallGraph()
                             && 
                             !f->getCallees().count(func_se->getFunction())) 
                             f->getdegree() ++;
+                        func_se->getFunction()->SetCalled();
                         f->getCallees().insert(func_se->getFunction());
                         func_se->getFunction()->getCallers().insert(f);
                         func_se->getFunction()->getCallers_instr().insert(instr);
@@ -65,7 +67,6 @@ void AutoInliner::pass()
     SimplifyCFG sc(unit);
     sc.pass();
     unit->getCallGraph();
-    CallIntrNum();
     RecurDetect();
     std::queue<Function *> func_inline;
     for (auto f : unit->getFuncList())
@@ -349,21 +350,6 @@ void AutoInliner::pass(Instruction* instr)
         exit_bb->insertFront(newIn);
     }
     delete instr;
-}
-
-void AutoInliner::CallIntrNum()
-{
-    for (auto it = unit->begin(); it != unit->end(); it++)
-    {
-        int num = 0;
-        auto func = *it;
-        for (auto block : func->getBlockList())
-            for (auto in = block->begin(); in != block->end();
-                 in = in->getNext())
-                if (in->isCalc())
-                    num++;
-        func->SetCalcInstNum(num);
-    }
 }
 
 void AutoInliner::RecurDetect()

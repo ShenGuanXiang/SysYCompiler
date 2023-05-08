@@ -30,7 +30,6 @@ private:
     int degree = 0;
 
     // DCE
-    std::map<Function *, std::set<Instruction *>> preds_instr;
     int iscritical = -1;
 
 public:
@@ -79,10 +78,8 @@ public:
     void ClearCalled() { ever_called = false; };
     void SetCalled() { ever_called = true; };
     bool isCalled() { return ever_called; };
-    std::map<Function *, std::set<Instruction *>> getPreds() { return preds_instr; };
     BasicBlock *get_nearest_dom(Instruction *instr);
     std::set<BasicBlock *> getExits();
-    void removePred(Instruction *instr);
 
     // AutoInline
     bool isrecur = false;

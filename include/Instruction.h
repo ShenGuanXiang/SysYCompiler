@@ -25,7 +25,6 @@ public:
     bool isCall() const { return instType == CALL; };
     bool isGep() const { return instType == GEP; };
     bool isBinary() const { return instType == BINARY; };
-    bool isCalc() const { return isAlloca() && !isUncond() && !isCond(); };
     void setParent(BasicBlock *);
     void setNext(Instruction *);
     void setPrev(Instruction *);

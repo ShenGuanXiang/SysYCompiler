@@ -102,15 +102,15 @@ int main(int argc, char *argv[])
         for (int i = 0; i < 4; i++)
         {
             AutoInliner autoinliner(unit);
-            autoinliner.pass();  // 函数自动内联
             Mem2Reg m2r(unit);
+            autoinliner.pass();  // 函数自动内联
             m2r.pass();
             // TODO:其它中间代码优化
             // GVNPRE gvnpre(unit);
             // gvnpre.pass(); // 部分冗余消除&循环不变外提
             // 代数化简
             SparseCondConstProp sccp(unit);
-            sccp.pass(); // 常量传播
+            // sccp.pass(); // 常量传播
             ComSubExprElim cse(unit);
             cse.pass3(); // 公共子表达式消除
             // 访存优化

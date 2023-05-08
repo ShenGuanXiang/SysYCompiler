@@ -18,7 +18,6 @@ public:
     AutoInliner(Unit *unit) : unit(unit){};
     void pass();
     void pass(Instruction *instr);
-    void CallIntrNum();
     void RecurDetect();
     void UpdateRecur(Function *, std::set<Function *> &);
     bool ShouldBeinlined(Function *f);
