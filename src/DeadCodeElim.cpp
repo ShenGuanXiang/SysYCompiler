@@ -417,11 +417,8 @@ void DeadCodeElim::deadInstrEliminate(Function *f)
 
 void DeadCodeElim::pass(Function *f)
 {
-    SimplifyCFG sc(f->getParent());
-    sc.pass(f);
     deadInstrMark(f);
     deadInstrEliminate(f);
-    sc.pass(f);
 }
 
 void DeadCodeElim::deleteUselessFunc()

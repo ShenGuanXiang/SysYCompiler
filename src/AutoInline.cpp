@@ -105,8 +105,20 @@ void AutoInliner::pass()
             pass(instr);
         Print_Funcinline(func_inline);
     }
-    // dce.deleteUselessFunc();
     sc.pass();
+    std::vector<Instruction*> need_pass;
+    for (auto f : unit->getFuncList())
+        for (auto bb : f->getBlockList())
+            for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
+                if (instr->isAlloca())
+                    need_pass.push_back(instr);
+    
+    for (auto instr : need_pass)
+    {
+        auto pos = instr->getParent()->getParent()->getEntry();
+        instr->getParent()->remove(instr);
+        pos->insertFront(instr);
+    }
     dce.pass();
 }
 
