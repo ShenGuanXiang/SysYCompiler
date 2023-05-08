@@ -101,10 +101,10 @@ int main(int argc, char *argv[])
     {
         for (int i = 0; i < 4; i++)
         {
-            // AutoInliner autoinliner(unit);
-            // autoinliner.pass();  // 函数自动内联
+            AutoInliner autoinliner(unit);
+            autoinliner.pass();  // 函数自动内联
             Mem2Reg m2r(unit);
-            m2r.pass();
+            // m2r.pass();
             // TODO:其它中间代码优化
             // GVNPRE gvnpre(unit);
             // gvnpre.pass(); // 部分冗余消除&循环不变外提
