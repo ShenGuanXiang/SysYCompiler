@@ -29,7 +29,6 @@ private:
     std::set<Instruction *> callers_instr;
 
     // DCE
-    std::map<Function *, std::set<Instruction *>> preds_instr;
     int iscritical = -1;
 
 public:
@@ -74,8 +73,6 @@ public:
     void ComputeRiDom();
     void ComputeRDF();
     bool isCritical();
-    std::map<Function *, std::set<Instruction *>> getPreds() { return preds_instr; };
-    void removePred(Instruction *instr);
     std::set<BasicBlock *> getExits();
 
     // AutoInline

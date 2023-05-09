@@ -95,15 +95,14 @@ bool Instruction::isCritical()
     {
         if (getUses().empty())
             return true;
-        auto preds = parent->getParent()->getPreds();
-        if (preds.empty())
+        auto preds = parent->getParent()->getCallersInsts();
+        if (!preds.empty() || ((IdentifierSymbolEntry *)parent->getParent()->getSymPtr())->isMain())
             return true;
 
         // 只要有接收ret值的就要返回true
-        for (auto it : preds)
-            for (auto in : it.second)
-                if (in->getDef()->usersNum())
-                    return true;
+        for (auto in : preds)
+            if (in->getDef()->usersNum())
+                return true;
         return false;
     }
 
@@ -115,15 +114,6 @@ bool Instruction::isCritical()
     }
 
     return /*isUncond() || */ isStore();
-}
-
-void Function::removePred(Instruction *instr)
-{
-    assert(instr->isCall());
-
-    Function *func = instr->getParent()->getParent();
-    if (preds_instr[func].count(instr))
-        preds_instr[func].erase(instr);
 }
 
 void DeadCodeElim::pass()
@@ -277,6 +267,8 @@ void DeadCodeElim::deadInstrMark(Function *f)
     std::vector<Instruction *> worklist;
     for (auto bb = f->begin(); bb != f->end(); bb++)
     {
+        if (*bb != f->getEntry() && (*bb)->predEmpty())
+            continue;
         bbDCEMarked[*bb] = false;
         if ((*bb)->empty())
             continue;
@@ -292,11 +284,9 @@ void DeadCodeElim::deadInstrMark(Function *f)
             }
         }
     }
-
     f->ComputeRDom();
     f->ComputeRiDom();
     f->ComputeRDF();
-
     while (!worklist.empty())
     {
         auto instr = worklist.back();
@@ -368,7 +358,6 @@ void DeadCodeElim::deadInstrMark(Function *f)
 void DeadCodeElim::deadInstrEliminate(Function *f)
 {
     std::vector<Instruction *> Target;
-
     for (auto bb = f->begin(); bb != f->end(); bb++)
     {
         if ((*bb)->empty())
@@ -395,7 +384,6 @@ void DeadCodeElim::deadInstrEliminate(Function *f)
                 }
             }
     }
-
     for (auto ta : Target)
     {
         /*Ret problem*/

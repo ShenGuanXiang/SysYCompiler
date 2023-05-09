@@ -160,7 +160,6 @@ int main(int argc, char *argv[])
             PeepholeOptimization ph(mUnit);
             ph.pass(); // 窥孔优化
             // 控制流优化
-            // 相对fp偏移非法但相对sp偏移不非法，转化一下
             MachineDeadCodeElim mdce(mUnit);
             mdce.pass(true); // 死代码消除
         }
