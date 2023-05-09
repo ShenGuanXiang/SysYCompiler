@@ -112,7 +112,7 @@ void Mem2Reg::global2Local()
             {
                 break;
             }
-            else if (inst->isCall() && userFuncs.count(dynamic_cast<FuncCallInstruction *>(inst)->GetFuncSe()))
+            else if (inst->isCall() && userFuncs.count(dynamic_cast<FuncCallInstruction *>(inst)->getFuncSe()))
             {
                 break;
             }

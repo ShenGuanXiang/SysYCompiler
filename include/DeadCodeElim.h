@@ -15,11 +15,14 @@ class DeadCodeElim
 {
 private:
     Unit *unit;
+    std::map<Instruction *, bool> instDCEMarked;
+    std::map<BasicBlock *, bool> bbDCEMarked;
 
 public:
     DeadCodeElim(Unit *unit) : unit(unit){};
     void deadInstrMark(Function *f);
     void deadInstrEliminate(Function *f);
+    BasicBlock* get_nearest_dom(Instruction *instr);
     void pass(Function *func);
     void pass();
     void deleteUselessFunc();

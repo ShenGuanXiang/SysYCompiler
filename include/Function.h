@@ -27,7 +27,6 @@ private:
     std::set<Function *> callers;
     std::set<Function *> callees;
     std::set<Instruction *> callers_instr;
-    int degree = 0;
 
     // DCE
     std::map<Function *, std::set<Instruction *>> preds_instr;
@@ -71,30 +70,18 @@ public:
     void SimplifyPHI();
 
     // DCE
-    bool ever_called;
     void ComputeRDom();
     void ComputeRiDom();
     void ComputeRDF();
     bool isCritical();
-    void ClearCalled() { ever_called = false; };
-    void SetCalled() { ever_called = true; };
-    bool isCalled() { return ever_called; };
     std::map<Function *, std::set<Instruction *>> getPreds() { return preds_instr; };
-    BasicBlock *get_nearest_dom(Instruction *instr);
-    std::set<BasicBlock *> getExits();
     void removePred(Instruction *instr);
+    std::set<BasicBlock *> getExits();
 
     // AutoInline
-    bool isrecur = false;
-    int cal_inst_num;
-    int isCalc() { return cal_inst_num; };
-    void SetCalcInstNum(int num) { cal_inst_num = num; };
-    bool isRecur() { return isrecur; };
-    void SetRecur() { isrecur = true; };
     std::set<Function *> &getCallers() { return callers; };
-    std::set<Instruction *> &getCallers_instr() { return callers_instr; };
+    std::set<Instruction *> &getCallersInsts() { return callers_instr; };
     std::set<Function *> &getCallees() { return callees; };
-    int &getdegree() { return degree; };
 };
 
 #endif

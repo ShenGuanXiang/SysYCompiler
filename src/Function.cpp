@@ -12,7 +12,6 @@ Function::Function(Unit *u, SymbolEntry *s)
     entry = new BasicBlock(this);
     sym_ptr = s;
     parent = u;
-    ever_called = false;
     ((IdentifierSymbolEntry *)s)->setFunction(this);
     callers = std::set<Function *>();
     callees = std::set<Function *>();
@@ -97,7 +96,7 @@ void Function::genMachineCode(AsmBuilder *builder)
             {
                 cur_func->addSavedRegs(14); // lr
                 auto caller = dynamic_cast<IdentifierSymbolEntry *>(this->getSymPtr());
-                auto func_se = dynamic_cast<FuncCallInstruction *>(inst)->GetFuncSe();
+                auto func_se = dynamic_cast<FuncCallInstruction *>(inst)->getFuncSe();
                 if (func_se->isLibFunc())
                     for (auto kv : func_se->getOccupiedRegs())
                         caller->addOccupiedReg(kv.first, kv.second);

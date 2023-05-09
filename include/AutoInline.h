@@ -12,17 +12,18 @@ class AutoInliner
 {
 private:
     Unit *unit;
-    std::vector<Function *> removed_func;
-    
+    std::map<Function *, bool> is_recur;
+    std::map<Function *, int> degree;
+
 public:
     AutoInliner(Unit *unit) : unit(unit){};
     void pass();
     void pass(Instruction *instr);
-    void CallIntrNum();
     void RecurDetect();
     void UpdateRecur(Function *, std::set<Function *> &);
     bool ShouldBeinlined(Function *f);
-    void Print_Funcinline(std::queue<Function *>&);
+    void InitDegree();
+    void Print_Funcinline(std::queue<Function *> &);
 };
 
 #endif

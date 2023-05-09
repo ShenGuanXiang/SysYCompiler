@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < 4; i++)
         {
             AutoInliner autoinliner(unit);
-            autoinliner.pass();  // 函数自动内联
+            autoinliner.pass(); // 函数自动内联
             Mem2Reg m2r(unit);
             m2r.pass();
             // TODO:其它中间代码优化
@@ -117,8 +117,6 @@ int main(int argc, char *argv[])
             // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
-            SimplifyCFG sc(unit);
-            sc.pass();
         }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)

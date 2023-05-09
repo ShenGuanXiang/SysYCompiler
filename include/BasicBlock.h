@@ -64,9 +64,6 @@ public:
     void genMachineCode(AsmBuilder *);
 
     // DCE
-    void clearDCEMark();
-    void SetBDCEMark();
-    bool isDCEMarked();
     std::set<BasicBlock *> &getRSDoms();
     BasicBlock *&getRIdom();
     std::set<BasicBlock *> &getRDF();

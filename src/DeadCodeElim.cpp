@@ -28,24 +28,13 @@ int BasicBlock::getNumofInstr()
     return num;
 }
 
-// 清理DCE的标记
-void BasicBlock::clearDCEMark() { DCE_marked = false; };
-// 设置DCE标记
-void BasicBlock::SetBDCEMark() { DCE_marked = true; };
-// 判断是否有DCE标记
-bool BasicBlock::isDCEMarked() { return DCE_marked; };
 // 获得反向的严格支配着
 std::set<BasicBlock *> &BasicBlock::getRSDoms() { return RSDoms; };
 // 获得反向的立即支配者
 BasicBlock *&BasicBlock::getRIdom() { return RiDom; };
 // 获得反向的支配者边界
 std::set<BasicBlock *> &BasicBlock::getRDF() { return RDF; };
-// 清理DCE的标记
-void Instruction::clearDCEMark() { DCE_marked = false; };
-// 设置DCE的标记
-void Instruction::SetDCEMark() { DCE_marked = true; };
-// 判断是否存在DCE的标记
-bool Instruction::isDCEMarked() { return DCE_marked; };
+
 // 判断是否是关键函数
 bool Function::isCritical()
 {
@@ -62,7 +51,7 @@ bool Function::isCritical()
         for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
             if (instr->isCall())
             {
-                IdentifierSymbolEntry *funcSE = (IdentifierSymbolEntry *)(((FuncCallInstruction *)instr)->GetFuncSe());
+                IdentifierSymbolEntry *funcSE = (IdentifierSymbolEntry *)(((FuncCallInstruction *)instr)->getFuncSe());
                 if (funcSE->isLibFunc())
                     return iscritical = 1;
                 else
@@ -120,7 +109,7 @@ bool Instruction::isCritical()
 
     if (isCall())
     {
-        IdentifierSymbolEntry *funcSE = (IdentifierSymbolEntry *)(((FuncCallInstruction *)this)->GetFuncSe());
+        IdentifierSymbolEntry *funcSE = (IdentifierSymbolEntry *)(((FuncCallInstruction *)this)->getFuncSe());
         if (funcSE->isLibFunc() || funcSE->getFunction()->isCritical())
             return true;
     }
@@ -139,11 +128,16 @@ void Function::removePred(Instruction *instr)
 
 void DeadCodeElim::pass()
 {
+    SimplifyCFG sc(unit);
+    sc.pass();
+
     auto fs = unit->getFuncList();
     for (auto f : fs)
         pass(f);
 
     deleteUselessFunc();
+
+    sc.pass();
 }
 // 计算函数所有的Ret指令并且当作出口
 std::set<BasicBlock *> Function::getExits()
@@ -263,13 +257,13 @@ void Function::ComputeRDF()
     //             fprintf(stderr, "RDF[B%d] = B%d\n", bb->getNo(), e->getNo());
 }
 // 获得最近的反向支配者
-BasicBlock *Function::get_nearest_dom(Instruction *instr)
+BasicBlock *DeadCodeElim::get_nearest_dom(Instruction *instr)
 {
     BasicBlock *bb = instr->getParent();
     auto nmp = bb->getRIdom();
     while (nmp != nullptr)
     {
-        if (nmp->isDCEMarked())
+        if (bbDCEMarked[nmp])
             return nmp;
         nmp = nmp->getRIdom();
     }
@@ -278,21 +272,22 @@ BasicBlock *Function::get_nearest_dom(Instruction *instr)
 // 死的指令的标记
 void DeadCodeElim::deadInstrMark(Function *f)
 {
+    instDCEMarked.clear();
+    bbDCEMarked.clear();
     std::vector<Instruction *> worklist;
     for (auto bb = f->begin(); bb != f->end(); bb++)
     {
-        (*bb)->clearDCEMark();
+        bbDCEMarked[*bb] = false;
         if ((*bb)->empty())
             continue;
         for (auto instr = (*bb)->begin(); instr != (*bb)->end(); instr = instr->getNext())
         {
-            instr->clearDCEMark();
+            instDCEMarked[instr] = false;
             if (instr->isCritical())
             {
                 // fprintf(stderr, "Mark B%d instrType%d\n", instr->getParent()->getNo(), instr->getInstType());
-                instr->SetDCEMark();
-                auto bb = instr->getParent();
-                bb->SetBDCEMark();
+                instDCEMarked[instr] = true;
+                bbDCEMarked[instr->getParent()] = true;
                 worklist.push_back(instr);
             }
         }
@@ -312,12 +307,11 @@ void DeadCodeElim::deadInstrMark(Function *f)
             for (auto &op_ptr : op_ptrs)
             {
                 Instruction *op_def = op_ptr->getDef();
-                if (op_def && !op_def->isDCEMarked())
+                if (op_def && !instDCEMarked[op_def])
                 {
                     // fprintf(stderr, "UseMark B%d instrType%d\n", op_def->getParent()->getNo(), op_def->getInstType());
-                    op_def->SetDCEMark();
-                    auto bb = op_def->getParent();
-                    bb->SetBDCEMark();
+                    instDCEMarked[op_def] = true;
+                    bbDCEMarked[op_def->getParent()] = true;
                     worklist.push_back(op_def);
                 }
             }
@@ -328,12 +322,11 @@ void DeadCodeElim::deadInstrMark(Function *f)
             auto def = instr->getDef();
             for (auto use = def->use_begin(); use != def->use_end(); use++)
             {
-                if (!(*use)->isDCEMarked() &&
-                    ((*use)->isUncond() || (*use)->isCond()))
+                if (!instDCEMarked[*use] && ((*use)->isUncond() || (*use)->isCond()))
                 {
                     // fprintf(stderr, "UseMark B%d instrType%d\n", (*use)->getParent()->getNo(), (*use)->getInstType());
-                    (*use)->SetDCEMark();
-                    (*use)->getParent()->SetBDCEMark();
+                    instDCEMarked[*use] = true;
+                    bbDCEMarked[(*use)->getParent()] = true;
                     worklist.push_back(*use);
                 }
             }
@@ -344,10 +337,10 @@ void DeadCodeElim::deadInstrMark(Function *f)
         for (auto bb_rdf : bb->getRDF())
         {
             auto instr_br = bb_rdf->rbegin();
-            if (instr_br != nullptr && (instr_br->isCond() || instr_br->isUncond()) && !instr_br->isDCEMarked())
+            if (instr_br != nullptr && (instr_br->isCond() || instr_br->isUncond()) && !instDCEMarked[instr_br])
             {
                 // fprintf(stderr, "RDFMark B%d instrType%d\n", instr_br->getParent()->getNo(), instr_br->getInstType());
-                instr_br->SetDCEMark();
+                instDCEMarked[instr_br] = true;
                 worklist.push_back(instr_br);
             }
         }
@@ -360,11 +353,11 @@ void DeadCodeElim::deadInstrMark(Function *f)
             {
                 Instruction *in = it.first->rbegin();
                 // fprintf(stderr, "retain B%d\n", it.first->getNo());
-                if (!in->isDCEMarked() && (in->isCond() || in->isUncond()))
+                if (!instDCEMarked[in] && (in->isCond() || in->isUncond()))
                 {
                     // fprintf(stderr, "phiMark B%d instrType%d\n", in->getParent()->getNo(), in->getInstType());
-                    in->SetDCEMark();
-                    in->getParent()->SetBDCEMark();
+                    instDCEMarked[in] = true;
+                    bbDCEMarked[in->getParent()] = true;
                     worklist.push_back(in);
                 }
             }
@@ -381,7 +374,7 @@ void DeadCodeElim::deadInstrEliminate(Function *f)
         if ((*bb)->empty())
             continue;
         for (auto instr = (*bb)->begin(); instr != (*bb)->end(); instr = instr->getNext())
-            if (!instr->isDCEMarked())
+            if (!instDCEMarked[instr])
             {
                 if (instr->isRet())
                 {
@@ -392,7 +385,7 @@ void DeadCodeElim::deadInstrEliminate(Function *f)
                     Target.push_back(instr);
                 if (instr->isCond())
                 {
-                    BasicBlock *npd = f->get_nearest_dom(instr);
+                    BasicBlock *npd = get_nearest_dom(instr);
                     if (npd == nullptr)
                         return;
                     new UncondBrInstruction(npd, *bb);
@@ -423,12 +416,13 @@ void DeadCodeElim::pass(Function *f)
 
 void DeadCodeElim::deleteUselessFunc()
 {
+    std::map<Function *, bool> ever_called;
     for (auto f : unit->getFuncList())
-        f->ClearCalled();
+        ever_called[f] = false;
     Function *main_func = unit->getMainFunc();
     std::queue<Function *> called_funcs;
     called_funcs.push(main_func);
-    main_func->SetCalled();
+    ever_called[main_func] = true;
     while (!called_funcs.empty())
     {
         auto t = called_funcs.front();
@@ -436,17 +430,17 @@ void DeadCodeElim::deleteUselessFunc()
         for (auto bb : t->getBlockList())
             for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
                 if (instr->isCall() &&
-                    !((IdentifierSymbolEntry *)((FuncCallInstruction *)instr)->GetFuncSe())->isLibFunc())
+                    !((IdentifierSymbolEntry *)((FuncCallInstruction *)instr)->getFuncSe())->isLibFunc())
                 {
-                    auto called_func = ((IdentifierSymbolEntry *)((FuncCallInstruction *)instr)->GetFuncSe())->getFunction();
-                    if (!called_func || called_func->isCalled())
+                    auto called_func = ((IdentifierSymbolEntry *)((FuncCallInstruction *)instr)->getFuncSe())->getFunction();
+                    if (!called_func || ever_called[called_func] == true)
                         continue;
-                    called_func->SetCalled();
+                    ever_called[called_func] = true;
                     called_funcs.push(called_func);
                 }
     }
     for (auto f : unit->getFuncList())
-        if (!f->isCalled() && !((IdentifierSymbolEntry *)f->getSymPtr())->isMain())
+        if (!ever_called[f] && !((IdentifierSymbolEntry *)f->getSymPtr())->isMain())
             delete f;
 }
 
