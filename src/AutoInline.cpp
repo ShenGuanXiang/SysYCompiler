@@ -56,7 +56,7 @@ void AutoInliner::InitDegree()
 
 static Operand *copyOperand(Operand *ope)
 {
-    if (ope->getEntry()->isConstant())
+    if (ope->getEntry()->getType()->isConst())
         return new Operand(new ConstantSymbolEntry(ope->getType(), ope->getEntry()->getValue()));
     else
         return new Operand(new TemporarySymbolEntry(ope->getType(), SymbolTable::getLabel()));
@@ -132,7 +132,7 @@ void AutoInliner::pass()
     }
 
     DeadCodeElim dce(unit);
-    dce.pass();
+    dce.deleteUselessFunc();
 }
 
 void AutoInliner::pass(Instruction *instr)

@@ -100,6 +100,20 @@
      add r0, fp, #-12
      
      ldr r1, [fp, #-12]
+
+   - ldr r3, =4094
+     
+     add/sub r0, fp, r3
+     
+     ldr r1, [r0]
+     
+     --->
+     
+     ldr r3, =4094
+     
+     add/sub r0, fp, r3
+     
+     ldr r1, [fp, #4094/#-4094]
    
    - add vr7279, fp, #-12
    
@@ -114,6 +128,30 @@
      mov vr28908, #0
      
      str vr28908, [fp, #-12]
+
+   - add r4, r2, r1, LSL #2
+	  
+     mov r3, #0
+	  
+     str r3, [r4] 
+    
+     --->
+	  
+     add r4, r2, r1, LSL #2
+     
+     mov r3, #0
+     
+     str r3, [r2, r1, LSL #2] (浮点不行)
+     
+   - add r7, r5, r6, LSL #2
+     
+     ldr r5, [r7]
+     
+     --->
+     
+     add r7, r5, r6, LSL #2
+     
+     ldr r5, [ r5, r6, LSL #2] （浮点不行）
 
 
 2. ldr指令转为mov
@@ -252,6 +290,7 @@
 
 - 代数恒等式化简 +--a !!a a\*b+a\*c a\*b/b 数组寻址表达式 a+0 a\*1 a/1 a*0 a%1
 - a+a = a*2, a-a = 0 a/a = 1 a%a = 0
+- a+1+1+1...
 
 ## 强度削弱
 
@@ -286,4 +325,6 @@
 ## 参考网站
 
 https://oi-wiki.org/lang/optimizations/
+
+https://gitlab.eduxiji.net/202318123201313/compiler2023 性能样例
 

@@ -591,7 +591,6 @@ void SparseCondConstProp::visit(Instruction *inst)
                 continue;
             if (status_map[src] == UNDEF)
             {
-                assert(status_map[inst->getDef()] == UNDEF || status_map[inst->getDef()] == NAC);
                 cur_status = status_map[inst->getDef()];
                 break;
             }

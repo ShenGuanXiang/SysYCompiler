@@ -150,20 +150,7 @@ void Function::genMachineCode(AsmBuilder *builder)
         {
             auto id_se = dynamic_cast<IdentifierSymbolEntry *>(param);
             Type *type = param->getType()->isPTR() ? TypeSystem::intType : param->getType();
-            if (id_se->getParamOpe()->usersNum() == 0 || id_se->getLabel() == -1)
-                // TODO: 不写后一个条件有奇怪的bug，比如这个例子：
-                // int f(float a, float b, int c, int d, float e, float g, float h)
-                // {
-                //   getfloat();
-                //   putint(c);
-                //   putfloat(e);
-                //   return 0;
-                // }
-                //
-                // int main()
-                // {
-                //   return f(65,66,67,68,69,70,71);
-                // }
+            if (id_se->getParamOpe()->usersNum() == 0)
                 continue;
             else if (!id_se->paramMem2RegAble() && id_se->getParamNo() < 4)
             {

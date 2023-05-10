@@ -240,7 +240,7 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                     bb->removeInst(inst);
                     freeInsts.insert(inst);
                 }
-                else if (isSignedShifterOperandVal(op2val[*inst->getUse()[0]]))
+                else if (isShifterOperandVal(op2val[*inst->getUse()[0]]))
                 {
                     auto dst = new MachineOperand(*inst->getDef()[0]);
                     auto RsbInst = new BinaryMInstruction(bb, BinaryMInstruction::RSB, dst, new MachineOperand(*inst->getUse()[1]), new MachineOperand(MachineOperand::IMM, op2val[*inst->getUse()[0]]));

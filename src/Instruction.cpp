@@ -871,7 +871,7 @@ void BinaryInstruction::genMachineCode(AsmBuilder *builder)
     {
         if (opcode == ADD)
             std::swap(src1, src2);
-        else if (opcode == SUB && ((src1->getValType()->isInt() && !src1->isIllegalShifterOperand()) || src1->getVal() == 0))
+        else if (opcode == SUB && ((src1->getValType()->isInt() && isShifterOperandVal((int)src1->getVal())) || src1->getVal() == 0))
         {
             std::swap(src1, src2);
             cur_block->insertBack(new BinaryMInstruction(cur_block, BinaryMInstruction::RSB, dst, src1, src2));
