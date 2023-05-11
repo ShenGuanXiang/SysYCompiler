@@ -2,6 +2,7 @@
 #define __TYPE_H__
 #include <vector>
 #include <string>
+#include <assert.h>
 
 class Type
 {
@@ -23,7 +24,7 @@ protected:
         CONST_FLOAT_ARRAY,
         PTR
     };
-    int size;
+    long long size;
 
 public:
     Type(int kind) : kind(kind){};
@@ -39,7 +40,11 @@ public:
     bool isConstFloat() const { return kind == CONST_FLOAT; };
     bool isConst() const { return (kind == CONST_INT) || (kind == CONST_FLOAT) || (kind == CONST_INT_ARRAY) || (kind == CONST_FLOAT_ARRAY); };
     bool isPTR() const { return kind == PTR; };
-    int getSize() const { return (size - 1) / 8 + 1; }; // 单位是字节数
+    int getSize() const
+    {
+        assert(size > 0);
+        return (size - 1) / 8 + 1;
+    }; // 单位是字节数
     bool isIntArray() const { return kind == INT_ARRAY || kind == CONST_INT_ARRAY; };
     bool isConstIntArray() const { return kind == CONST_INT_ARRAY; };
     bool isFloatArray() const { return kind == FLOAT_ARRAY || kind == CONST_FLOAT_ARRAY; };
@@ -122,7 +127,7 @@ public:
         size *= d;
     };
     std::vector<int> fetch() { return dim; };
-    void SetDim(std::vector<int> d)
+    void setDim(std::vector<int> d)
     {
         dim.clear();
         size = 32;

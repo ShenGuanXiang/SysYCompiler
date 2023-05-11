@@ -139,10 +139,9 @@ int main(int argc, char *argv[])
             cseasm.pass(); // 后端cse
 
             StrengthReduction sr(mUnit);
-            sr.pass();        // 强度削弱
-            mdce.pass(false); // 死代码消除
+            sr.pass(); // 强度削弱
 
-            // cseasm.pass();
+            cseasm.pass();
 
             PeepholeOptimization ph(mUnit);
             ph.pass(); // 窥孔优化

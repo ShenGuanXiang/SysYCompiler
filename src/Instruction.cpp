@@ -674,7 +674,7 @@ void AllocaInstruction::genMachineCode(AsmBuilder *builder)
     {
         if (id_se->getParamNo() < 4) // >= 0
         {
-            int offset = cur_func->AllocSpace(/*se->getType()->getSize()*/ 4);
+            auto offset = cur_func->AllocSpace(/*se->getType()->getSize()*/ 4);
             dynamic_cast<TemporarySymbolEntry *>(def_list[0]->getEntry())->setOffset(-offset);
         }
         else
@@ -689,7 +689,7 @@ void AllocaInstruction::genMachineCode(AsmBuilder *builder)
     else
     {
         assert(id_se->isLocal());
-        int offset = cur_func->AllocSpace(std::max(se->getType()->getSize(), 4));
+        auto offset = cur_func->AllocSpace(std::max(se->getType()->getSize(), 4));
         dynamic_cast<TemporarySymbolEntry *>(def_list[0]->getEntry())->setOffset(-offset);
     }
 }
@@ -727,7 +727,7 @@ void LoadInstruction::genMachineCode(AsmBuilder *builder)
             if (offset->getVal() >= 852) // 后面分配好寄存器后偏移量会增加，所以这里直接做一个严格的判断
                 offset = cur_block->insertLoadImm(offset);
         }
-        if (offset->getVal() < 0 && ((dst->getValType()->isInt() && offset->getVal() < -4095) || (dst->getValType()->isFloat() && offset->isIllegalShifterOperand())))
+        if (offset->getVal() < 0 && ((dst->getValType()->isInt() && offset->getVal() < -4095) || (dst->getValType()->isFloat() && (offset->isIllegalShifterOperand() || offset->getVal() < -1023))))
             offset = cur_block->insertLoadImm(offset);
         if (dst->getValType()->isFloat() && !offset->isImm())
         {
@@ -800,7 +800,7 @@ void StoreInstruction::genMachineCode(AsmBuilder *builder)
             if (offset->getVal() >= 852) // 后面分配好寄存器后偏移量会增加，所以这里直接做一个严格的判断
                 offset = cur_block->insertLoadImm(offset);
         }
-        if (offset->getVal() < 0 && ((src->getValType()->isInt() && offset->getVal() < -4095) || (src->getValType()->isFloat() && offset->isIllegalShifterOperand())))
+        if (offset->getVal() < 0 && ((src->getValType()->isInt() && offset->getVal() < -4095) || (src->getValType()->isFloat() && (offset->isIllegalShifterOperand() || offset->getVal() < -1023))))
             offset = cur_block->insertLoadImm(offset);
         if (src->getValType()->isFloat() && !offset->isImm())
         {
@@ -1230,7 +1230,7 @@ void GepInstruction::genMachineCode(AsmBuilder *builder)
     std::vector<MachineInstruction *> insts;
     auto dst = genMachineOperand(def_list[0]);
     auto arr = use_list[0];
-    int cur_size = (dynamic_cast<PointerType *>(arr->getEntry()->getType())->getValType())->getSize();
+    auto cur_size = (dynamic_cast<PointerType *>(arr->getEntry()->getType())->getValType())->getSize();
     auto dims = (dynamic_cast<PointerType *>(arr->getEntry()->getType())->getValType())->isARRAY()
                     ? ((ArrayType *)(dynamic_cast<PointerType *>(arr->getEntry()->getType())->getValType()))->fetch()
                     : std::vector<int>{1}; // unused

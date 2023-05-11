@@ -429,7 +429,7 @@ void Id::genCode()
             if (currr_dim.size())
             {
                 curr_type = arrTypeLike(cur_type);
-                curr_type->SetDim(currr_dim);
+                curr_type->setDim(currr_dim);
                 final_type = new PointerType(curr_type);
             }
             else
@@ -478,7 +478,7 @@ void Id::genCode()
                 ArrayType *curr_type;
                 curr_type = arrTypeLike(cur_type);
                 std::vector<int> currdim = cur_type->fetch();
-                curr_type->SetDim(currdim);
+                curr_type->setDim(currdim);
                 Operand *dst1 = new Operand(new TemporarySymbolEntry(new PointerType(cur_type), SymbolTable::getLabel()));
                 new LoadInstruction(dst1, addr, bb);
                 // Operand* idx = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0));
@@ -497,7 +497,7 @@ void Id::genCode()
                     if (FunP.size() != 0)
                     {
                         curr_type = arrTypeLike(cur_type);
-                        ((ArrayType *)curr_type)->SetDim(FunP);
+                        ((ArrayType *)curr_type)->setDim(FunP);
                     }
                     else
                         curr_type = cur_type->getElemType();
@@ -822,7 +822,7 @@ void InitNode::genCode()
         for (int i = 0; i < non_zeros.size(); i++)
         {
             ArrayType *curr_type = arrTypeLike(cur_type);
-            curr_type->SetDim(curr_dim);
+            curr_type->setDim(curr_dim);
             Operand *final_offset = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
             vec_val[expr_node[i]]->genCode();
             Operand *src = vec_val[expr_node[i]]->getOperand();
@@ -846,7 +846,7 @@ void InitNode::genCode()
                 idx_operand.push_back(new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, pos / d[j])));
                 pos %= d[j];
             }
-            curr_type->SetDim(curr_dim);
+            curr_type->setDim(curr_dim);
             Operand *final_offset = new Operand(new TemporarySymbolEntry(new PointerType(curr_type), SymbolTable::getLabel()));
             vec_val[i]->genCode();
             Operand *src = vec_val[i]->getOperand();
@@ -1188,7 +1188,7 @@ void FuncDefParamsNode::genCode()
                 dimensions.push_back(idx->getSymPtr()->getValue());
             dimensions.erase(dimensions.begin());
             ArrayType *new_type = arrTypeLike((ArrayType *)(it->getSymPtr()->getType()));
-            new_type->SetDim(dimensions);
+            new_type->setDim(dimensions);
             type = new PointerType(new_type);
             it->getSymPtr()->setType(type);
         }
@@ -1261,11 +1261,21 @@ void FuncDefNode::genCode()
             (*bb)->addSucc(dstBB);
             dstBB->addPred(*bb);
         }
-        // 填充ret void
+        // 填充ret void/ret 0
         else
         {
-            if (!last->isRet() /*&& dynamic_cast<FunctionType *>(se->getType())->getRetType()->isVoid()*/)
-                new RetInstruction(nullptr, *bb);
+            if (!last->isRet())
+            {
+                if (dynamic_cast<FunctionType *>(se->getType())->getRetType()->isVoid())
+                    new RetInstruction(nullptr, *bb);
+                else if (dynamic_cast<FunctionType *>(se->getType())->getRetType()->isFloat())
+                    new RetInstruction(new Operand(new ConstantSymbolEntry(TypeSystem::constFloatType, 0)), *bb);
+                else
+                {
+                    assert(dynamic_cast<FunctionType *>(se->getType())->getRetType()->isInt());
+                    new RetInstruction(new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0)), *bb);
+                }
+            }
         }
     }
 }
@@ -1405,7 +1415,7 @@ void InitNode::fill(int level, std::vector<int> d, Type *type)
         addleaf(new_const_node);
         num++;
     }
-    int t = getSize(cap);
+    auto t = getSize(cap);
     while (t < d[level])
     {
         InitNode *new_node = new InitNode();

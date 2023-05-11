@@ -47,14 +47,14 @@ std::string DeclArray(ArrayType *type, std::vector<double> initializer)
     auto d = dims[0];
     auto next_type = new ArrayType(*type);
     dims.erase(dims.begin());
-    next_type->SetDim(dims);
+    next_type->setDim(dims);
     decl = type->toStr() + " [";
     for (int i = 0; i < d; i++)
     {
         if (i)
             decl += ", ";
         std::vector<double> next_initializer;
-        for (int j = 0; j < (int)next_type->getSize() / 4; j++)
+        for (int j = 0; j < next_type->getSize() / 4; j++)
         {
             next_initializer.push_back(initializer[0]);
             initializer.erase(initializer.begin());

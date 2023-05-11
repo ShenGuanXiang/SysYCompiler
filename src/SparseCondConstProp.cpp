@@ -629,10 +629,10 @@ void SparseCondConstProp::visit(Instruction *inst)
                 arr = dynamic_cast<IdentifierSymbolEntry *>(inst->getUses()[0]->getEntry());
             }
             bool const_ptr = arr->getType()->isConst();
-            auto offset = 0U;
+            auto offset = 0LL;
             auto arrVals = arr->getArrVals();
             auto arrType = dynamic_cast<PointerType *>(inst->getUses()[0]->getType())->getValType();
-            int cur_size = arrType->getSize() / dynamic_cast<ArrayType *>(arrType)->getElemType()->getSize();
+            auto cur_size = arrType->getSize() / dynamic_cast<ArrayType *>(arrType)->getElemType()->getSize();
             auto dims = ((ArrayType *)(dynamic_cast<PointerType *>(inst->getUses()[0]->getType())->getValType()))->fetch();
             auto k = 0U;
             while (const_ptr && inst->isGep())

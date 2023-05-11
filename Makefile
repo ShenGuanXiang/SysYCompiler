@@ -1,7 +1,7 @@
 SRC_PATH ?= src
 INC_PATH += include
 BUILD_PATH ?= build
-TEST_PATH ?= test
+TEST_PATH ?= functional
 OPTTEST_PATH ?= testopt
 OBJ_PATH ?= $(BUILD_PATH)/obj
 BINARY ?= $(BUILD_PATH)/compiler
@@ -212,6 +212,7 @@ testll:app
 	@rm llnew.log
 	@touch llnew.log
 	@success=0
+	@TOTAL_EXEC_TIME=0
 	@for file in $(sort $(TESTCASE))
 	do
 		IR=$${file%.*}.ll
@@ -236,12 +237,16 @@ testll:app
 		if [ $$? != 0 ]; then
 			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mAssemble Error\033[0m" && echo "FAIL: $${FILE}\tAssemble Error" >> llnew.log
 		else
-			if [ -f "$${IN}" ]; then
-				timeout 50s $${BIN} <$${IN} >$${RES} 2>>$${LOG}
-			else
-				timeout 50s $${BIN} >$${RES} 2>>$${LOG}
-			fi
-			RETURN_VALUE=$$?
+			@exec_start=$$(date +%s.%3N); \
+			if [ -f "$${IN}" ]; then \
+				timeout 50s $${BIN} <$${IN} >$${RES} 2>>$${LOG}; \
+			else \
+				timeout 50s $${BIN} >$${RES} 2>>$${LOG}; \
+			fi; \
+			RETURN_VALUE=$$?; \
+			exec_end=$$(date +%s.%3N); \
+			exec_time=$$(echo "$$exec_end - $$exec_start" | bc)
+			TOTAL_EXEC_TIME=$$(echo "$$TOTAL_EXEC_TIME + $$exec_time" | bc)
 			FINAL=`tail -c 1 $${RES}`
 			[ $${FINAL} ] && echo "\n$${RETURN_VALUE}" >> $${RES} || echo "$${RETURN_VALUE}" >> $${RES}
 			if [ "$${RETURN_VALUE}" = "124" ]; then
@@ -255,6 +260,9 @@ testll:app
 					else
 						success=$$((success + 1))
 						echo "\033[1;32mPASS:\033[0m $${FILE}"
+						if [ "$(TIMING)" = "1" ]; then
+							awk "BEGIN {printf \"\t execute: %.3fs\n\", ( $$exec_time )}"
+						fi
 					fi
 				fi
 			fi
@@ -262,6 +270,7 @@ testll:app
 	done
 	echo "\033[1;33mTotal: $(TESTCASE_NUM)\t\033[1;32mAccept: $${success}\t\033[1;31mFail: $$(($(TESTCASE_NUM) - $${success}))\033[0m" && echo "Total: $(TESTCASE_NUM)\tAccept: $${success}\tFail: $$(($(TESTCASE_NUM) - $${success}))" >> llnew.log
 	[ $(TESTCASE_NUM) = $${success} ] && echo "\033[5;32mAll Accepted. Congratulations!\033[0m" && echo "All Accepted. Congratulations!" >> llnew.log
+	awk "BEGIN {printf \"TOTAL TIME: execute: %.3fs\n\", $$TOTAL_EXEC_TIME}"
 	:
 	diff lllast.log llnew.log > llchange.log
 
@@ -274,3 +283,25 @@ countAsm:
 	@echo "ASM Lines Count:"
 	@echo "=================="
 	@find $(TEST_PATH)  -name "*.s" | xargs cat | grep -v '^$$' | grep -E -v '^\s*(@)' | wc -l
+
+llc:testir
+	@for file in $(sort $(TESTCASE))
+	do
+		IR=$${file%.*}.ll
+		ASM=$${file%.*}.s
+		llc -march=arm -mcpu=cortex-a72 $${IR} -o $${ASM} -O2
+	done
+
+objdump:testir
+	@for file in $(sort $(TESTCASE))
+	do
+		IR=$${file%.*}.ll
+		BIN=$${file%.*}.bin
+		ASM=$${file%.*}.s
+		LOG=$${file%.*}.log
+		clang -o $${BIN} $${IR} $(SYSLIB_PATH)/sylib.c >>$${LOG} 2>&1
+		if [ $$? != 0 ]; then
+			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mAssemble Error\033[0m" && echo "FAIL: $${FILE}\tAssemble Error" >> llnew.log
+		fi
+		objdump -d $${BIN} > $${ASM}
+	done

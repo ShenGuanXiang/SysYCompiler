@@ -1,4 +1,5 @@
 #include "PeepholeOptimization.h"
+#include "DeadCodeElim.h"
 
 static std::vector<MachineInstruction *> freeInsts;
 
@@ -7,6 +8,17 @@ void PeepholeOptimization::pass()
     op1();
     op2();
     op3();
+    MachineDeadCodeElim mdce(unit);
+    mdce.pass(false); // 死代码消除
+
+    // TODO：op4..
+    // add r4, r2, r1, LSL #2
+    // mov r3, #0
+    // str r3, [r4]
+    // --->
+    // add r4, r2, r1, LSL #2
+    // mov r3, #0
+    // str r3, [r2, r1, LSL #2]
 
     for (auto inst : freeInsts)
     {
@@ -57,7 +69,7 @@ void PeepholeOptimization::op1()
                     if (next_inst->getUse().size() == 1 &&
                         *curr_inst->getDef()[0] == *next_inst->getUse()[0] && curr_inst->getUse()[1]->isImm())
                     {
-                        if ((next_inst->getDef()[0]->getValType()->isFloat() && curr_inst->getUse()[1]->isIllegalShifterOperand()) || (next_inst->getDef()[0]->getValType()->isInt() && (curr_inst->getUse()[1]->getVal() < -4095 || curr_inst->getUse()[1]->getVal() > 4095)))
+                        if ((next_inst->getDef()[0]->getValType()->isFloat() && (curr_inst->getUse()[1]->isIllegalShifterOperand() || curr_inst->getUse()[1]->getVal() < -1023 || curr_inst->getUse()[1]->getVal() > 1023)) || (next_inst->getDef()[0]->getValType()->isInt() && (curr_inst->getUse()[1]->getVal() < -4095 || curr_inst->getUse()[1]->getVal() > 4095)))
                             continue;
                         auto new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]));
                         block->insertBefore(next_inst, new_inst);
@@ -91,7 +103,7 @@ void PeepholeOptimization::op1()
                         *curr_inst->getDef()[0] == *next_inst->getUse()[0] && curr_inst->getUse()[1]->isImm())
                     {
                         auto src_imm = new MachineOperand(MachineOperand::IMM, -1 * curr_inst->getUse()[1]->getVal(), TypeSystem::constIntType);
-                        if ((next_inst->getDef()[0]->getValType()->isFloat() && src_imm->isIllegalShifterOperand()) || (next_inst->getDef()[0]->getValType()->isInt() && (src_imm->getVal() < -4095 || src_imm->getVal() > 4095)))
+                        if ((next_inst->getDef()[0]->getValType()->isFloat() && (src_imm->isIllegalShifterOperand() || src_imm->getVal() < -1023 || src_imm->getVal() > 1023)) || (next_inst->getDef()[0]->getValType()->isInt() && (src_imm->getVal() < -4095 || src_imm->getVal() > 4095)))
                             continue;
                         auto new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*curr_inst->getUse()[0]), src_imm);
                         block->insertBefore(next_inst, new_inst);
@@ -587,8 +599,11 @@ void PeepholeOptimization::op2()
                     auto bin_src1 = next_inst->getUse()[0];
                     auto bin_src2 = next_inst->getUse()[1];
 
+                    if (*mov_dst == *bin_src1 && *mov_dst == *bin_src2)
+                        continue;
+
                     if (!bin_src1->isImm() && !bin_src2->isImm() &&
-                        ((*mov_dst == *bin_src1 && next_inst->isAdd()) || *mov_dst == *bin_src2) && !(*bin_dst == *mov_src) && !(*bin_dst == *mov_dst))
+                        ((*mov_dst == *bin_src1 && next_inst->isAdd()) || *mov_dst == *bin_src2))
                     {
                         MachineOperand *tem_src = (*mov_dst == *bin_src1) ? bin_src2 : bin_src1;
                         int op;
@@ -624,9 +639,19 @@ void PeepholeOptimization::op2()
                         }
                         auto new_bin = new BinaryMInstruction(block, op, new MachineOperand(*bin_dst), new MachineOperand(*tem_src), new MachineOperand(*mov_src), new MachineOperand(*mov_imm));
 
-                        block->insertBefore(curr_inst, new_bin);
-                        block->removeInst(next_inst);
-                        freeInsts.push_back(next_inst);
+                        if (!(*mov_dst == *mov_src))
+                        {
+                            block->insertBefore(next_inst, new_bin);
+                            block->removeInst(next_inst);
+                            freeInsts.push_back(next_inst);
+                        }
+
+                        else if (!(*bin_dst == *mov_src))
+                        {
+                            block->insertBefore(curr_inst, new_bin);
+                            block->removeInst(next_inst);
+                            freeInsts.push_back(next_inst);
+                        }
                     }
                 }
             }
@@ -676,7 +701,7 @@ void PeepholeOptimization::op3()
                         *curr_inst->getDef()[0] == *third_inst->getUse()[1] && curr_inst->getUse()[1]->isImm() &&
                         !(*second_inst->getDef()[0] == *curr_inst->getDef()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[1]))
                     {
-                        if ((third_inst->getUse()[0]->getValType()->isFloat() && curr_inst->getUse()[1]->isIllegalShifterOperand()) || (third_inst->getUse()[0]->getValType()->isInt() && (curr_inst->getUse()[1]->getVal() < -4095 || curr_inst->getUse()[1]->getVal() > 4095)))
+                        if ((third_inst->getUse()[0]->getValType()->isFloat() && (curr_inst->getUse()[1]->isIllegalShifterOperand() || curr_inst->getUse()[1]->getVal() < -1023 || curr_inst->getUse()[1]->getVal() > 1023)) || (third_inst->getUse()[0]->getValType()->isInt() && (curr_inst->getUse()[1]->getVal() < -4095 || curr_inst->getUse()[1]->getVal() > 4095)))
                             continue;
                         auto new_inst = new StoreMInstruction(block, new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]));
                         block->insertBefore(third_inst, new_inst);
@@ -715,7 +740,7 @@ void PeepholeOptimization::op3()
                         !(*second_inst->getDef()[0] == *curr_inst->getDef()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[1]))
                     {
                         auto src_imm = new MachineOperand(MachineOperand::IMM, -1 * curr_inst->getUse()[1]->getVal(), TypeSystem::constIntType);
-                        if ((third_inst->getUse()[0]->getValType()->isFloat() && src_imm->isIllegalShifterOperand()) || (third_inst->getUse()[0]->getValType()->isInt() && (src_imm->getVal() < -4095 || src_imm->getVal() > 4095)))
+                        if ((third_inst->getUse()[0]->getValType()->isFloat() && (src_imm->isIllegalShifterOperand() || src_imm->getVal() < -1023 || src_imm->getVal() > 1023)) || (third_inst->getUse()[0]->getValType()->isInt() && (src_imm->getVal() < -4095 || src_imm->getVal() > 4095)))
                             continue;
                         auto new_inst = new StoreMInstruction(block, new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), src_imm);
                         block->insertBefore(third_inst, new_inst);

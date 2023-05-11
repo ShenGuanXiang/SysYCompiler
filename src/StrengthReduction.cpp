@@ -1,4 +1,5 @@
 #include "StrengthReduction.h"
+#include "DeadCodeElim.h"
 #include <cmath>
 
 using namespace std;
@@ -72,6 +73,9 @@ void StrengthReduction::pass()
     for (auto inst : freeInsts)
         delete inst;
     freeInsts.clear();
+
+    MachineDeadCodeElim mdce(unit);
+    mdce.pass(false); // 死代码消除
 
     // div2mul();
     // mul2lsl(); // 乘法 to 移位

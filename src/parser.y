@@ -775,7 +775,7 @@ FuncFParam
             assert($1==TypeSystem::floatType);
             arrayType = new FloatArrayType();
         }
-        arrayType->SetDim(arrayIdx);
+        arrayType->setDim(arrayIdx);
         arrayIdx.clear();
         SymbolEntry *se = new IdentifierSymbolEntry(arrayType, $2, identifiers->getLevel());
         identifiers->install($2, se);
