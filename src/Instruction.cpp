@@ -486,6 +486,7 @@ PhiInstruction::PhiInstruction(Operand *dst, bool incomplete, BasicBlock *insert
     {
         def_list.push_back(dst);
         dst->setDef(this);
+        addr = nullptr;
     }
 }
 

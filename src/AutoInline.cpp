@@ -23,6 +23,7 @@ void Unit::getCallGraph()
         f->getCallees().clear();
         f->getCallers().clear();
         f->getCallersInsts().clear();
+        f->getCalleesInsts().clear();
     }
     for (auto f : this->getFuncList())
     {
@@ -37,6 +38,7 @@ void Unit::getCallGraph()
                         f->getCallees().insert(func_se->getFunction());
                         func_se->getFunction()->getCallers().insert(f);
                         func_se->getFunction()->getCallersInsts().insert(instr);
+                        f->getCalleesInsts().insert(instr);
                     }
                 }
             }
@@ -51,6 +53,7 @@ void AutoInliner::InitDegree()
         degree[f] = f->getCallees().size();
         if (f->getCallees().count(f))
             degree[f]--;
+        // degree[f] = f->getCalleesInst().size();
     }
 }
 
@@ -375,10 +378,7 @@ void AutoInliner::pass(Instruction *instr)
             dst = copyOperand(def);
             ope2ope[def] = dst;
         }
-        bool comp = newPhi->get_incomplete();
-        newPhi->get_incomplete() = true;
-        newPhi->updateDst(dst);
-        newPhi->get_incomplete() = comp;
+        newPhi->setDef(dst);
     }
 
     for (auto block : retBlocks)
@@ -393,9 +393,7 @@ void AutoInliner::pass(Instruction *instr)
     {
         Instruction *newIn = nullptr;
         int size = retOpes.size();
-        PhiInstruction *phi = new PhiInstruction(Ret, true);
-        phi->updateDst(Ret);
-        phi->get_incomplete() = false;
+        PhiInstruction *phi = new PhiInstruction(Ret, false);
 
         for (int i = 0; i < size; i++)
             phi->addEdge(retBlocks[i], retOpes[i]);

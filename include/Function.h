@@ -27,6 +27,7 @@ private:
     std::set<Function *> callers;
     std::set<Function *> callees;
     std::set<Instruction *> callers_instr;
+    std::set<Instruction *> callees_instr;
 
     // DCE
     int iscritical = -1;
@@ -79,6 +80,7 @@ public:
     std::set<Function *> &getCallers() { return callers; };
     std::set<Instruction *> &getCallersInsts() { return callers_instr; };
     std::set<Function *> &getCallees() { return callees; };
+    std::set<Instruction*>&getCalleesInsts(){return callees_instr;};
 };
 
 #endif
