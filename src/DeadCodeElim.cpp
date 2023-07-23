@@ -5,6 +5,8 @@
 #include <set>
 #include <queue>
 
+// TODO:删除@开头的汇编语句、arm汇编删除无用cmp
+
 // 清除后继节点
 void BasicBlock::CleanSucc()
 {
@@ -502,8 +504,8 @@ void MachineDeadCodeElim::pass(MachineFunction *f, bool iter)
                 continue;
             if (t->isCondMov())
             {
-                auto next = t->getParent()->getNext(t);
-                if (next && next->isCondMov())
+                // auto next = t->getParent()->getNext(t);
+                // if (next && next->isCondMov())
                     continue;
             }
             if (t != nullptr)

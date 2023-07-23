@@ -414,7 +414,12 @@ void LinearScan::computeLiveIntervals()
             for (auto &def : du.defs)
             {
                 if (def->getParent()->getCond() != MachineInstruction::NONE) // 条件定义的，应该多次定义互相独立
-                    start_conditional = std::max(start_conditional, def->getParent()->getNo());
+                {
+                    if (start_conditional == -1)
+                        start_conditional = def->getParent()->getNo();
+                    else
+                        start_conditional = std::min(start_conditional, def->getParent()->getNo());
+                }
                 else
                     start_unconditional = std::min(start_unconditional, def->getParent()->getNo());
             }
