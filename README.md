@@ -206,37 +206,37 @@
 
  - add r0, fp, #-12
 
-     str r1, [r0]
-     
-     --->
-     
-     add r0, fp, #-12
-     
-     str r1, [fp, #-12]
-     
+   str r1, [r0]
+   
+   --->
+   
+   add r0, fp, #-12
+   
+   str r1, [fp, #-12]
+   
  - add r4, r2, r1, LSL #2
 
-     mov r3, #0
+   mov r3, #0
 
-​       str r3, [r4] 
+   str r3, [r4] 
 
-​	    --->
+   --->
 
-​       add r4, r2, r1, LSL #2
+   add r4, r2, r1, LSL #2
 
-​       mov r3, #0
+   mov r3, #0
 
-​       str r3, [r2, r1, LSL #2] (浮点不行) （放在add r4, r2, r1, LSL #2的优化后面）
+   str r3, [r2, r1, LSL #2] (浮点不行) （放在add r4, r2, r1, LSL #2的优化后面）
 
-  - add r7, r5, r6, LSL #2
+ - add r7, r5, r6, LSL #2
 
-​	    ldr r5, [r7]
+   ldr r5, [r7]
 
-​	    --->
+   --->
 
-​	    add r7, r5, r6, LSL #2
+   add r7, r5, r6, LSL #2
 
-​	    ldr r5, [ r5, r6, LSL #2] （浮点不行）（放在add r7, r5, r6, LSL #2的优化后面）
+   ldr r5, [ r5, r6, LSL #2] （浮点不行）（放在add r7, r5, r6, LSL #2的优化后面）
 
 2. 将多条store替换为vdup和vstm
 
@@ -245,10 +245,8 @@
 ## 代数化简
 
 - 代数恒等式化简 +--a !!a a\*b+a\*c a\*b/b 数组寻址表达式 a+0 a\*1 a/1 a*0 a%1
-
 - a+a = a*2, a-a = 0 a/a = 1 a%a = 0
-
-- a+1+1+1...
+- a+b+b+b+...
 
 ## 循环优化
 

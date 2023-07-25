@@ -87,7 +87,7 @@ void AutoInliner::pass()
 
     while (!func_inline.empty())
     {
-        Print_Funcinline(func_inline);
+        // Print_Funcinline(func_inline);
         auto f = func_inline.front();
         func_inline.pop();
         if (((IdentifierSymbolEntry *)f->getSymPtr())->isMain())
