@@ -102,38 +102,33 @@ int main(int argc, char *argv[])
 
     if (optimize)
     {
-        // for (int i = 0; i < 4; i++)
-        // {
-        //     AutoInliner autoinliner(unit);
-        //     autoinliner.pass(); // 函数自动内联
-        //     Mem2Reg m2r(unit);
-        //     m2r.pass();
-        //     // TODO:其它中间代码优化
-        //     // GVNPRE gvnpre(unit);
-        //     // gvnpre.pass(); // 部分冗余消除&循环不变外提
-        //     // 代数化简
-        //     SparseCondConstProp sccp(unit);
-        //     sccp.pass(); // 常量传播
-        //     ComSubExprElim cse(unit);
-        //     cse.pass3(); // 公共子表达式消除
-        //     // 访存优化
-        //     // 循环展开
-        //     DeadCodeElim dce(unit);
-        //     dce.pass(); // 死代码删除
-        // }
+        for (int i = 0; i < 4; i++)
+        {
+            AutoInliner autoinliner(unit);
+            autoinliner.pass(); // 函数自动内联
+            Mem2Reg m2r(unit);
+            m2r.pass();
+            // TODO:其它中间代码优化
+            // GVNPRE gvnpre(unit);
+            // gvnpre.pass(); // 部分冗余消除&循环不变外提
+            // 代数化简
+            SparseCondConstProp sccp(unit);
+            sccp.pass(); // 常量传播
+            ComSubExprElim cse(unit);
+            cse.pass3(); // 公共子表达式消除
+            // 访存优化
+            // 循环展开
+            DeadCodeElim dce(unit);
+            dce.pass(); // 死代码删除
+        }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
             unit->output();
             fprintf(stderr, "opt ir output ok\n");
         }
-        // ElimPHI ep(unit);
-        // ep.pass();
-    }
-    LoopAnalyzer La;
-    for (auto f : unit->getFuncList()) {
-        La.FindLoops(f);
-        La.PrintInfo(f);
+        ElimPHI ep(unit);
+        ep.pass();
     }
     if (dump_asm)
     {

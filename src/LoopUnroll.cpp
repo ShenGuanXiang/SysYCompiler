@@ -1,10 +1,18 @@
 #include "LoopUnroll.h"
 
+static Operand *copyOperand(Operand *ope)
+{
+    if (ope->getEntry()->getType()->isConst())
+        return new Operand(new ConstantSymbolEntry(ope->getType(), ope->getEntry()->getValue()));
+    else
+        return new Operand(new TemporarySymbolEntry(ope->getType(), SymbolTable::getLabel()));
+}
+
 void Loop::PrintInfo() {
     for (auto b : bb)
         fprintf(stderr, "BasicBlock[%d] ", b->getNo());
     
-    fprintf(stderr, "\n isInerloop: %d\n", InnerLoop);
+    fprintf(stderr, "\nisInerloop: %d\n", InnerLoop);
     fprintf(stderr, "loopdepth: %d\n", loop_depth);
 }
 
@@ -86,8 +94,11 @@ void LoopAnalyzer::computeLoopDepth() {
     for (auto edge : edgeType) 
         if (edge.second == BACKWARD)
         {
-            auto loop = new Loop(computeNaturalLoop(edge.first.second, edge.first.first));
-            Loops.insert(loop);
+            auto loop = new Loop(computeNaturalLoop(edge.first.first, edge.first.second));
+            auto loopstruct = new LoopStruct(loop);
+            loopstruct->SetBody(edge.first.second);
+            loopstruct->SetCond(edge.first.first);
+            Loops.insert(loopstruct);
             for (auto& b : loop->GetBasicBlock())
                 loopDepth[b] ++;
         }
@@ -106,18 +117,18 @@ void LoopAnalyzer::FindLoops(Function* f) {
 
     for (auto l : getLoops())
     {
-        l->SetDepth(0x3fffffff);
-        for (auto bb : l->GetBasicBlock())
-            l->SetDepth(std::min(getLoopDepth(bb), l->GetDepth()));
+        l->GetLoop()->SetDepth(0x3fffffff);
+        for (auto bb : l->GetLoop()->GetBasicBlock())
+            l->GetLoop()->SetDepth(std::min(getLoopDepth(bb), l->GetLoop()->GetDepth()));
     }
 
     for (auto l : getLoops())
-        l->SetInnerLoop();
+        l->GetLoop()->SetInnerLoop();
 
     for (auto l1 : getLoops())
         for (auto l2 : getLoops())
-            if (isSubset(l1->GetBasicBlock(), l2->GetBasicBlock()))
-                l2->ClearInnerLoop();
+            if (isSubset(l1->GetLoop()->GetBasicBlock(), l2->GetLoop()->GetBasicBlock()))
+                l2->GetLoop()->ClearInnerLoop();
 }
 
 void LoopAnalyzer::PrintInfo(Function* f) {
@@ -127,4 +138,18 @@ void LoopAnalyzer::PrintInfo(Function* f) {
         l->PrintInfo();
     
     fprintf(stderr, "\n");
+}
+
+void LoopUnroll::pass() {
+    for (auto f : unit->getFuncList()) {
+        analyzer.FindLoops(f);
+        Loops = analyzer.getLoops();
+        auto cand = FindCandidateLoop();
+        for (auto candidate : cand)
+            Unroll(candidate);
+    }
+}
+
+std::vector<LoopStruct*> LoopUnroll::FindCandidateLoop() {
+    
 }
