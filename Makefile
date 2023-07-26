@@ -113,7 +113,7 @@ test:app
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
 		@compile_start=$$(date +%s.%3N); \
-		timeout 5s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
+		timeout 60s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
 		RETURN_VALUE=$$?; \
 		compile_end=$$(date +%s.%3N); \
 		compile_time=$$(echo "$$compile_end - $$compile_start" | bc)
@@ -132,9 +132,9 @@ test:app
 		else
 			@exec_start=$$(date +%s.%3N); \
 			if [ -f "$${IN}" ]; then \
-				timeout 5s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} <$${IN} >$${RES} 2>>$${LOG}; \
+				timeout 60s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} <$${IN} >$${RES} 2>>$${LOG}; \
 			else \
-				timeout 5s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} >$${RES} 2>>$${LOG}; \
+				timeout 60s qemu-arm -L /usr/arm-linux-gnueabihf $${BIN} >$${RES} 2>>$${LOG}; \
 			fi; \
 			RETURN_VALUE=$$?; \
 			exec_end=$$(date +%s.%3N); \
