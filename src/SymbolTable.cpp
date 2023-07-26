@@ -249,17 +249,22 @@ SymbolEntry *SymbolTable::lookup(std::string name, bool isFunc, std::vector<Type
             std::multimap<std::string, SymbolEntry *>::iterator it = t->symbolTable.find(name);
             if (!isFunc)
             {
-                assert((count == 1) && (!it->second->getType()->isFunc())); // 不支持同一作用域下变量和函数重名
-                return it->second;
+                for (int i = 0; i < count; i++, it++)
+                {
+                    if (!it->second->getType()->isFunc()) // 支持变量和函数重名
+                        return it->second;
+                }
             }
             else
             {
                 for (int i = 0; i < count; i++, it++)
                 {
-                    assert(it->second->getType()->isFunc());
-                    std::vector<Type *> paramsType_found = ((FunctionType *)(it->second->getType()))->getParamsType();
-                    if (match(paramsType, paramsType_found))
-                        return it->second;
+                    if (it->second->getType()->isFunc())
+                    {
+                        std::vector<Type *> paramsType_found = ((FunctionType *)(it->second->getType()))->getParamsType();
+                        if (match(paramsType, paramsType_found))
+                            return it->second;
+                    }
                 }
             }
         }
