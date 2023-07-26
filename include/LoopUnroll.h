@@ -34,6 +34,7 @@ public:
     BasicBlock* GetBody() { return loopstruct.second; };
     void SetCond(BasicBlock* cond) { loopstruct.first = cond; };
     void SetBody(BasicBlock* body) { loopstruct.second = body; };
+    Loop* GetLoop() { return origin_loop; };
     void PrintInfo();
 };
 
@@ -49,7 +50,7 @@ private:
     
     void computeLoopDepth();
     std::set<BasicBlock*> computeNaturalLoop(BasicBlock*, BasicBlock*);
-    std::set<Loop*> Loops;
+    std::set<LoopStruct*> Loops;
 
     bool isSubset(std::set<BasicBlock*> t_son, std::set<BasicBlock*> t_fat);
 public:
@@ -57,8 +58,23 @@ public:
     void FindLoops(Function *);
     int dfs(BasicBlock* bb, int pre_order);
     int getLoopDepth(BasicBlock* bb) { return loopDepth[bb]; };
-    std::set<Loop*>& getLoops() { return this->Loops; };
+    std::set<LoopStruct*>& getLoops() { return this->Loops; };
     void PrintInfo(Function* f);
+};
+
+class LoopUnroll {
+private:
+    Unit* unit;
+    const int MAX_UNROLLING_FACTOR = 4;
+    const int MIN_UNROLLING_FACTOR = 2;
+    int unrolling_factor;
+    LoopAnalyzer analyzer;
+    std::set<LoopStruct*> Loops;
+public:
+    LoopUnroll(Unit* u) : unit(u) {};
+    void pass();
+    std::vector<LoopStruct*> FindCandidateLoop();
+    void Unroll(LoopStruct*);
 };
 
 
