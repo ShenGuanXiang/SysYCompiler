@@ -27,6 +27,7 @@
     StmtNode *stmttype;
     ExprNode *exprtype; 
     Type *type;
+    int lineNo;
 }
 
 
@@ -40,7 +41,8 @@
 %token NOT
 %token <itype> INTEGERCONST
 %token <ftype> FLOATCONST
-%token COMMA SEMICOLON LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET
+%token COMMA SEMICOLON RPAREN LBRACE RBRACE LBRACKET RBRACKET
+%token <lineNo> LPAREN
 
 
 %nterm <stmttype> Stmts Stmt AssignStmt ExprStmt BlockStmt NullStmt IfStmt WhileStmt BreakStmt ContinueStmt ReturnStmt DeclStmt 
@@ -195,6 +197,12 @@ PrimaryExpr
 UnaryExpr 
     : PrimaryExpr {$$ = $1;}
     | ID LPAREN FuncRParams RPAREN {
+        if((std::string)($1) == "_sysy_starttime" || (std::string)($1) == "_sysy_stoptime")
+        {
+            assert($3 == nullptr);
+            $3 = new FuncCallParamsNode();
+            dynamic_cast<FuncCallParamsNode*>($3)->setParams({new Constant(new ConstantSymbolEntry(TypeSystem::constIntType, $2))});
+        }
         std::vector<Type *> paramsType =  ($3 != nullptr) ? ((FuncCallParamsNode*)$3)->getParamsType() : std::vector<Type *>{};
         SymbolEntry *se = identifiers->lookup($1, true, paramsType);
         // 类型检查4、5：函数未声明+参数不匹配
@@ -767,7 +775,7 @@ FuncFParam
             assert($1==TypeSystem::floatType);
             arrayType = new FloatArrayType();
         }
-        arrayType->SetDim(arrayIdx);
+        arrayType->setDim(arrayIdx);
         arrayIdx.clear();
         SymbolEntry *se = new IdentifierSymbolEntry(arrayType, $2, identifiers->getLevel());
         identifiers->install($2, se);

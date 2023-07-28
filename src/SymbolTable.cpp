@@ -47,14 +47,14 @@ std::string DeclArray(ArrayType *type, std::vector<double> initializer)
     auto d = dims[0];
     auto next_type = new ArrayType(*type);
     dims.erase(dims.begin());
-    next_type->SetDim(dims);
+    next_type->setDim(dims);
     decl = type->toStr() + " [";
     for (int i = 0; i < d; i++)
     {
         if (i)
             decl += ", ";
         std::vector<double> next_initializer;
-        for (int j = 0; j < (int)next_type->getSize() / 4; j++)
+        for (int j = 0; j < next_type->getSize() / 4; j++)
         {
             next_initializer.push_back(initializer[0]);
             initializer.erase(initializer.begin());
@@ -77,6 +77,8 @@ std::vector<std::string> lib_funcs{
     "putarray",
     "putfarray",
     "memset",
+    "_sysy_starttime",
+    "_sysy_stoptime",
 };
 
 bool IdentifierSymbolEntry::isLibFunc()
@@ -120,7 +122,7 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
     this->is8BytesAligned = type->isFunc() && isLibFunc() && name != "getint" && name != "putint" && name != "getch" && name != "putch" && name != "getarray" && name != "putarray";
     if (type->isFunc() && isLibFunc())
     {
-        if (name == "getint" || name == "putint" || name == "getch" || name == "putch" || name == "getarray" || name == "putarray" || name == "putfarray" || name == "memset")
+        if (name == "getint" || name == "putint" || name == "getch" || name == "putch" || name == "getarray" || name == "putarray" || name == "putfarray" || name == "memset" || name == "_sysy_starttime" || name == "_sysy_stoptime")
         {
             occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
@@ -247,17 +249,22 @@ SymbolEntry *SymbolTable::lookup(std::string name, bool isFunc, std::vector<Type
             std::multimap<std::string, SymbolEntry *>::iterator it = t->symbolTable.find(name);
             if (!isFunc)
             {
-                assert((count == 1) && (!it->second->getType()->isFunc())); // 不支持同一作用域下变量和函数重名
-                return it->second;
+                for (int i = 0; i < count; i++, it++)
+                {
+                    if (!it->second->getType()->isFunc()) // 支持变量和函数重名
+                        return it->second;
+                }
             }
             else
             {
                 for (int i = 0; i < count; i++, it++)
                 {
-                    assert(it->second->getType()->isFunc());
-                    std::vector<Type *> paramsType_found = ((FunctionType *)(it->second->getType()))->getParamsType();
-                    if (match(paramsType, paramsType_found))
-                        return it->second;
+                    if (it->second->getType()->isFunc())
+                    {
+                        std::vector<Type *> paramsType_found = ((FunctionType *)(it->second->getType()))->getParamsType();
+                        if (match(paramsType, paramsType_found))
+                            return it->second;
+                    }
                 }
             }
         }

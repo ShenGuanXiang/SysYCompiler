@@ -1,4 +1,5 @@
 #include "StrengthReduction.h"
+#include "DeadCodeElim.h"
 #include <cmath>
 
 using namespace std;
@@ -72,6 +73,9 @@ void StrengthReduction::pass()
     for (auto inst : freeInsts)
         delete inst;
     freeInsts.clear();
+
+    MachineDeadCodeElim mdce(unit);
+    mdce.pass(false); // 死代码消除
 
     // div2mul();
     // mul2lsl(); // 乘法 to 移位
@@ -240,7 +244,7 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                     bb->removeInst(inst);
                     freeInsts.insert(inst);
                 }
-                else if (isSignedShifterOperandVal(op2val[*inst->getUse()[0]]))
+                else if (isShifterOperandVal(op2val[*inst->getUse()[0]]))
                 {
                     auto dst = new MachineOperand(*inst->getDef()[0]);
                     auto RsbInst = new BinaryMInstruction(bb, BinaryMInstruction::RSB, dst, new MachineOperand(*inst->getUse()[1]), new MachineOperand(MachineOperand::IMM, op2val[*inst->getUse()[0]]));

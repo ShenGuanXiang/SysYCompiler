@@ -16,6 +16,7 @@
 #include "SparseCondConstProp.h"
 #include "PeepholeOptimization.h"
 #include "gvnpre.h"
+#include "LoopUnroll.h"
 
 Ast ast;
 Unit *unit = new Unit();
@@ -90,19 +91,20 @@ int main(int argc, char *argv[])
     // ast.typeCheck();
     ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
-    // optimize = false;
+    optimize = false;
     // yyout = stderr;
     if (dump_ir && !optimize)
     {
         unit->output();
         fprintf(stderr, "ir output ok\n");
     }
+
     if (optimize)
     {
         for (int i = 0; i < 4; i++)
         {
-            // AutoInliner autoinliner(unit);
-            // autoinliner.pass();  // 函数自动内联
+            AutoInliner autoinliner(unit);
+            autoinliner.pass(); // 函数自动内联
             Mem2Reg m2r(unit);
             m2r.pass();
             // TODO:其它中间代码优化
@@ -114,6 +116,7 @@ int main(int argc, char *argv[])
             ComSubExprElim cse(unit);
             cse.pass3(); // 公共子表达式消除
             // 访存优化
+            // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
         }
@@ -125,6 +128,12 @@ int main(int argc, char *argv[])
         }
         ElimPHI ep(unit);
         ep.pass();
+    }
+    LoopAnalyzer La;
+    for (auto f : unit->getFuncList())
+    {
+        La.FindLoops(f);
+        La.PrintInfo(f);
     }
     if (dump_asm)
     {
@@ -138,10 +147,9 @@ int main(int argc, char *argv[])
             cseasm.pass(); // 后端cse
 
             StrengthReduction sr(mUnit);
-            sr.pass();        // 强度削弱
-            mdce.pass(false); // 死代码消除
+            sr.pass(); // 强度削弱
 
-            // cseasm.pass();
+            cseasm.pass();
 
             PeepholeOptimization ph(mUnit);
             ph.pass(); // 窥孔优化
@@ -159,7 +167,6 @@ int main(int argc, char *argv[])
             PeepholeOptimization ph(mUnit);
             ph.pass(); // 窥孔优化
             // 控制流优化
-            // 相对fp偏移非法但相对sp偏移不非法，转化一下
             MachineDeadCodeElim mdce(mUnit);
             mdce.pass(true); // 死代码消除
         }

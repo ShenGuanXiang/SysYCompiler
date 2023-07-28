@@ -339,7 +339,6 @@ void SimplifyCFG::pass(Function *func)
         }
     }
 
-    // 删除不getExits
     auto blocks = func->getBlockList();
     for (auto bb : blocks)
         if (!is_visited[bb])

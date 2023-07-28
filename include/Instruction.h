@@ -25,7 +25,6 @@ public:
     bool isCall() const { return instType == CALL; };
     bool isGep() const { return instType == GEP; };
     bool isBinary() const { return instType == BINARY; };
-    bool isCalc() const { return isAlloca() && !isUncond() && !isCond(); };
     void setParent(BasicBlock *);
     void setNext(Instruction *);
     void setPrev(Instruction *);
@@ -46,8 +45,8 @@ public:
     bool hasNoDef() { return def_list.empty(); };
     bool hasNoUse() { return use_list.empty(); };
     virtual std::vector<Operand *> &getUses() { return use_list; };
-    void replaceAllUsesWith(Operand *);                     // replace all uses of the def
-    void replaceUsesWith(Operand *old_op, Operand *new_op); // replace uses of this instruction
+    void replaceAllUsesWith(Operand *);                                                   // replace all uses of the def
+    void replaceUsesWith(Operand *old_op, Operand *new_op, BasicBlock *pre_bb = nullptr); // replace uses of this instruction
     enum
     {
         BINARY,
@@ -68,9 +67,6 @@ public:
     unsigned getOpcode() const { return opcode; };
 
     // DCE
-    void clearDCEMark();
-    void SetDCEMark();
-    bool isDCEMarked();
     bool isCritical();
 
     // Autoinline
@@ -92,8 +88,6 @@ protected:
     std::vector<Operand *> def_list; // size <= 1;
     std::vector<Operand *> use_list;
 
-    // DCE
-    bool DCE_marked = false;
     // std::vector<Operand *> operands;
 };
 
@@ -265,7 +259,7 @@ private:
 public:
     FuncCallInstruction(Operand *dst, std::vector<Operand *> params, IdentifierSymbolEntry *funcse, BasicBlock *insert_bb);
     void output() const;
-    IdentifierSymbolEntry *GetFuncSe() { return func_se; };
+    IdentifierSymbolEntry *getFuncSe() { return func_se; };
     void genMachineCode(AsmBuilder *);
 
     // Autoinline

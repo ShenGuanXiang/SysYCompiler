@@ -298,7 +298,7 @@ bool isSignedShifterOperandVal(signed signed_val)
     VAL val;
     val.signed_val = signed_val;
     // return signed_val >= 0 ? isShifterOperandVal(val.unsigned_val) : signed_val >= -255;
-    return signed_val >= 0 ? isShifterOperandVal(val.unsigned_val) : isShifterOperandVal(~val.unsigned_val);
+    return signed_val >= 0 ? isShifterOperandVal(val.unsigned_val) : isShifterOperandVal(~val.unsigned_val + 1);
 }
 
 bool is_Legal_VMOV_FloatImm(float float_val)
@@ -1033,9 +1033,6 @@ void MovMInstruction::output()
     switch (this->op)
     {
     case MovMInstruction::MOV:
-    case MovMInstruction::MOVLSL:
-    case MovMInstruction::MOVLSR:
-    case MovMInstruction::MOVASR:
     {
         // if (use_list[0]->getValType()->isBool())
         //     fprintf(yyout, "\tmovw"); // move byte指令呢?
@@ -1043,6 +1040,21 @@ void MovMInstruction::output()
         // {
         fprintf(yyout, "\tmov"); // 为了能在coalesce时消去uxtb，这里不单独讨论movw的情况了
         // }
+        break;
+    }
+    case MovMInstruction::MOVLSL:
+    {
+        fprintf(yyout, "\tlsl");
+        break;
+    }
+    case MovMInstruction::MOVLSR:
+    {
+        fprintf(yyout, "\tlsr");
+        break;
+    }
+    case MovMInstruction::MOVASR:
+    {
+        fprintf(yyout, "\tasr");
         break;
     }
         // case MovMInstruction::MVN:
@@ -1068,20 +1080,13 @@ void MovMInstruction::output()
     switch (this->op)
     {
     case MovMInstruction::MOVLSL:
-        if ((int)this->use_list[1]->getVal())
-            fprintf(yyout, ", LSL #%d", (int)this->use_list[1]->getVal());
-        break;
-
     case MovMInstruction::MOVLSR:
-        if ((int)this->use_list[1]->getVal())
-            fprintf(yyout, ", LSR #%d", (int)this->use_list[1]->getVal());
-        break;
-
     case MovMInstruction::MOVASR:
-        if ((int)this->use_list[1]->getVal())
-            fprintf(yyout, ", ASR #%d", (int)this->use_list[1]->getVal());
+    {
+        assert((int)this->use_list[1]->getVal());
+        fprintf(yyout, ", #%d", (int)this->use_list[1]->getVal());
         break;
-
+    }
     default:
         break;
     }

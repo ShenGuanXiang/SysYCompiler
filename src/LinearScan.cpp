@@ -414,7 +414,12 @@ void LinearScan::computeLiveIntervals()
             for (auto &def : du.defs)
             {
                 if (def->getParent()->getCond() != MachineInstruction::NONE) // 条件定义的，应该多次定义互相独立
-                    start_conditional = std::max(start_conditional, def->getParent()->getNo());
+                {
+                    if (start_conditional == -1)
+                        start_conditional = def->getParent()->getNo();
+                    else
+                        start_conditional = std::min(start_conditional, def->getParent()->getNo());
+                }
                 else
                     start_unconditional = std::min(start_unconditional, def->getParent()->getNo());
             }
@@ -587,7 +592,7 @@ void LinearScan::genSpillCode()
             if (!pos->isBL() && !pos->isDummy())
             {
                 auto offset = new MachineOperand(MachineOperand::IMM, -interval->disp);
-                if ((use->getValType()->isInt() && (offset->getVal() < -4095 || offset->getVal() > 4095)) || (use->getValType()->isFloat() && offset->isIllegalShifterOperand()))
+                if ((use->getValType()->isInt() && (offset->getVal() < -4095 || offset->getVal() > 4095)) || (use->getValType()->isFloat() && (offset->isIllegalShifterOperand() || offset->getVal() < -1023 || offset->getVal() > 1023)))
                 {
                     auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
                     auto ldr = new LoadMInstruction(block, internal_reg, offset);
@@ -612,7 +617,7 @@ void LinearScan::genSpillCode()
             if (!pos->isBL() && !pos->isDummy())
             {
                 auto offset = new MachineOperand(MachineOperand::IMM, -interval->disp);
-                if ((def->getValType()->isInt() && (offset->getVal() < -4095 || offset->getVal() > 4095)) || (def->getValType()->isFloat() && offset->isIllegalShifterOperand()))
+                if ((def->getValType()->isInt() && (offset->getVal() < -4095 || offset->getVal() > 4095)) || (def->getValType()->isFloat() && (offset->isIllegalShifterOperand() || offset->getVal() < -1023 || offset->getVal() > 1023)))
                 {
                     auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
                     auto ldr = new LoadMInstruction(block, internal_reg, offset);

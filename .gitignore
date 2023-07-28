@@ -13,6 +13,7 @@ parser.h
 *.dot
 debug*
 *.log
+performance
 
 makefile
 Main.cpp

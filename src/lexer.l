@@ -243,6 +243,7 @@ LINECOMMENT (\/\/[^\n]*)
         DEBUG_FOR_LEX("LPAREN", "(");
         offset += strlen(yytext);
     }
+    yylval.lineNo = yylineno; // for starttime & stoptime
     return LPAREN;
 }
 ")" {
@@ -440,6 +441,36 @@ LINECOMMENT (\/\/[^\n]*)
     Type* funcType = new FunctionType(TypeSystem::voidType, paramsType);
     SymbolEntry* se = new IdentifierSymbolEntry(funcType, yytext, 0);
     globals->install(yytext, se);
+    return ID;
+}
+"starttime" {
+    if(dump_tokens){
+        DEBUG_FOR_LEX("ID", "starttime");
+        offset += strlen(yytext);
+    }
+    char *lexeme = new char[6 + strlen(yytext) + 1];
+    char* sysy = (char *)"_sysy_";
+    strcpy(lexeme, sysy);
+    strcpy(lexeme + 6, yytext);
+    yylval.strtype = lexeme;
+    Type* funcType = new FunctionType(TypeSystem::voidType, {TypeSystem::intType});
+    SymbolEntry* se = new IdentifierSymbolEntry(funcType, lexeme, 0);
+    globals->install(lexeme, se);
+    return ID;
+}
+"stoptime" {
+    if(dump_tokens){
+        DEBUG_FOR_LEX("ID", "stoptime");
+        offset += strlen(yytext);
+    }
+    char *lexeme = new char[6 + strlen(yytext) + 1];
+    char* sysy = (char*)"_sysy_";
+    strcpy(lexeme, sysy);
+    strcpy(lexeme + 6, yytext);
+    yylval.strtype = lexeme;
+    Type* funcType = new FunctionType(TypeSystem::voidType, {TypeSystem::intType});
+    SymbolEntry* se = new IdentifierSymbolEntry(funcType, lexeme, 0);
+    globals->install(lexeme, se);
     return ID;
 }
 {DECIMAL} {

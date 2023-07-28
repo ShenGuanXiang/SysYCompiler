@@ -112,7 +112,7 @@ void Mem2Reg::global2Local()
             {
                 break;
             }
-            else if (inst->isCall() && userFuncs.count(dynamic_cast<FuncCallInstruction *>(inst)->GetFuncSe()))
+            else if (inst->isCall() && userFuncs.count(dynamic_cast<FuncCallInstruction *>(inst)->getFuncSe()))
             {
                 break;
             }
@@ -712,7 +712,6 @@ void Mem2Reg::Rename(Function *func)
             }
         }
     }
-    func->SimplifyPHI();
     for (auto inst : freeInsts)
         delete inst;
     freeInsts.clear();

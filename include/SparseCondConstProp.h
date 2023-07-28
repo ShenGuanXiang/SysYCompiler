@@ -6,13 +6,21 @@
 class SparseCondConstProp
 {
 private:
+    struct EQ_COND_DATA
+    {
+        Instruction *inst;
+        Operand *left_op;
+        Operand *right_op;
+        BasicBlock *pre_bb;
+    };
+
     Unit *unit;
     std::map<Operand *, int> status_map;
     std::map<Operand *, double> value_map;
     std::set<std::pair<BasicBlock *, BasicBlock *>> marked;
     std::vector<std::pair<BasicBlock *, BasicBlock *>> cfg_worklist;
     std::vector<Instruction *> ssa_worklist;
-    std::vector<std::pair<Instruction *, std::pair<Operand *, Operand *>>> eq_cond_worklist;
+    std::vector<EQ_COND_DATA> eq_cond_worklist;
 
 public:
     enum

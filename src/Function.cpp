@@ -12,7 +12,6 @@ Function::Function(Unit *u, SymbolEntry *s)
     entry = new BasicBlock(this);
     sym_ptr = s;
     parent = u;
-    ever_called = false;
     ((IdentifierSymbolEntry *)s)->setFunction(this);
     callers = std::set<Function *>();
     callees = std::set<Function *>();
@@ -97,7 +96,7 @@ void Function::genMachineCode(AsmBuilder *builder)
             {
                 cur_func->addSavedRegs(14); // lr
                 auto caller = dynamic_cast<IdentifierSymbolEntry *>(this->getSymPtr());
-                auto func_se = dynamic_cast<FuncCallInstruction *>(inst)->GetFuncSe();
+                auto func_se = dynamic_cast<FuncCallInstruction *>(inst)->getFuncSe();
                 if (func_se->isLibFunc())
                     for (auto kv : func_se->getOccupiedRegs())
                         caller->addOccupiedReg(kv.first, kv.second);
@@ -151,20 +150,7 @@ void Function::genMachineCode(AsmBuilder *builder)
         {
             auto id_se = dynamic_cast<IdentifierSymbolEntry *>(param);
             Type *type = param->getType()->isPTR() ? TypeSystem::intType : param->getType();
-            if (id_se->getParamOpe()->usersNum() == 0 || id_se->getLabel() == -1)
-                // TODO: 不写后一个条件有奇怪的bug，比如这个例子：
-                // int f(float a, float b, int c, int d, float e, float g, float h)
-                // {
-                //   getfloat();
-                //   putint(c);
-                //   putfloat(e);
-                //   return 0;
-                // }
-                //
-                // int main()
-                // {
-                //   return f(65,66,67,68,69,70,71);
-                // }
+            if (id_se->getParamOpe()->usersNum() == 0)
                 continue;
             else if (!id_se->paramMem2RegAble() && id_se->getParamNo() < 4)
             {
