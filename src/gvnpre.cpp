@@ -762,6 +762,11 @@ void GVNPRE::elminate(Function *func)
     {
         auto bb = *bb_it;
 
+        //speed up find_leader:
+        for(auto e : avail_out[bb]){
+            avail_out[bb].leader_map[lookup(e)] = e.getOperands()[0];
+        }
+
         std::vector<Instruction *> torm;
         for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
         {
@@ -777,6 +782,7 @@ void GVNPRE::elminate(Function *func)
                     inst->replaceAllUsesWith(leader);
                     torm.push_back(inst);
                 }
+
             }
             
         }

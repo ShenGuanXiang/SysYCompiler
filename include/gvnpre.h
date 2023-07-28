@@ -93,6 +93,7 @@ class Exprset{
     std::vector<Expr> topological_seq;
     bool changed = true;  // if changed after compute topological_seq last time
 public:
+    std::unordered_map<ValueNr,Operand*> leader_map;
     //iterator for exprs
     typedef std::set<Expr>::iterator iterator;
     iterator begin() {return exprs.begin();}
@@ -103,6 +104,9 @@ public:
         exprs.insert(expr);
         valnrs.insert(htable[expr]);
         changed = true;
+
+        // if(expr.getOpcode()==ExprOp::TEMP)
+        //     leader_map[htable[expr]] = expr.getOperands()[0];
     }
     void erase(Expr expr){
         assert(htable.count(expr));
@@ -141,9 +145,13 @@ public:
         if(val->getEntry()->isConstant() || val->getEntry()->isVariable())
             return val;
 
+        //for speed up
+        if(leader_map.count(val))
+            return leader_map[val];
 
         if (!val || valnrs.count(val)==0)
             return nullptr;
+        // return nullptr;
         for(const auto& e : exprs){
             if(e.getOpcode()==ExprOp::TEMP && lookup(e)==val)
                 return e.getOperands()[0];
