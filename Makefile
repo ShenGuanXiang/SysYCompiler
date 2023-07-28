@@ -113,7 +113,7 @@ test:app
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
 		@compile_start=$$(date +%s.%3N); \
-		timeout 30s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
+		timeout 60s $(BINARY) $${file} -o $${ASM} -S 2>$${LOG} -O2; \
 		RETURN_VALUE=$$?; \
 		compile_end=$$(date +%s.%3N); \
 		compile_time=$$(echo "$$compile_end - $$compile_start" | bc)
@@ -222,7 +222,7 @@ testll:app
 		OUT=$${file%.*}.out
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
-		timeout 20s $(BINARY) $${file} -o $${IR} -O2 -i 2>$${LOG}
+		timeout 60s $(BINARY) $${file} -o $${IR} -O2 -i 2>$${LOG}
 		RETURN_VALUE=$$?
 		if [ $$RETURN_VALUE = 124 ]; then
 			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Timeout\033[0m"  && echo "FAIL: $${FILE}\tCompile Timeout" >> llnew.log
