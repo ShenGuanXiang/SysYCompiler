@@ -1,0 +1,99 @@
+ast built
+ir generated
+insert bb31 between (17,17)
+(%t24,value:%t24)
+(ADD,%t28,1,value:%t6)
+(%t5,value:%t5)
+(ADD,%t4,%t3,value:%t5)
+(%mm,value:%mm)
+(%t0,value:%t0)
+(%t1,value:%t1)
+(%t3,value:%t3)
+(%t28,value:%t28)
+(GEP,@arr,0,22,1,value:%t19)
+(%t29,value:%t29)
+(%t6,value:%t6)
+(ADD,%mm,1,value:%t4)
+(@arr,value:@arr)
+(ADD,%t29,%t20,value:%t3)
+(0,value:0)
+(22,value:22)
+(1,value:1)
+(%t19,value:%t19)
+(%t4,value:%t4)
+(%t20,value:%t20)
+bb7:
+avail_out:
+%t0	%t1	
+antic_in:
+empty
+
+bb14:
+avail_out:
+%t0	%t1	%t19	%t20	%t24	%t28	%t29	%t3	%t4	%t5	%t6	
+antic_in:
+empty
+
+bb17:
+avail_out:
+%t0	%t1	%t19	%t20	%t24	%t28	%t29	%t3	%t4	%t5	%t6	
+antic_in:
+%mm	%t28	%t29	0	1	22	@arr	ADD,%mm,1	ADD,%t28,1	ADD,%t4,%t3	GEP,@arr,0,22,1	
+
+bb31:
+avail_out:
+%t0	%t1	%t19	%t20	%t24	%t28	%t29	%t3	%t4	%t5	%t6	
+antic_in:
+%t5	%t6	
+
+visiting bb7
+visiting bb17
+mapping %t29 to 0
+mapping %t28 to 0
+GEP,@arr,0,22,1->GEP,@arr,0,22,1
+mapping %t29 to %t5
+mapping %t28 to %t6
+GEP,@arr,0,22,1->GEP,@arr,0,22,1
+inserting:
+bb31: %t19
+bb7: GEP,@arr,0,22,1
+
+mapping %t29 to 0
+mapping %t28 to 0
+mapping %t6 to %t34
+ADD,%t28,1->ADD,0,1
+
+mapping %t29 to %t5
+mapping %t28 to %t6
+mapping %t6 to %t35
+ADD,%t28,1->ADD,%t6,1
+
+mapping %t29 to 0
+mapping %t28 to 0
+mapping %t6 to %t34
+ADD,%mm,1->ADD,%mm,1
+
+mapping %t29 to %t5
+mapping %t28 to %t6
+mapping %t6 to %t35
+ADD,%mm,1->ADD,%mm,1
+
+inserting:
+bb31: %t4
+bb7: ADD,%mm,1
+mapping %t29 to 0
+mapping %t28 to 0
+mapping %t6 to %t34
+ADD,%t4,%t3->ADD,%t4,%t3
+mapping %t29 to %t5
+mapping %t28 to %t6
+mapping %t6 to %t35
+ADD,%t4,%t3->ADD,%t4,%t3
+inserting:
+bb31: %t5
+bb7: ADD,%t4,%t3
+pred bb7,find leader of val %t3
+leader in bb7:
+%t0	%t1	%t32	%t36	
+compiler: src/gvnpre.cpp:942: void GVNPRE::insert(Function *): Assertion `leader' failed.
+make: *** [makefile:66: newll] Aborted

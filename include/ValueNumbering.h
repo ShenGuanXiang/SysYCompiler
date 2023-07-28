@@ -4,9 +4,6 @@
 #include "Unit.h"
 #include <unordered_map>
 #include <set>
-/*
-    Local Value Numbering, I'll implement dominator-based algorithm later.
-*/
 // 公共子表达式消除（DVNT实现）
 
 class ValueNumbering
