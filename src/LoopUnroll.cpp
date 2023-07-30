@@ -153,3 +153,7 @@ void LoopUnroll::pass() {
 std::vector<LoopStruct*> LoopUnroll::FindCandidateLoop() {
     
 }
+
+void LoopUnroll::Unroll(LoopStruct *)
+{
+}

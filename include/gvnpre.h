@@ -88,6 +88,9 @@ extern std::unordered_map<Expr,Operand*,Ehash>htable;
 
 
 class Exprset{
+    //TODO:
+    //most set is value canonical (i.e. each value has only one expr), we can 
+    //further speed it up 
     std::set<ValueNr> valnrs;
     std::set<Expr> exprs;
     std::vector<Expr> topological_seq;
@@ -131,8 +134,10 @@ public:
         if(valnrs.count(val)!=0) {
             std::vector<Expr> sameval;
             for(const auto& e :exprs)
-                if(lookup(e)==val)
+                if(lookup(e)==val){
                     sameval.push_back(e);
+                    // break; //speed up: only one expr can be replaced
+                }
             for(const auto& e :sameval)
                 exprs.erase(e);
         }
@@ -180,7 +185,7 @@ void logf(const char* formmat,...);
 void printset(Exprset set);
 
 
-#define DEBUG_GVNPRE
+// #define DEBUG_GVNPRE
 
 
 

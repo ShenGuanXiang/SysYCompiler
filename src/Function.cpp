@@ -154,6 +154,8 @@ void Function::genMachineCode(AsmBuilder *builder)
                 continue;
             else if (!id_se->paramMem2RegAble() && id_se->getParamNo() < 4)
             {
+                fprintf(stderr,"%s\n",id_se->toStr().c_str());
+                fprintf(stderr,"%d\n",id_se->getParamOpe()->usersNum());
                 assert(id_se->getLabel() != -1);
                 auto inst = new MovMInstruction(bb2mbb[entry], param->getType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, new MachineOperand(MachineOperand::VREG, id_se->getLabel(), type), new MachineOperand(MachineOperand::REG, id_se->getParamNo(), type));
                 bb2mbb[entry]->insertBefore(*(bb2mbb[entry]->getInsts().begin()), inst);
