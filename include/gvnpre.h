@@ -6,110 +6,220 @@
 #include<string>
 #include<functional>
 #include<unordered_map>
+#include<string>
 
 #include "Unit.h"
 
-#define ValueNr Operand*
 
 /*
 TODO : 
-1. use std::string to replace struct expr
-2. add to avail_out dynamically, rather than recalculate it every time
-3. support gep instruction
+1. build antic using postorder traversal
+2. speed up exprset rplc
 */
-
+namespace ExprOp{
+    enum{TEMP,ADD,SUB,MUL,DIV,MOD,PHI,GEP};
+};
+#define ValueNr Operand*
 class Expr{
+    unsigned opcode;
+    std::vector<Operand*> operands;
+    std:: string strhash;
 public:
-    enum{ADD=1,SUB,MUL,DIV,MOD,PHI};
-    std::vector<Operand*>vals;
-    unsigned op;
-    Expr() :op(0) {}
-    Expr(Operand* val) :op(0) {vals.push_back(val);}
-    bool operator== (const Expr& expr) const{
-        if(op!=expr.op || vals.size()!=expr.vals.size()) return false;
-        //commutative for simple arithmetic operations
-        if(op>=ADD && op<=MOD) {return (vals[0]==expr.vals[0] && vals[1]==expr.vals[1]) || (vals[0]==expr.vals[1] && vals[1]==expr.vals[0]);}
-        for(size_t i=0;i<vals.size();i++)
-            if(vals[i]!=expr.vals[i]) return false;
-        return true;
-    }
-    bool operator!= (const Expr& expr) const{return !(*this==expr);}
-    std::string tostr(){
-        char opstr[]={' ','+','-','*','/','%'};
-        std::string exprstr;
-        if(vals.size()==2){
-            exprstr = vals[0]->toStr() + opstr[op] + vals[1]->toStr();
+    Expr(){}
+    Expr(unsigned op,std::vector<Operand*> ops) : opcode(op), operands(ops) {
+        switch (opcode)
+        {
+        case ExprOp::TEMP:
+            strhash = "TEMP";
+            break;
+        case ExprOp::ADD:
+            strhash = "ADD";
+            break;
+        case ExprOp::SUB:
+            strhash = "SUB";
+            break;
+        case ExprOp::MUL:
+            strhash = "MUL";
+            break;
+        case ExprOp::DIV:
+            strhash = "DIV";
+            break;
+        case ExprOp::MOD:
+            strhash = "MOD";
+            break;
+        case ExprOp::GEP:
+            strhash = "GEP";
+            break;
+        default:
+            assert(0);
         }
-        else if(vals.size()==1)
-            exprstr = vals[0]->toStr();
-        return exprstr;
+        for(auto operand : operands)
+            strhash += "," + operand->toStr();
+    }
+    Expr(Operand* temp){
+        opcode = ExprOp::TEMP;
+        operands.push_back(temp);
+        strhash = temp->toStr();
+    }
+    ~Expr(){}
+    unsigned getOpcode() const {return opcode;}
+    const std::vector<Operand*>& getOperands() const {return operands;}
+    std::string tostr() const {return strhash;}
+    bool operator== (const Expr& expr) const{
+        return tostr()==expr.tostr();
+    }
+    bool operator!= (const Expr& expr) const{
+        return tostr()!=expr.tostr();
+    }
+    bool operator< (const Expr& expr) const{
+        return tostr()<expr.tostr();
+    }
+};
+struct Ehash{
+    size_t operator()(const Expr& expr) const{
+        return std::hash<std::string>()(expr.tostr());
     }
 };
 
-typedef std::unordered_map<Operand*,Expr> Exprset;
+static std::unordered_map<Expr,Operand*,Ehash>htable;
+static std::map<std::pair<int,int>,std::unordered_map<ValueNr,ValueNr>> trans_cache;
+#define lookup(expr) (htable.count(expr)?htable[expr]:nullptr)
+
+
+class Exprset{
+    //TODO:
+    //most set is value canonical (i.e. each value has only one expr), we can 
+    //further speed it up 
+    std::set<ValueNr> valnrs;
+    std::set<Expr> exprs;
+    std::vector<Expr> topological_seq;
+    bool changed = true;  // if changed after compute topological_seq last time
+public:
+    std::unordered_map<ValueNr,Operand*> leader_map;
+    //iterator for exprs
+    typedef std::set<Expr>::iterator iterator;
+    iterator begin() {return exprs.begin();}
+    iterator end() {return exprs.end();}
+
+    void insert(Expr expr){
+        assert(htable.count(expr));
+        exprs.insert(expr);
+        valnrs.insert(htable[expr]);
+        changed = true;
+
+        // if(expr.getOpcode()==ExprOp::TEMP)
+        //     leader_map[htable[expr]] = expr.getOperands()[0];
+    }
+    void erase(Expr expr){
+        assert(htable.count(expr));
+        exprs.erase(expr);
+        valnrs.erase(htable[expr]);
+        changed = true;
+    }
+    void vinsert(Expr expr){
+        if(htable.count(expr)==0){
+            for(auto [e,v] : htable)
+                printf("%s : %s\n",e.tostr().c_str(),v->toStr().c_str());
+            assert(htable.count(expr));
+        }
+        if(valnrs.find(htable[expr])==valnrs.end()){
+            exprs.insert(expr);
+            valnrs.insert(htable[expr]);
+            changed = true;
+        }
+    }
+    void vrplc(Expr expr){
+        ValueNr val = lookup(expr);       
+        if(valnrs.count(val)!=0) {
+            std::vector<Expr> sameval;
+            for(const auto& e :exprs)
+                if(lookup(e)==val){
+                    sameval.push_back(e);
+                    // break; //speed up: only one expr can be replaced
+                }
+            for(const auto& e :sameval)
+                exprs.erase(e);
+        }
+        insert(expr);
+        changed = true;
+    }
+    Operand* find_leader(ValueNr val){
+        // global , parameter, constant is available anywhere instinctly,
+        // but should have been added when building sets, but not available in every block
+        if(val->getEntry()->isConstant() || val->getEntry()->isVariable())
+            return val;
+
+        //for speed up
+        if(leader_map.count(val))
+            return leader_map[val];
+
+        if (!val || valnrs.count(val)==0)
+            return nullptr;
+        // return nullptr;
+        for(const auto& e : exprs){
+            if(e.getOpcode()==ExprOp::TEMP && lookup(e)==val)
+                return e.getOperands()[0];
+        }
+        return nullptr;
+    }
+    void clear(){
+        valnrs.clear();
+        exprs.clear();
+        changed = true;
+    }
+    bool empty() const {return exprs.empty();}
+    bool operator== (const Exprset& set) const{
+        return valnrs==set.valnrs && exprs==set.exprs;
+    }
+    bool operator!= (const Exprset& set) const{
+        return valnrs!=set.valnrs || exprs!=set.exprs;
+    }
+    std::vector<Expr> topological_sort();
+    std::set<Expr>& getExprs() {return exprs;}
+    std::set<ValueNr>& getValnrs() {return valnrs;}
+};
+
+
+static void logf(const char* formmat,...);
+static void printset(Exprset set);
 
 
 // #define DEBUG_GVNPRE
 
-void logf(const char* formmat,...);
-void printset(Exprset set);
 
 
-
-std::vector<Expr> topological(Exprset set);
-
-namespace std{
-    template<>
-    struct hash<Expr>{
-        size_t operator() (const Expr& expr) const{
-            if(!expr.op) return std::hash<void*>()(expr.vals[0]);
-            size_t hvals=0;
-            for(auto val : expr.vals)
-                hvals^=std::hash<void*>()(val);
-            return hvals ^ std::hash<unsigned>()(expr.op);
-        }
-    };
-}
 
 //typedef std::vector<std::pair<Operand*,std::string>> Exprset;
 
 
 class GVNPRE{
-    std::unordered_map<Expr,Operand*>htable; //used to store expression
     Unit* unit;
 
     std::unordered_map<BasicBlock*,std::vector<BasicBlock*>>domtree;
-    std::unordered_map<int,Expr> int2Expr;//used to map constant operands to values
-    std::unordered_map<float,Expr> float2Expr;//used to map constant operands to values
     
 
     std::unordered_map<BasicBlock*,Exprset>expr_gen;
     std::unordered_map<BasicBlock*,Exprset>phi_gen;
     std::unordered_map<BasicBlock*,Exprset>tmp_gen;
 
-    std::set<Operand*>kill;
+
     std::unordered_map<BasicBlock*,Exprset> new_sets;
     
     std::unordered_map<BasicBlock*,Exprset> avail_out;
     std::unordered_map<BasicBlock*,Exprset> antic_in;
 
-    Expr genExpr(Instruction* inst);
-    Expr genExpr(Operand* temp);
     Instruction* genInst(Operand* dst,unsigned op,std::vector<Operand*>leaders);
     Instruction* genInst(Operand* dst,unsigned op,std::map<BasicBlock*,Operand*>phiargs);
-    
 
-    Operand* lookup(Expr expr);
-    void vinsert(Exprset& set,Expr expr);
+
     Exprset phi_trans(Exprset set,BasicBlock* from,BasicBlock* to);
     Expr phi_trans(Expr expr,BasicBlock* from,BasicBlock* to);
     void clean(Exprset& set);
-    Operand* find_leader(Exprset set, Operand* val);
     Operand* gen_fresh_tmep(Expr e);
     
 
     void rmcEdge(Function* func);
-    
+    void addGval(Function* func);
     void buildDomTree(Function* func);
 
     void gvnpre(Function* func);

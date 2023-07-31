@@ -9,6 +9,7 @@ extern std::string DeclArray(ArrayType *type, std::vector<double> initializer);
 
 std::string Operand::toStr() const
 {
+    
     if (se->isVariable())
     {
         auto se_id = (IdentifierSymbolEntry *)se;
@@ -26,6 +27,13 @@ std::string Operand::toStr() const
     }
     else
         return se->toStr();
+
+}
+
+Instruction *Operand::getDef()
+{
+    // assert(defs.size() <= 1);
+    return defs.size() == 1 ? *(defs.begin()) : nullptr;
 }
 
 // bool Operand::operator==(const Operand &a) const

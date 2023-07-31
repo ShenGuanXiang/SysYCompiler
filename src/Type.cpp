@@ -194,7 +194,10 @@ Type *Var2Const(Type *type)
     if (type == TypeSystem::floatType)
         return TypeSystem::constFloatType;
 
-    assert(type->isConstInt() || type->isConstFloat());
+    //add to make gvnpre on gep past test
+    if (type->isPTR())
+        return TypeSystem::constIntType;
+    assert(type->isConstInt() || type->isConstFloat() || type->isPTR());
     return type;
 }
 
