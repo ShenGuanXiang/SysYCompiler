@@ -106,6 +106,8 @@ void ComSubExprElim::computeDomTree(Function *func)
     for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
     {
         BasicBlock *bb = *it_bb;
+        if(bb == func->getEntry())
+            continue;
         domtree[bb->getIDom()].push_back(bb);
     }
 }
