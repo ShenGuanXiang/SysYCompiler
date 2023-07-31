@@ -12,8 +12,8 @@ private:
 
 public:
     MemoryOpt(Unit *unit) : unit(unit){};
-    // void pass();
-    // void pass(Function *);
+    void pass();
+    void pass(Function *);
 };
 
 #endif
