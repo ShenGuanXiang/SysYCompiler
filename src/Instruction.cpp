@@ -1255,9 +1255,7 @@ void GepInstruction::genMachineCode(AsmBuilder *builder)
     }
     else if (arr->getEntry()->isTemporary())
     {
-        // this->output();
-        
-        if (arr->getDef() && (arr->getDef()->isAlloca()))
+        if (arr->Defs().size() <= 1 && arr->getDef() && (arr->getDef()->isAlloca()))
         {
             auto fp = genMachineReg(11);
             auto offset = genMachineImm(((TemporarySymbolEntry *)(arr->getEntry()))->getOffset());
@@ -1269,19 +1267,20 @@ void GepInstruction::genMachineCode(AsmBuilder *builder)
             }
             insts.push_back(new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, dst, fp, offset));
         }
-        else{
-            //add for gvnpre, a pointer can be hoisted and got defined in a phi inst
-            // if(arr->defs.size()==3){
-            // fprintf(stderr, "something bad here:%s\n", arr->toStr().c_str());
-            // // for(auto def : arr->defs)
-            // auto it = arr->defs.rbegin();
-            // Instruction* inst = (Instruction*)*it;
-            // fprintf(stderr,"inst type:%d\n", inst->getInstType());
-            //     inst->output();
+        else
+        {
+            // add for gvnpre, a pointer can be hoisted and got defined in a phi inst
+            //  if(arr->defs.size()==3){
+            //  fprintf(stderr, "something bad here:%s\n", arr->toStr().c_str());
+            //  // for(auto def : arr->defs)
+            //  auto it = arr->defs.rbegin();
+            //  Instruction* inst = (Instruction*)*it;
+            //  fprintf(stderr,"inst type:%d\n", inst->getInstType());
+            //      inst->output();
 
             // }
             // assert(arr->getDef() && (arr->getDef()->isLoad() || arr->getDef()->isGep() || arr->getDef()->isPHI()));
-            assert(arr->Defs().size()>1 || (arr->getDef() && (arr->getDef()->isLoad() || arr->getDef()->isGep())) );
+            assert(arr->Defs().size() > 1 || (arr->getDef() && (arr->getDef()->isLoad() || arr->getDef()->isGep())));
         }
     }
 

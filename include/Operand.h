@@ -39,7 +39,11 @@ public:
     use_iterator use_end() { return uses.end(); };
     Type *getType() { return se->getType(); };
     std::string toStr() const;
-    Instruction *getDef();
+    Instruction *getDef()
+    {
+        assert(defs.size() <= 1);
+        return defs.size() == 1 ? *(defs.begin()) : nullptr;
+    };
     std::set<Instruction *> getUses() { return uses; };
     SymbolEntry *getEntry() { return se; };
 };
