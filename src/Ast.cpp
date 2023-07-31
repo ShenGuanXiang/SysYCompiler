@@ -1041,10 +1041,36 @@ void AssignStmt::genCode()
 {
     assert(!lval->getType()->isConst()); // 常量不会被重新赋值
     BasicBlock *bb = builder->getInsertBB();
+
+    // // 对于s=s+expr(* != == && ||)的形式，转为s=expr+s
+    // std::stack<ExprNode *> st;
+    // ExprNode *cur = expr;
+    // while (cur->getNodeKind() == ExprNode::BINARY || cur->getNodeKind() == ExprNode::UNARY || cur->getNodeKind() == ExprNode::IMPLICITCAST)
+    // {
+    //     st.push(cur);
+    //     if (cur->getNodeKind() == ExprNode::BINARY)
+    //         cur = dynamic_cast<BinaryExpr *>(cur)->getLChild();
+    //     else if (cur->getNodeKind() == ExprNode::UNARY)
+    //         cur = dynamic_cast<UnaryExpr *>(cur)->getChild();
+    //     else
+    //     {
+    //         assert(cur->getNodeKind() == ExprNode::IMPLICITCAST);
+    //         cur = dynamic_cast<UnaryExpr *>(cur)->getChild();
+    //     }
+    // }
+    // ExprNode *bubble = cur;
+    // int cur_op = -1;
+    // while (!st.empty())
+    // {
+    //     cur = st.top();
+    //     st.pop();
+
+    // }
+
     expr->genCode();
+
     if (lval->getSymPtr()->getType()->isARRAY() || lval->getSymPtr()->getType()->isPTR())
     {
-        cur_type = (ArrayType *)(lval->getSymPtr()->getType());
         lval->genCode();
         Operand *addr = arrayAddr;
         Operand *src = expr->getOperand();

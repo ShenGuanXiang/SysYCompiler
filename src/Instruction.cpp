@@ -438,8 +438,10 @@ void FuncCallInstruction::output() const
     if (func_se->getName() == "memset")
     {
         auto internal_label = SymbolTable::getLabel();
-        fprintf(yyout, "  %%t%d = bitcast %s %s to i8*\n", internal_label, use_list[0]->getType()->toStr().c_str(), use_list[0]->toStr().c_str());                                                         // %t35 = bitcast [5 x i32]* %t34 to i8*
-        fprintf(yyout, "  call void @llvm.memset.p0.i32(i8* %%t%d, i8 %d, i32 %d, i1 0)\n", internal_label, (unsigned char)use_list[1]->getEntry()->getValue(), (int)use_list[2]->getEntry()->getValue()); // call void @llvm.memset.p0.i32(i8* %t35, i8 0, i32 20, i1 0)
+        fprintf(yyout, "  %%t%d = bitcast %s %s to i8*\n", internal_label, use_list[0]->getType()->toStr().c_str(), use_list[0]->toStr().c_str());                                                          // %t35 = bitcast [5 x i32]* %t34 to i8*
+        fprintf(yyout, "  call void @llvm.memset.p0.i32(i8* %%t%d, i8 %d, i32 %d, i1 0)\n", internal_label, (unsigned char)use_list[1]->getEntry()->getValue(), (int)use_list[2]->getEntry()->getValue());  // call void @llvm.memset.p0.i32(i8* %t35, i8 0, i32 20, i1 0)
+        fprintf(stderr, "  %%t%d = bitcast %s %s to i8*\n", internal_label, use_list[0]->getType()->toStr().c_str(), use_list[0]->toStr().c_str());                                                         // %t35 = bitcast [5 x i32]* %t34 to i8*
+        fprintf(stderr, "  call void @llvm.memset.p0.i32(i8* %%t%d, i8 %d, i32 %d, i1 0)\n", internal_label, (unsigned char)use_list[1]->getEntry()->getValue(), (int)use_list[2]->getEntry()->getValue()); // call void @llvm.memset.p0.i32(i8* %t35, i8 0, i32 20, i1 0)
         return;
     }
     std::string dst = def_list[0]->toStr();
