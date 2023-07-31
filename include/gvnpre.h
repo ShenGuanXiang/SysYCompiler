@@ -13,10 +13,8 @@
 
 /*
 TODO : 
-1. use std::string to replace struct expr
-2. add to avail_out dynamically, rather than recalculate it every time
-3. support gep instruction
-4. buildantic using postorder traversal
+1. build antic using postorder traversal
+2. speed up exprset rplc
 */
 namespace ExprOp{
     enum{TEMP,ADD,SUB,MUL,DIV,MOD,PHI,GEP};
@@ -182,8 +180,8 @@ public:
 };
 
 
-void logf(const char* formmat,...);
-void printset(Exprset set);
+static void logf(const char* formmat,...);
+static void printset(Exprset set);
 
 
 // #define DEBUG_GVNPRE
