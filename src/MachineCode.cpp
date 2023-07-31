@@ -509,9 +509,19 @@ bool MachineInstruction::isAdd() const
     return type == BINARY && op == BinaryMInstruction::ADD;
 }
 
+bool MachineInstruction::isAddShift() const
+{
+    return type == BINARY && (op == BinaryMInstruction::ADDASR || op == BinaryMInstruction::ADDLSR || op == BinaryMInstruction::ADDLSL);
+}
+
 bool MachineInstruction::isSub() const
 {
     return type == BINARY && op == BinaryMInstruction::SUB;
+}
+
+bool MachineInstruction::isSubShift() const
+{
+    return type == BINARY && (op == BinaryMInstruction::SUBASR || op == BinaryMInstruction::SUBLSR || op == BinaryMInstruction::SUBLSL);
 }
 
 bool MachineInstruction::isRsb() const
@@ -575,6 +585,26 @@ bool MachineInstruction::isCritical() const
     }
     return false;
 }
+
+bool MachineInstruction::isPush() const 
+{ 
+    return type == STACK && op == StackMInstruction::PUSH && !(use_list[0]->getValType()->isFloat()); 
+};
+
+bool MachineInstruction::isVPush() const 
+{ 
+    return type == STACK && op == StackMInstruction::PUSH && use_list[0]->getValType()->isFloat(); 
+};
+
+bool MachineInstruction::isPop() const 
+{ 
+    return type == STACK && op == StackMInstruction::POP && !(use_list[0]->getValType()->isFloat()); 
+};
+
+bool MachineInstruction::isVPop() const 
+{ 
+    return type == STACK && op == StackMInstruction::POP && use_list[0]->getValType()->isFloat(); 
+};
 
 DummyMInstruction::DummyMInstruction(
     MachineBlock *p,
@@ -780,12 +810,13 @@ void BinaryMInstruction::output()
 }
 
 LoadMInstruction::LoadMInstruction(MachineBlock *p,
-                                   MachineOperand *dst, MachineOperand *src1, MachineOperand *src2,
-                                   int cond)
+                     MachineOperand *dst, MachineOperand *src1, MachineOperand *src2,
+                     int op, MachineOperand *shifter,
+                     int cond)
 {
     this->parent = p;
     this->type = MachineInstruction::LOAD;
-    this->op = -1;
+    this->op = op;
     this->cond = cond;
     this->def_list.push_back(dst);
     this->use_list.push_back(src1);
@@ -795,6 +826,14 @@ LoadMInstruction::LoadMInstruction(MachineBlock *p,
     src1->setParent(this);
     if (src2)
         src2->setParent(this);
+
+    if (shifter != nullptr)
+    {
+        assert(op == LOADASR || op == LOADLSL || op == LOADLSR );
+        assert(shifter->isImm() && shifter->getValType()->isInt());
+        this->use_list.push_back(shifter);
+        shifter->setParent(this);
+    }
 }
 
 void LoadMInstruction::output()
@@ -900,7 +939,7 @@ void LoadMInstruction::output()
         fprintf(yyout, "[");
 
     this->use_list[0]->output();
-    if (this->use_list.size() > 1 && !(this->use_list[1]->isImm() && this->use_list[1]->getVal() == 0))
+    if (this->use_list.size() == 2 && !(this->use_list[1]->isImm() && this->use_list[1]->getVal() == 0))
     {
         if (this->use_list[1]->isImm())
             assert(((int)this->use_list[1]->getVal() % 4) == 0);
@@ -910,6 +949,28 @@ void LoadMInstruction::output()
         this->use_list[1]->output();
     }
 
+    else if (this->use_list.size() == 3)
+    {
+        assert(op==LoadMInstruction::LOADASR || op==LoadMInstruction::LOADLSL || op==LoadMInstruction::LOADLSR);
+        assert(this->use_list[2]->isImm());
+        fprintf(yyout, ", ");
+        this->use_list[1]->output();
+        fprintf(yyout, ", ");
+        switch (op)
+        {
+        case LoadMInstruction::LOADASR:
+            fprintf(yyout, "ASR ");
+            break;
+        case LoadMInstruction::LOADLSL:
+            fprintf(yyout, "LSL ");
+            break;
+        case LoadMInstruction::LOADLSR:
+            fprintf(yyout, "LSR ");
+            break;
+        }
+        this->use_list[2]->output();
+    }
+
     if (this->use_list[0]->isReg() || this->use_list[0]->isVReg())
         fprintf(yyout, "]");
     fprintf(yyout, "\n");
@@ -917,11 +978,12 @@ void LoadMInstruction::output()
 
 StoreMInstruction::StoreMInstruction(MachineBlock *p,
                                      MachineOperand *src1, MachineOperand *src2, MachineOperand *src3,
+                                     int op, MachineOperand *shifter,
                                      int cond)
 {
     this->parent = p;
     this->type = MachineInstruction::STORE;
-    this->op = -1;
+    this->op = op;
     this->cond = cond;
     this->use_list.push_back(src1);
     this->use_list.push_back(src2);
@@ -931,6 +993,14 @@ StoreMInstruction::StoreMInstruction(MachineBlock *p,
     src2->setParent(this);
     if (src3)
         src3->setParent(this);
+
+    if (shifter != nullptr)
+    {
+        assert(op == STOREASR || op == STORELSL || op == STORELSR );
+        assert(shifter->isImm() && shifter->getValType()->isInt());
+        this->use_list.push_back(shifter);
+        shifter->setParent(this);
+    }
 }
 
 void StoreMInstruction::output()
@@ -951,13 +1021,38 @@ void StoreMInstruction::output()
         fprintf(yyout, "[");
 
     this->use_list[1]->output();
-    if (this->use_list.size() > 2)
+    if (this->use_list.size() == 3)
     {
         if (this->use_list[0]->getValType()->isFloat())
             assert(this->use_list[2]->isImm()); // VFP好像不支持用寄存器做相对偏移?
         fprintf(yyout, ", ");
         this->use_list[2]->output();
     }
+
+
+
+    else if (this->use_list.size() == 4)
+    {
+        assert(op==StoreMInstruction::STOREASR || op==StoreMInstruction::STORELSL || op==StoreMInstruction::STORELSR);
+        assert(this->use_list[3]->isImm());
+        fprintf(yyout, ", ");
+        this->use_list[2]->output();
+        fprintf(yyout, ", ");
+        switch (op)
+        {
+        case StoreMInstruction::STOREASR:
+            fprintf(yyout, "ASR ");
+            break;
+        case StoreMInstruction::STORELSL:
+            fprintf(yyout, "LSL ");
+            break;
+        case StoreMInstruction::STORELSR:
+            fprintf(yyout, "LSR ");
+            break;
+        }
+        this->use_list[3]->output();
+    }
+
 
     if (this->use_list[1]->isReg() || this->use_list[1]->isVReg())
         fprintf(yyout, "]");

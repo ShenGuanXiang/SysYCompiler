@@ -146,10 +146,16 @@ public:
 
     bool isDummy() const { return type == DUMMY; };
     bool isAdd() const;
+    bool isAddShift() const;
     bool isBranch() const;
     bool isStack() const { return type == STACK; };
+    bool isPush() const;
+    bool isVPush() const;
+    bool isPop() const;
+    bool isVPop() const;
     bool isBinary() const { return type == BINARY; };
     bool isSub() const;
+    bool isSubShift() const;
     bool isRsb() const;
     bool isMul() const;
     bool isDiv() const;
@@ -205,8 +211,15 @@ public:
 class LoadMInstruction : public MachineInstruction
 {
 public:
+    enum opType
+    {
+        LOADLSL,
+        LOADLSR,
+        LOADASR
+    };
     LoadMInstruction(MachineBlock *p,
                      MachineOperand *dst, MachineOperand *src1, MachineOperand *src2 = nullptr,
+                     int op = -1, MachineOperand *shifter = nullptr,
                      int cond = MachineInstruction::NONE);
     void output();
 };
@@ -214,8 +227,15 @@ public:
 class StoreMInstruction : public MachineInstruction
 {
 public:
+    enum opType
+    {
+        STORELSL,
+        STORELSR,
+        STOREASR
+    };
     StoreMInstruction(MachineBlock *p,
                       MachineOperand *src1, MachineOperand *src2, MachineOperand *src3 = nullptr,
+                      int op = -1, MachineOperand *shifter = nullptr,
                       int cond = MachineInstruction::NONE);
     void output();
 };

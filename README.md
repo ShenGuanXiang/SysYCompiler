@@ -130,6 +130,44 @@
 
      (寄存器不能重定义，v4!=v2 且 v4!=v5)
 
+6. add r0, fp, #-12
+
+   str r1, [r0]
+   
+   --->
+   
+   add r0, fp, #-12
+   
+   str r1, [fp, #-12]
+   
+ - add r4, r2, r1, LSL #2
+
+   mov r3, #0
+
+   str r3, [r4] 
+
+   --->
+
+   add r4, r2, r1, LSL #2
+
+   mov r3, #0
+
+   str r3, [r2, r1, LSL #2] (浮点不行) （放在add r4, r2, r1, LSL #2的优化后面）
+
+ - add r7, r5, r6, LSL #2
+
+   ldr r5, [r7]
+
+   --->
+
+   add r7, r5, r6, LSL #2
+
+   ldr r5, [ r5, r6, LSL #2] （浮点不行）（放在add r7, r5, r6, LSL #2的优化后面）
+
+7. 将多条store替换为vdup和vstm【暂时不做了 :) 】
+
+8. 多条push/pop合并为一条push/pop【发现有个bug :( 】
+
 ## memset
 
 ## 寄存器分配
@@ -199,48 +237,6 @@
 - 如果一个函数的返回值从未由调用者使用，则将返回值设为0
 - 尾递归转循环
 - 用散列表保存单参数的递归函数的返回值
-
-## 窥孔优化
-
-1. 
-
- - add r0, fp, #-12
-
-   str r1, [r0]
-   
-   --->
-   
-   add r0, fp, #-12
-   
-   str r1, [fp, #-12]
-   
- - add r4, r2, r1, LSL #2
-
-   mov r3, #0
-
-   str r3, [r4] 
-
-   --->
-
-   add r4, r2, r1, LSL #2
-
-   mov r3, #0
-
-   str r3, [r2, r1, LSL #2] (浮点不行) （放在add r4, r2, r1, LSL #2的优化后面）
-
- - add r7, r5, r6, LSL #2
-
-   ldr r5, [r7]
-
-   --->
-
-   add r7, r5, r6, LSL #2
-
-   ldr r5, [ r5, r6, LSL #2] （浮点不行）（放在add r7, r5, r6, LSL #2的优化后面）
-
-2. 将多条store替换为vdup和vstm
-
-3. 多条push/pop合并为一条push/pop（比如函数调用传参时）
 
 ## 代数化简
 
