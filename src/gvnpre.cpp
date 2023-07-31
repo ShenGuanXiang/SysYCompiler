@@ -4,8 +4,6 @@
 #include <sstream>
 #include <map>
 
-std::unordered_map<Expr,Operand*,Ehash>htable;
-std::map<std::pair<int,int>,std::unordered_map<ValueNr,ValueNr>> trans_cache;
 
 
 void logf(const char *formmat, ...)

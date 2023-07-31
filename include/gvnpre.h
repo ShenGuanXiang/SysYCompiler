@@ -83,7 +83,8 @@ struct Ehash{
     }
 };
 
-extern std::unordered_map<Expr,Operand*,Ehash>htable;
+static std::unordered_map<Expr,Operand*,Ehash>htable;
+static std::map<std::pair<int,int>,std::unordered_map<ValueNr,ValueNr>> trans_cache;
 #define lookup(expr) (htable.count(expr)?htable[expr]:nullptr)
 
 
