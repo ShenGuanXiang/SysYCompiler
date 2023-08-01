@@ -469,6 +469,7 @@ void GVNPRE::buildSets(Function *func)
 
             // inst->output();
 
+            
             Operand* dst = inst->getDef();
 
             if (inst->isPHI())

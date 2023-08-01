@@ -184,7 +184,7 @@ static void logf(const char* formmat,...);
 static void printset(Exprset set);
 
 
-// #define DEBUG_GVNPRE
+#define DEBUG_GVNPRE
 
 
 
