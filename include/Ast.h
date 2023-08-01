@@ -4,6 +4,7 @@
 #include <fstream>
 #include <map>
 #include <vector>
+#include <stack>
 #include "Type.h"
 #include "Operand.h"
 #include "BasicBlock.h"
@@ -48,7 +49,19 @@ protected:
     Operand *dst; // The result of the subtree is stored into dst.
     bool is_array_ele = false;
 
+    int kind = -1;
+
 public:
+    enum KIND
+    {
+        UNARY,
+        BINARY,
+        CONSTANT,
+        IMPLICITCAST,
+        ID,
+        FUNCCALL
+    };
+
     ExprNode(SymbolEntry *symbolEntry, bool is_array_ele = false) : symbolEntry(symbolEntry), dst(new Operand(symbolEntry)), is_array_ele(is_array_ele){};
     Type *getType();
     double getValue();
@@ -67,6 +80,10 @@ public:
             if (dst->usersNum() != 0 || dst->defsNum() != 0)
                 this->setDst(new Operand(new TemporarySymbolEntry(this->getSymPtr()->getType(), SymbolTable::getLabel())));
     }
+    int getNodeKind()
+    {
+        return kind;
+    }
     ~ExprNode(){};
 };
 
@@ -83,10 +100,11 @@ public:
         MINUS,
         NOT
     };
-    UnaryExpr(SymbolEntry *se, int op, ExprNode *expr) : ExprNode(se), op(op), expr(expr){};
+    UnaryExpr(SymbolEntry *se, int op, ExprNode *expr) : ExprNode(se), op(op), expr(expr) { kind = ExprNode::UNARY; };
     void output(int level);
     // void typeCheck();
     void genCode();
+    ExprNode *getChild() { return expr; };
     ~UnaryExpr()
     {
         delete expr;
@@ -116,10 +134,12 @@ public:
         AND,
         OR
     };
-    BinaryExpr(SymbolEntry *se, int op, ExprNode *expr1, ExprNode *expr2) : ExprNode(se), op(op), expr1(expr1), expr2(expr2){};
+    BinaryExpr(SymbolEntry *se, int op, ExprNode *expr1, ExprNode *expr2) : ExprNode(se), op(op), expr1(expr1), expr2(expr2) { kind = ExprNode::BINARY; };
     void output(int level);
     // void typeCheck();
     void genCode();
+    ExprNode *getLChild() { return expr1; };
+    ExprNode *getRChild() { return expr2; };
     ~BinaryExpr()
     {
         delete expr1;
@@ -130,7 +150,7 @@ public:
 class Constant : public ExprNode
 {
 public:
-    Constant(SymbolEntry *se) : ExprNode(se){};
+    Constant(SymbolEntry *se) : ExprNode(se) { kind = ExprNode::CONSTANT; };
     void output(int level);
     // void typeCheck();
     void genCode();
@@ -142,10 +162,11 @@ private:
     ExprNode *expr;
 
 public:
-    ImplicitCast(SymbolEntry *se, ExprNode *expr) : ExprNode(se), expr(expr){};
+    ImplicitCast(SymbolEntry *se, ExprNode *expr) : ExprNode(se), expr(expr) { kind = ExprNode::IMPLICITCAST; };
     void output(int level);
     // void typeCheck();
     void genCode();
+    ExprNode *getChild() { return expr; };
     ~ImplicitCast() { delete expr; };
 };
 
@@ -191,6 +212,7 @@ public:
         is_array = se->getType()->isARRAY();
         is_left = false;
         is_FP = false;
+        kind = ExprNode::ID;
     };
     void setIndices(IndicesNode *new_indices) { indices = new_indices; };
     IndicesNode *getIndices() { return indices; };
@@ -463,7 +485,7 @@ private:
     FuncCallParamsNode *params;
 
 public:
-    FuncCallNode(SymbolEntry *se, Id *id, FuncCallParamsNode *params) : ExprNode(se), funcId(id), params(params){};
+    FuncCallNode(SymbolEntry *se, Id *id, FuncCallParamsNode *params) : ExprNode(se), funcId(id), params(params) { kind = ExprNode::FUNCCALL; };
     void output(int level);
     // void typeCheck();
     void genCode();

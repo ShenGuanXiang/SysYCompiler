@@ -14,7 +14,6 @@ public:
     MemoryOpt(Unit *unit) : unit(unit){};
     void pass();
     void pass(Function *);
-    void visit(Instruction *);
 };
 
 #endif

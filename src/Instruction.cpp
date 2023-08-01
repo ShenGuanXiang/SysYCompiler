@@ -176,8 +176,6 @@ void BinaryInstruction::output() const
     }
     else
     {
-        fprintf(stderr, "type:%s\n", def_list[0]->getType()->toStr().c_str());
-        fprintf(stderr, "type:%s\n", def_list[0]->toStr().c_str());
         assert(def_list[0]->getType() == TypeSystem::floatType);
         switch (opcode)
         {
@@ -440,8 +438,10 @@ void FuncCallInstruction::output() const
     if (func_se->getName() == "memset")
     {
         auto internal_label = SymbolTable::getLabel();
-        fprintf(yyout, "  %%t%d = bitcast %s %s to i8*\n", internal_label, use_list[0]->getType()->toStr().c_str(), use_list[0]->toStr().c_str());                                                         // %t35 = bitcast [5 x i32]* %t34 to i8*
-        fprintf(yyout, "  call void @llvm.memset.p0.i32(i8* %%t%d, i8 %d, i32 %d, i1 0)\n", internal_label, (unsigned char)use_list[1]->getEntry()->getValue(), (int)use_list[2]->getEntry()->getValue()); // call void @llvm.memset.p0.i32(i8* %t35, i8 0, i32 20, i1 0)
+        fprintf(yyout, "  %%t%d = bitcast %s %s to i8*\n", internal_label, use_list[0]->getType()->toStr().c_str(), use_list[0]->toStr().c_str());                                                          // %t35 = bitcast [5 x i32]* %t34 to i8*
+        fprintf(yyout, "  call void @llvm.memset.p0.i32(i8* %%t%d, i8 %d, i32 %d, i1 0)\n", internal_label, (unsigned char)use_list[1]->getEntry()->getValue(), (int)use_list[2]->getEntry()->getValue());  // call void @llvm.memset.p0.i32(i8* %t35, i8 0, i32 20, i1 0)
+        fprintf(stderr, "  %%t%d = bitcast %s %s to i8*\n", internal_label, use_list[0]->getType()->toStr().c_str(), use_list[0]->toStr().c_str());                                                         // %t35 = bitcast [5 x i32]* %t34 to i8*
+        fprintf(stderr, "  call void @llvm.memset.p0.i32(i8* %%t%d, i8 %d, i32 %d, i1 0)\n", internal_label, (unsigned char)use_list[1]->getEntry()->getValue(), (int)use_list[2]->getEntry()->getValue()); // call void @llvm.memset.p0.i32(i8* %t35, i8 0, i32 20, i1 0)
         return;
     }
     std::string dst = def_list[0]->toStr();
@@ -576,7 +576,6 @@ void GepInstruction::output() const
     Operand *dst = def_list[0];
     Operand *arr = use_list[0];
     std::string arrType = arr->getType()->toStr();
-    // fprintf(yyout, ";%s's addr is %p", dst->toStr().c_str(), dst);
     fprintf(yyout, "  %s = getelementptr inbounds %s, %s %s, i32 %s",
             dst->toStr().c_str(), arrType.substr(0, arrType.size() - 1).c_str(),
             arrType.c_str(), arr->toStr().c_str(), use_list[1]->toStr().c_str());
@@ -717,7 +716,7 @@ void LoadInstruction::genMachineCode(AsmBuilder *builder)
         cur_block->insertBack(cur_inst);
     }
     // Load local operand / param
-    else if (use_list[0]->getEntry()->isTemporary() && use_list[0]->getDef() && use_list[0]->getDef()->isAlloca())
+    else if (use_list[0]->getEntry()->isTemporary() && use_list[0]->Defs().size() <= 1 && use_list[0]->getDef() && use_list[0]->getDef()->isAlloca())
     {
         // example: ldr r1, [fp, #4]
         auto dst = genMachineOperand(def_list[0]);
@@ -791,7 +790,7 @@ void StoreInstruction::genMachineCode(AsmBuilder *builder)
         cur_block->insertBack(cur_inst);
     }
     // Store local operand / param
-    else if (use_list[0]->getEntry()->isTemporary() && use_list[0]->getDef() && use_list[0]->getDef()->isAlloca())
+    else if (use_list[0]->getEntry()->isTemporary() && use_list[0]->Defs().size() <= 1 && use_list[0]->getDef() && use_list[0]->getDef()->isAlloca())
     {
         // example: str r1, [fp, #-4]
         auto fp = genMachineReg(11);
@@ -1253,9 +1252,7 @@ void GepInstruction::genMachineCode(AsmBuilder *builder)
     }
     else if (arr->getEntry()->isTemporary())
     {
-        // this->output();
-        
-        if (arr->getDef() && (arr->getDef()->isAlloca()))
+        if (arr->Defs().size() <= 1 && arr->getDef() && (arr->getDef()->isAlloca()))
         {
             auto fp = genMachineReg(11);
             auto offset = genMachineImm(((TemporarySymbolEntry *)(arr->getEntry()))->getOffset());
@@ -1267,19 +1264,9 @@ void GepInstruction::genMachineCode(AsmBuilder *builder)
             }
             insts.push_back(new BinaryMInstruction(cur_block, BinaryMInstruction::ADD, dst, fp, offset));
         }
-        else{
-            //add for gvnpre, a pointer can be hoisted and got defined in a phi inst
-            // if(arr->defs.size()==3){
-            // fprintf(stderr, "something bad here:%s\n", arr->toStr().c_str());
-            // // for(auto def : arr->defs)
-            // auto it = arr->defs.rbegin();
-            // Instruction* inst = (Instruction*)*it;
-            // fprintf(stderr,"inst type:%d\n", inst->getInstType());
-            //     inst->output();
-
-            // }
-            // assert(arr->getDef() && (arr->getDef()->isLoad() || arr->getDef()->isGep() || arr->getDef()->isPHI()));
-            assert(arr->Defs().size()>1 || (arr->getDef() && (arr->getDef()->isLoad() || arr->getDef()->isGep())) );
+        else
+        {
+            assert(arr->Defs().size() > 1 || (arr->getDef() && (arr->getDef()->isLoad() || arr->getDef()->isGep())));
         }
     }
 

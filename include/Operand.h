@@ -24,7 +24,7 @@ public:
         defs = std::set<Instruction *>();
         uses = std::set<Instruction *>();
     };
-    const std::set<Instruction *> &Defs() const { return defs; };
+    std::set<Instruction *> Defs() { return defs; };
     void setDef(Instruction *inst) { defs = std::set<Instruction *>{inst}; };
     void addDef(Instruction *inst) { defs.insert(inst); }; // 特例是消除PHI产生的add ..., ..., 0，会有多个Def
     void removeDef(Instruction *inst) { defs.erase(inst); };
@@ -39,7 +39,11 @@ public:
     use_iterator use_end() { return uses.end(); };
     Type *getType() { return se->getType(); };
     std::string toStr() const;
-    Instruction *getDef();
+    Instruction *getDef()
+    {
+        assert(defs.size() <= 1);
+        return defs.size() == 1 ? *(defs.begin()) : nullptr;
+    };
     std::set<Instruction *> getUses() { return uses; };
     SymbolEntry *getEntry() { return se; };
 };

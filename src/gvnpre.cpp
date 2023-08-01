@@ -4,9 +4,7 @@
 #include <sstream>
 #include <map>
 
-
-
-void logf(const char *formmat, ...)
+static void logf(const char *formmat, ...)
 {
 #ifdef DEBUG_GVNPRE
 
@@ -16,7 +14,7 @@ void logf(const char *formmat, ...)
     va_end(args);
 #endif
 }
-void printset(Exprset set)
+static void printset(Exprset set)
 {
 #ifdef DEBUG_GVNPRE
 
@@ -26,36 +24,40 @@ void printset(Exprset set)
     {
         for (auto e : set.getExprs())
             logf("%s\t", e.tostr().c_str());
-        logf("\n"); 
+        logf("\n");
     }
 #endif
 }
 
-unsigned getInstOp(Instruction* inst){
-    switch (inst->getInstType()){
-        case Instruction::BINARY:{
-            auto bin_inst = dynamic_cast<BinaryInstruction*>(inst);
-            switch(bin_inst->getOpcode()){
-                case BinaryInstruction::ADD:
-                    return ExprOp::ADD;
-                case BinaryInstruction::SUB:
-                    return ExprOp::SUB;
-                case BinaryInstruction::MUL:
-                    return ExprOp::MUL;
-                case BinaryInstruction::DIV:
-                    return ExprOp::DIV;
-                case BinaryInstruction::MOD:
-                    return ExprOp::MOD;
-                default:
-                    assert(0);
-            }
-        }
-        case Instruction::GEP:
-            return ExprOp::GEP;
-        case Instruction::PHI:
-            return ExprOp::PHI;
+unsigned getInstOp(Instruction *inst)
+{
+    switch (inst->getInstType())
+    {
+    case Instruction::BINARY:
+    {
+        auto bin_inst = dynamic_cast<BinaryInstruction *>(inst);
+        switch (bin_inst->getOpcode())
+        {
+        case BinaryInstruction::ADD:
+            return ExprOp::ADD;
+        case BinaryInstruction::SUB:
+            return ExprOp::SUB;
+        case BinaryInstruction::MUL:
+            return ExprOp::MUL;
+        case BinaryInstruction::DIV:
+            return ExprOp::DIV;
+        case BinaryInstruction::MOD:
+            return ExprOp::MOD;
         default:
             assert(0);
+        }
+    }
+    case Instruction::GEP:
+        return ExprOp::GEP;
+    case Instruction::PHI:
+        return ExprOp::PHI;
+    default:
+        assert(0);
     }
 }
 
@@ -80,12 +82,12 @@ Instruction *GVNPRE::genInst(Operand *dst, unsigned op, std::vector<Operand *> l
         inst = new BinaryInstruction(BinaryInstruction::MOD, dst, leaders[0], leaders[1]);
         break;
     case ExprOp::GEP:
-        {
-            std::vector<Operand*> idxs;
-            std::copy(leaders.begin()+1,leaders.end(),std::back_inserter(idxs));
-            inst = new GepInstruction(dst,leaders[0],idxs);
-            break;
-        }
+    {
+        std::vector<Operand *> idxs;
+        std::copy(leaders.begin() + 1, leaders.end(), std::back_inserter(idxs));
+        inst = new GepInstruction(dst, leaders[0], idxs);
+        break;
+    }
     default:
         assert(0);
     }
@@ -107,17 +109,17 @@ Instruction *GVNPRE::genInst(Operand *dst, unsigned op, std::map<BasicBlock *, O
 Exprset GVNPRE::phi_trans(Exprset set, BasicBlock *from, BasicBlock *to)
 {
     // convert set to array in topological order
-    const std::vector<Expr>& toplist = set.topological_sort();
+    const std::vector<Expr> &toplist = set.topological_sort();
     Exprset newset;
     // translate each expression in order
 
-    std::unordered_map<ValueNr, ValueNr>& cur_cache = trans_cache[{from->getNo(),to->getNo()}];
+    std::unordered_map<ValueNr, ValueNr> &cur_cache = trans_cache[{from->getNo(), to->getNo()}];
     for (size_t i = 0; i < toplist.size(); i++)
     {
         Expr e = toplist[i];
         if (e.getOpcode() == ExprOp::TEMP) // tempraray
         {
-            Operand* oldval = lookup(e);
+            Operand *oldval = lookup(e);
             Instruction *definst = oldval->getDef();
             if (definst && definst->getInstType() == Instruction::PHI && definst->getParent() == to)
             {
@@ -128,7 +130,8 @@ Exprset GVNPRE::phi_trans(Exprset set, BasicBlock *from, BasicBlock *to)
                 cur_cache[oldval] = newval;
                 newset.insert(newexpr);
             }
-            else{
+            else
+            {
                 newset.insert(e);
             }
         }
@@ -141,17 +144,18 @@ Exprset GVNPRE::phi_trans(Exprset set, BasicBlock *from, BasicBlock *to)
                 ValueNr val = lookup(tmp);
                 if (cur_cache.count(val))
                     newvals.push_back(cur_cache[val]);
-                else{
+                else
+                {
                     newvals.push_back(val);
                 }
             }
-            Expr newexpr(e.getOpcode(),newvals);
-            if (e!=newexpr)
+            Expr newexpr(e.getOpcode(), newvals);
+            if (e != newexpr)
             {
                 // e's composite val is changed now, e is not ever the old e
                 if (!htable.count(newexpr)) // modify htable in the process (insert new mapping)
                 {
-                    Operand* tmp =  new Operand(new TemporarySymbolEntry(oldval->getType(), SymbolTable::getLabel()));
+                    Operand *tmp = new Operand(new TemporarySymbolEntry(oldval->getType(), SymbolTable::getLabel()));
                     htable[tmp] = tmp;
                     htable[newexpr] = tmp;
                 }
@@ -166,41 +170,39 @@ Exprset GVNPRE::phi_trans(Exprset set, BasicBlock *from, BasicBlock *to)
 
 Expr GVNPRE::phi_trans(Expr expr, BasicBlock *from, BasicBlock *to)
 {
-    std::unordered_map<ValueNr, ValueNr>& cur_cache = trans_cache[{from->getNo(),to->getNo()}];
+    std::unordered_map<ValueNr, ValueNr> &cur_cache = trans_cache[{from->getNo(), to->getNo()}];
     // add tag to further speedup
-    if(cur_cache.empty())
-        phi_trans(antic_in[to],from,to);
+    if (cur_cache.empty())
+        phi_trans(antic_in[to], from, to);
 
     std::vector<ValueNr> newvals;
     for (auto tmp : expr.getOperands())
     {
         ValueNr val = lookup(tmp);
-        if(cur_cache.count(val))
+        if (cur_cache.count(val))
             val = cur_cache[val];
         newvals.push_back(val);
     }
-    return Expr(expr.getOpcode(),newvals);
-
+    return Expr(expr.getOpcode(), newvals);
 
     //-------------old implementation----------------
     // expr is bound to defined in bb'to'
-    const std::vector<Expr>& toplist = antic_in[to].topological_sort();
+    const std::vector<Expr> &toplist = antic_in[to].topological_sort();
     size_t epos = 0;
-    for(;epos<toplist.size();epos++)
-        if(toplist[epos]==expr)
+    for (; epos < toplist.size(); epos++)
+        if (toplist[epos] == expr)
             break;
-    if(epos==toplist.size())
+    if (epos == toplist.size())
         return expr;
 
-    
     // translate each expression in order
     std::unordered_map<Operand *, Operand *> trans_cache;
     for (size_t i = 0; i <= epos; i++)
     {
         Expr e = toplist[i];
-        if (e.getOpcode()==ExprOp::TEMP) // tempraray
+        if (e.getOpcode() == ExprOp::TEMP) // tempraray
         {
-            Operand* oldval = lookup(e);
+            Operand *oldval = lookup(e);
             Instruction *definst = oldval->getDef();
             if (definst && definst->getInstType() == Instruction::PHI && definst->getParent() == to)
             {
@@ -209,7 +211,8 @@ Expr GVNPRE::phi_trans(Expr expr, BasicBlock *from, BasicBlock *to)
                 ValueNr newval = lookup(newexpr);
                 trans_cache[oldval] = newval;
                 // logf("mapping %s to %s\n",oldval->toStr().c_str(),newval->toStr().c_str());
-                if(i==epos) return newexpr;
+                if (i == epos)
+                    return newexpr;
             }
         }
         else
@@ -223,13 +226,13 @@ Expr GVNPRE::phi_trans(Expr expr, BasicBlock *from, BasicBlock *to)
                     val = trans_cache[val];
                 newvals.push_back(val);
             }
-            Expr newexpr(e.getOpcode(),newvals);
-            if (e!=newexpr)
+            Expr newexpr(e.getOpcode(), newvals);
+            if (e != newexpr)
             {
                 // e's composite val is changed now, e is not ever the old e
                 if (!htable.count(newexpr)) // modify htable in the process (insert new mapping)
                 {
-                    Operand* tmp =  new Operand(new TemporarySymbolEntry(oldval->getType(), SymbolTable::getLabel()));
+                    Operand *tmp = new Operand(new TemporarySymbolEntry(oldval->getType(), SymbolTable::getLabel()));
                     htable[tmp] = tmp;
                     htable[newexpr] = tmp;
                     // htable[newexpr] = new Operand(new TemporarySymbolEntry(oldval->getType(), SymbolTable::getLabel()));
@@ -237,7 +240,8 @@ Expr GVNPRE::phi_trans(Expr expr, BasicBlock *from, BasicBlock *to)
                 ValueNr newval = lookup(newexpr);
                 trans_cache[oldval] = newval;
                 // logf("mapping %s to %s\n",oldval->toStr().c_str(),newval->toStr().c_str());
-                if(i==epos) return newexpr;
+                if (i == epos)
+                    return newexpr;
             }
         }
     }
@@ -250,7 +254,7 @@ void GVNPRE::clean(Exprset &set)
     // logf("before cleaning:\n");
     // printset(set);
     std::vector<Expr> toplist = set.topological_sort();
-    const std::set<ValueNr>& valset = set.getValnrs();
+    const std::set<ValueNr> &valset = set.getValnrs();
     for (const Expr &e : toplist)
     {
         assert(lookup(e));
@@ -258,7 +262,8 @@ void GVNPRE::clean(Exprset &set)
             continue;
         for (auto item : e.getOperands())
         {
-            if(!valset.count(lookup(item))){
+            if (!valset.count(lookup(item)))
+            {
                 set.erase(e);
             }
         }
@@ -356,22 +361,28 @@ void GVNPRE::rmcEdge(Function *func)
 
 void GVNPRE::addGval(Function *func)
 {
-    //htable for each function, so clear it
-    // add global value to htable
-    for(auto it_bb = func->begin();it_bb!=func->end();it_bb++){
-        BasicBlock* bb = *it_bb;
-        for(auto inst = bb->begin();inst!=bb->end();inst=inst->getNext()){
-            if(inst->isPHI()){
-                for(auto p : dynamic_cast<PhiInstruction*>(inst)->getSrcs()){
+    // htable for each function, so clear it
+    //  add global value to htable
+    for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
+    {
+        BasicBlock *bb = *it_bb;
+        for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
+        {
+            if (inst->isPHI())
+            {
+                for (auto p : dynamic_cast<PhiInstruction *>(inst)->getSrcs())
+                {
                     const auto &symentry = p.second->getEntry();
-                    if(symentry->isConstant() || symentry->isVariable())
-                        htable[p.second] = p.second;    
+                    if (symentry->isConstant() || symentry->isVariable())
+                        htable[p.second] = p.second;
                 }
             }
-            else{
-                for(auto operand : inst->getUses()){
+            else
+            {
+                for (auto operand : inst->getUses())
+                {
                     const auto &symentry = operand->getEntry();
-                    if(symentry->isConstant() || symentry->isVariable())
+                    if (symentry->isConstant() || symentry->isVariable())
                         htable[operand] = operand;
                 }
             }
@@ -389,7 +400,7 @@ void GVNPRE::buildDomTree(Function *func)
             continue;
         domtree[bb->getIDom()].push_back(bb);
     }
-    //print domtree
+    // print domtree
     logf("dom:\n");
     for (auto it = domtree.begin(); it != domtree.end(); it++)
     {
@@ -408,8 +419,9 @@ void GVNPRE::gvnpre(Function *func)
     buildDomTree(func);
     buildSets(func);
     buildAntic(func);
-    for(auto [expr,val] : htable){
-        logf("(%s,value:%s)\n",expr.tostr().c_str(),val->toStr().c_str());
+    for (auto [expr, val] : htable)
+    {
+        logf("(%s,value:%s)\n", expr.tostr().c_str(), val->toStr().c_str());
     }
     for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
     {
@@ -423,9 +435,10 @@ void GVNPRE::gvnpre(Function *func)
     }
     logf("perform insertion\n");
     insert(func);
-    
-    for(auto [expr,val] : htable){
-        logf("(%s,value:%s)\n",expr.tostr().c_str(),val->toStr().c_str());
+
+    for (auto [expr, val] : htable)
+    {
+        logf("(%s,value:%s)\n", expr.tostr().c_str(), val->toStr().c_str());
     }
     // for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
     // {
@@ -480,11 +493,13 @@ void GVNPRE::buildSets(Function *func)
             }
             else if (inst->isBinary() || inst->isGep())
             {
-                const std::vector<Operand*>& temps= inst->getUses();
-                std::vector<Operand*> valnrs;
-                for(Operand* temp : temps){
-                    if(htable.find(temp)==htable.end()){
-                        const auto& symentry = temp->getEntry();
+                const std::vector<Operand *> &temps = inst->getUses();
+                std::vector<Operand *> valnrs;
+                for (Operand *temp : temps)
+                {
+                    if (htable.find(temp) == htable.end())
+                    {
+                        const auto &symentry = temp->getEntry();
                         // global, parameter, constant is available anywhere instinctly
                         assert(symentry->isConstant() || symentry->isVariable());
                         // add a new value number
@@ -492,24 +507,26 @@ void GVNPRE::buildSets(Function *func)
                     }
                     valnrs.push_back(htable[temp]);
                 }
-                Expr e(getInstOp(inst),valnrs);
-                if(htable.find(e)==htable.end()){
+                Expr e(getInstOp(inst), valnrs);
+                if (htable.find(e) == htable.end())
+                {
                     htable[e] = dst;
                 }
                 htable[dst] = htable[e];
-                for(Operand* operand : temps){
+                for (Operand *operand : temps)
+                {
                     expr_gen[bb].vinsert(htable[operand]);
                 }
                 expr_gen[bb].vinsert(e);
                 tmp_gen[bb].insert(dst);
             }
-            else{
+            else
+            {
                 htable[dst] = dst;
                 tmp_gen[bb].insert(dst);
             }
             avail_out[bb].vinsert(dst);
         }
-
 
         if (domtree.count(bb))
             for (auto succ_it = domtree[bb].rbegin(); succ_it != domtree[bb].rend(); succ_it++)
@@ -525,7 +542,7 @@ void GVNPRE::buildAntic(Function *func)
     {
         changed = false;
         iter++;
-        //TODO : traverse postdominator tree
+        // TODO : traverse postdominator tree
         std::queue<BasicBlock *> q;
         std::set<BasicBlock *> visited;
         q.push(func->getEntry());
@@ -551,7 +568,6 @@ void GVNPRE::buildAntic(Function *func)
                 auto first = *succ_it;
                 _antic_out = antic_in[first];
 
-
                 for (succ_it++; succ_it != bb->succ_end(); succ_it++)
                 {
                     auto succ = *succ_it;
@@ -569,8 +585,9 @@ void GVNPRE::buildAntic(Function *func)
             Exprset S;
             antic_in[bb].clear();
             std::set_difference(_antic_out.getExprs().begin(), _antic_out.getExprs().end(), tmp_gen[bb].getExprs().begin(), tmp_gen[bb].getExprs().end(), std::inserter(S.getExprs(), S.getExprs().end()));
-            std::set_difference(expr_gen[bb].getExprs().begin(), expr_gen[bb].getExprs().end(), tmp_gen[bb].getExprs().begin(), tmp_gen[bb].getExprs().end(), std::inserter(antic_in[bb].getExprs(), antic_in[bb].end()));            
-            for(const auto& e : antic_in[bb]){
+            std::set_difference(expr_gen[bb].getExprs().begin(), expr_gen[bb].getExprs().end(), tmp_gen[bb].getExprs().begin(), tmp_gen[bb].getExprs().end(), std::inserter(antic_in[bb].getExprs(), antic_in[bb].end()));
+            for (const auto &e : antic_in[bb])
+            {
                 antic_in[bb].getValnrs().insert(lookup(e));
             }
             // logf("antic_in[bb%d]:\n", bb->getNo());
@@ -578,13 +595,11 @@ void GVNPRE::buildAntic(Function *func)
             // logf("S:\n");
             // printset(S);
 
-
-            for (const auto &e: S)
+            for (const auto &e : S)
             {
-                if(!antic_in[bb].find_leader(lookup(e)))
+                if (!antic_in[bb].find_leader(lookup(e)))
                     antic_in[bb].vinsert(e);
             }
-
 
             // logf("antic_in[bb%d]:\n", bb->getNo());
             // printset(antic_in[bb]);
@@ -593,7 +608,6 @@ void GVNPRE::buildAntic(Function *func)
             // logf("after clean:\nantic_in[bb%d]:\n", bb->getNo());
             // printset(antic_in[bb]);
             // logf("\n");
-
 
             if (old != antic_in[bb])
                 changed = true;
@@ -642,16 +656,16 @@ void GVNPRE::insert(Function *func)
             if (bb->getNumOfPred() > 1)
             {
                 std::vector<Expr> toplist = antic_in[bb].topological_sort();
-                for (const auto& e : toplist)
+                for (const auto &e : toplist)
                 {
-                    if(e.getOpcode()!=ExprOp::TEMP)
+                    if (e.getOpcode() != ExprOp::TEMP)
                     { // v1 op v2 etc.
-                        if(avail_out[dom].find_leader(lookup(e)))
+                        if (avail_out[dom].find_leader(lookup(e)))
                             continue;
-                        
+
                         std::unordered_map<BasicBlock *, Expr> avail;
                         bool by_some = false, all_same = true;
-                        Expr* first_s = nullptr;
+                        Expr *first_s = nullptr;
                         for (auto pred_it = bb->pred_begin(); pred_it != bb->pred_end(); pred_it++)
                         {
                             auto pred = *pred_it;
@@ -675,13 +689,13 @@ void GVNPRE::insert(Function *func)
                                 all_same = false;
                             }
                         }
-                        if(first_s)
+                        if (first_s)
                             delete first_s;
 
                         if (!all_same && by_some)
                         {
                             logf("inserting:%s in bb%d\n", e.tostr().c_str(), bb->getNo());
-                            for(auto item : avail)
+                            for (auto item : avail)
                                 logf("bb%d: %s\n", item.first->getNo(), item.second.tostr().c_str());
 
                             // bool new_expr = false;
@@ -690,7 +704,7 @@ void GVNPRE::insert(Function *func)
                             {
                                 auto pred = *pred_it;
                                 Expr avail_e = avail[pred];
-                                if (avail_e.getOpcode() != ExprOp::TEMP && avail_e.getOpcode()!=ExprOp::PHI)
+                                if (avail_e.getOpcode() != ExprOp::TEMP && avail_e.getOpcode() != ExprOp::PHI)
                                 {
                                     insert_phi = true;
                                     // logf("copy %s from bb%d to bb%d\n", avail_e.c_str(), bb->getNo(), pred->getNo());
@@ -726,7 +740,6 @@ void GVNPRE::insert(Function *func)
                                             break;
                                         }
                                     }
-                                    
 
                                     // avail_out[pred].insert(t);
                                     avail_out[pred].vrplc(t);
@@ -734,14 +747,15 @@ void GVNPRE::insert(Function *func)
                                     avail[pred] = t;
                                     // new_expr = true;
                                     // new_stuff = true;
-                                    //I this the following statement is necessary, but the thesis didn't mention
+                                    // I this the following statement is necessary, but the thesis didn't mention
                                     // new_sets[pred].insert(t);
                                     new_sets[pred].vinsert(t);
                                 }
                             }
-                            //only need to insert phi when actually generate new temp
-                            //not mentioned as well in thesis
-                            if(insert_phi){
+                            // only need to insert phi when actually generate new temp
+                            // not mentioned as well in thesis
+                            if (insert_phi)
+                            {
                                 Operand *t = gen_fresh_tmep(e);
                                 htable[t] = lookup(e);
                                 logf("insert phi %s, val is %s\n", t->toStr().c_str(), lookup(e)->toStr().c_str());
@@ -750,7 +764,7 @@ void GVNPRE::insert(Function *func)
                                 for (auto pair : avail)
                                 {
                                     auto bb = pair.first;
-                                    assert(pair.second.getOpcode()==ExprOp::TEMP);
+                                    assert(pair.second.getOpcode() == ExprOp::TEMP);
                                     auto val = pair.second.getOperands()[0];
                                     args[bb] = val;
                                 }
@@ -764,16 +778,15 @@ void GVNPRE::insert(Function *func)
                     }
                 }
 
-                //pass new values to dom children
-
-
-
+                // pass new values to dom children
             }
 
-            for (auto succ : domtree[bb]){
+            for (auto succ : domtree[bb])
+            {
                 q.push(succ);
-                for(auto e : new_sets[bb]){
-                    logf("bb%d pass %s to bb%d\n",bb->getNo(),e.tostr().c_str(),succ->getNo());
+                for (auto e : new_sets[bb])
+                {
+                    logf("bb%d pass %s to bb%d\n", bb->getNo(), e.tostr().c_str(), succ->getNo());
                     new_sets[succ].vinsert(e);
                     avail_out[succ].vrplc(e);
                 }
@@ -800,8 +813,9 @@ void GVNPRE::elminate(Function *func)
     {
         auto bb = *bb_it;
 
-        //speed up find_leader:
-        for(auto e : avail_out[bb]){
+        // speed up find_leader:
+        for (auto e : avail_out[bb])
+        {
             avail_out[bb].leader_map[lookup(e)] = e.getOperands()[0];
         }
 
@@ -809,22 +823,20 @@ void GVNPRE::elminate(Function *func)
         {
             if (inst->hasNoDef())
                 continue;
-            if (inst->isBinary() || inst->isGep()){
+            if (inst->isBinary() || inst->isGep())
+            {
                 Operand *dst = inst->getDef();
-                logf("dst:%s\n",dst->toStr().c_str());
+                logf("dst:%s\n", dst->toStr().c_str());
                 Operand *leader = avail_out[bb].find_leader(lookup(dst));
                 if (leader != dst)
                 {
-                logf("dst:%s\n",dst->toStr().c_str());
-                logf("value of %s is %s, leader is %s\n",dst->toStr().c_str(),lookup(dst)->toStr().c_str(),leader->toStr().c_str());
+                    logf("dst:%s\n", dst->toStr().c_str());
+                    logf("value of %s is %s, leader is %s\n", dst->toStr().c_str(), lookup(dst)->toStr().c_str(), leader->toStr().c_str());
                     inst->replaceAllUsesWith(leader);
                     torm.push_back(inst);
                 }
-
             }
-            
         }
-      
     }
     for (auto i : torm)
     {
@@ -837,12 +849,13 @@ void GVNPRE::elminate(Function *func)
 
 void GVNPRE::pass()
 {
-    for (auto func_it = unit->begin(); func_it != unit->end(); func_it++){
+    for (auto func_it = unit->begin(); func_it != unit->end(); func_it++)
+    {
         gvnpre(*func_it);
         domtree.clear();
         htable.clear();
-        //htable must be clear here, because some expr can be used in multiple functions
-        //causing some function use local value number of other functions
+        // htable must be clear here, because some expr can be used in multiple functions
+        // causing some function use local value number of other functions
     }
     SimplifyCFG scfg(unit);
     scfg.pass();
@@ -850,51 +863,55 @@ void GVNPRE::pass()
 
 std::vector<Expr> Exprset::topological_sort()
 {
-    if(!changed) return topological_seq;
+    if (!changed)
+        return topological_seq;
     topological_seq.clear();
-    //the parameter set is expected to be canonical, i.e. no expr with same value number
-    //if violated,,,??
+    // the parameter set is expected to be canonical, i.e. no expr with same value number
+    // if violated,,,??
 
-    //compute value's topological order, then output the corresponding expr
+    // compute value's topological order, then output the corresponding expr
     std::unordered_map<ValueNr, std::vector<ValueNr>> antigraph; // reversed the dependency graph
     std::unordered_map<ValueNr, unsigned> degree;
     std::unordered_map<ValueNr, Expr> val2e;
 
-    for(const auto& e : exprs){
+    for (const auto &e : exprs)
+    {
         ValueNr val = lookup(e);
         assert(!val2e.count(val));
         val2e[val] = e;
         degree[val] = 0;
     }
-    for(const auto& e : exprs){
-        if(e.getOpcode()==ExprOp::TEMP)
+    for (const auto &e : exprs)
+    {
+        if (e.getOpcode() == ExprOp::TEMP)
             continue;
-        //iterate over the operands
+        // iterate over the operands
         ValueNr val_e = lookup(e);
         for (auto operand : e.getOperands())
         {
             ValueNr val_operand = lookup(operand);
-            if(!val2e.count(val_operand))
+            if (!val2e.count(val_operand))
                 continue;
             antigraph[val_operand].push_back(lookup(e));
             degree[val_e]++;
         }
     }
-    //print anti-graph
-    // for(auto it = antigraph.begin();it!=antigraph.end();it++){
-    //     logf("%s:",val2e[it->first].c_str());
-    //     for(auto val : it->second)
-    //         logf("%s,",val2e[val].c_str());
-    //     logf("\n");
-    // }
+    // print anti-graph
+    //  for(auto it = antigraph.begin();it!=antigraph.end();it++){
+    //      logf("%s:",val2e[it->first].c_str());
+    //      for(auto val : it->second)
+    //          logf("%s,",val2e[val].c_str());
+    //      logf("\n");
+    //  }
 
-    std::queue<ValueNr> q;        // Expr with zero in degree after reverse the dependency graph
+    std::queue<ValueNr> q; // Expr with zero in degree after reverse the dependency graph
     for (auto it = degree.begin(); it != degree.end(); it++)
         if (it->second == 0)
             q.push(it->first);
-    
+
     std::vector<ValueNr> toplist; // exprset in topology order
-    while (!q.empty()){
+    while (!q.empty())
+    {
         ValueNr val = q.front();
         q.pop();
         toplist.push_back(val);
@@ -907,11 +924,10 @@ std::vector<Expr> Exprset::topological_sort()
     }
 
     std::vector<Expr> ret;
-    for(auto val : toplist)
+    for (auto val : toplist)
         ret.push_back(val2e[val]);
     return ret;
 
     changed = false;
     return topological_seq;
 }
-

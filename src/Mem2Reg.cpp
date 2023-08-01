@@ -306,9 +306,7 @@ void Instruction::replaceAllUsesWith(Operand *replVal)
         return;
     for (auto userInst : def_list[0]->getUses())
     {
-        // userInst->output();
         userInst->replaceUsesWith(def_list[0], replVal);
-        // userInst->output();
     }
 }
 
