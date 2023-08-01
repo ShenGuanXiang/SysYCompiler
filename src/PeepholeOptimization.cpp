@@ -8,6 +8,7 @@ void PeepholeOptimization::pass()
     op1();
     op2();
     op3();
+    op4();
     MachineDeadCodeElim mdce(unit);
     mdce.pass(false); // 死代码消除
 
@@ -23,31 +24,6 @@ void PeepholeOptimization::pass()
     }
     freeInsts.clear();
 }
-
-
-// void PeepholeOptimization::pass2()
-// {
-//     op1();
-//     op2();
-//     op3();
-//     op4();
-//     MachineDeadCodeElim mdce(unit);
-//     mdce.pass(false); // 死代码消除
-
-//     for (auto inst : freeInsts)
-//     {
-//         if (inst)
-//         {
-//             delete inst;
-//             inst = NULL;
-//         }
-//         else
-//             assert(0);
-//     }
-//     freeInsts.clear();
-// }
-
-
 
 void PeepholeOptimization::op1()
 {
@@ -92,49 +68,12 @@ void PeepholeOptimization::op1()
                         block->removeInst(next_inst);
                         freeInsts.push_back(next_inst);
                     }
-                    // else if (next_inst->getUse().size() == 1 &&
-                    //          *curr_inst->getDef()[0] == *next_inst->getUse()[0] && (curr_inst->getUse()[1]->isReg() || curr_inst->getUse()[1]->isVReg()))
-                    // {
-                    //     if (next_inst->getDef()[0]->getValType()->isFloat())
-                    //         continue;
-                    //     auto new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]));
-                    //     block->insertBefore(next_inst, new_inst);
-                    //     block->removeInst(next_inst);
-                    //     freeInsts.push_back(next_inst);
-                    // }
-                }
-
-                else if (curr_inst->isAddShift() && next_inst->isLoad())
-                {
-                    // add r7, r5, r6, LSL #2
-                    // ldr r5, [r7]
-                    // ​--->
-                    // ​add r7, r5, r6, LSL #2
-                    // ​ldr r5, [ r5, r6, LSL #2] （浮点不行）
-                    if (*curr_inst->getDef()[0] == *curr_inst->getUse()[0] || *curr_inst->getDef()[0] == *curr_inst->getUse()[1])
-                        continue;
-
-                    if (next_inst->getUse().size() == 1 &&
-                        *curr_inst->getDef()[0] == *next_inst->getUse()[0] && 
-                        curr_inst->getUse()[2]->isImm())
+                    else if (next_inst->getUse().size() == 1 &&
+                             *curr_inst->getDef()[0] == *next_inst->getUse()[0] && (curr_inst->getUse()[1]->isReg() || curr_inst->getUse()[1]->isVReg()))
                     {
                         if (next_inst->getDef()[0]->getValType()->isFloat())
                             continue;
-                        if(next_inst->getDef()[0]->getValType()->isInt() && (curr_inst->getUse()[2]->getVal() < -4095 || curr_inst->getUse()[2]->getVal() > 4095))
-                            continue;
-                        MachineInstruction* new_inst;
-                        switch (curr_inst->getOpType())
-                        {
-                        case BinaryMInstruction::ADDASR:
-                            new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), LoadMInstruction::LOADASR, new MachineOperand(*curr_inst->getUse()[2]));
-                            break;
-                        case BinaryMInstruction::ADDLSR:
-                            new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), LoadMInstruction::LOADLSR, new MachineOperand(*curr_inst->getUse()[2]));
-                            break;
-                        case BinaryMInstruction::ADDLSL:
-                            new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), LoadMInstruction::LOADLSL, new MachineOperand(*curr_inst->getUse()[2]));
-                            break;
-                        }
+                        auto new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]));
                         block->insertBefore(next_inst, new_inst);
                         block->removeInst(next_inst);
                         freeInsts.push_back(next_inst);
@@ -186,39 +125,13 @@ void PeepholeOptimization::op1()
                         block->removeInst(next_inst);
                         freeInsts.push_back(next_inst);
                     }
-                }
 
-                else if (curr_inst->isAddShift() && next_inst->isStore())
-                {
-                    // add r7, r5, r6, LSL #2
-                    // str r5, [r7]
-                    // ​--->
-                    // ​add r7, r5, r6, LSL #2
-                    // ​str r5, [ r5, r6, LSL #2] （浮点不行）
-                    if (*curr_inst->getDef()[0] == *curr_inst->getUse()[0] || *curr_inst->getDef()[0] == *curr_inst->getUse()[1])
-                        continue;
-
-                    if (next_inst->getUse().size() == 2 &&
-                        *curr_inst->getDef()[0] == *next_inst->getUse()[1] && 
-                        curr_inst->getUse()[2]->isImm())
+                    else if (next_inst->getUse().size() == 2 &&
+                             *curr_inst->getDef()[0] == *next_inst->getUse()[1] && (curr_inst->getUse()[1]->isReg() || curr_inst->getUse()[1]->isVReg()))
                     {
                         if (next_inst->getUse()[0]->getValType()->isFloat())
                             continue;
-                        if(next_inst->getUse()[0]->getValType()->isInt() && (curr_inst->getUse()[2]->getVal() < -4095 || curr_inst->getUse()[2]->getVal() > 4095))
-                            continue;
-                        MachineInstruction* new_inst;
-                        switch (curr_inst->getOpType())
-                        {
-                        case BinaryMInstruction::ADDASR:
-                            new_inst = new StoreMInstruction(block, new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), StoreMInstruction::STOREASR, new MachineOperand(*curr_inst->getUse()[2]));
-                            break;
-                        case BinaryMInstruction::ADDLSR:
-                            new_inst = new StoreMInstruction(block, new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), StoreMInstruction::STORELSR, new MachineOperand(*curr_inst->getUse()[2]));
-                            break;
-                        case BinaryMInstruction::ADDLSL:
-                            new_inst = new StoreMInstruction(block, new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), StoreMInstruction::STORELSL, new MachineOperand(*curr_inst->getUse()[2]));
-                            break;
-                        }
+                        auto new_inst = new StoreMInstruction(block, new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]));
                         block->insertBefore(next_inst, new_inst);
                         block->removeInst(next_inst);
                         freeInsts.push_back(next_inst);
@@ -721,8 +634,8 @@ void PeepholeOptimization::op2()
                     // mov v5, v2, lsl #2
                     // add v4, v3, v5 (add v4, v5, v3)
                     // --->
-                    // add v4, v3, v2, lsl #2
                     // mov v5, v2, lsl #2
+                    // add v4, v3, v2, lsl #2
 
                     auto mov_dst = curr_inst->getDef()[0];
                     auto mov_src = curr_inst->getUse()[0];
@@ -791,7 +704,6 @@ void PeepholeOptimization::op2()
     }
 }
 
-
 // 窗口 = 3
 void PeepholeOptimization::op3()
 {
@@ -842,17 +754,17 @@ void PeepholeOptimization::op3()
                         freeInsts.push_back(third_inst);
                     }
 
-                    // else if (third_inst->getUse().size() == 2 &&
-                    //          *curr_inst->getDef()[0] == *third_inst->getUse()[1] && (curr_inst->getUse()[1]->isReg() || curr_inst->getUse()[1]->isVReg()) &&
-                    //          !(*second_inst->getDef()[0] == *curr_inst->getDef()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[1]))
-                    // {
-                    //     if (third_inst->getUse()[0]->getValType()->isFloat())
-                    //         continue;
-                    //     auto new_inst = new StoreMInstruction(block, new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]));
-                    //     block->insertBefore(third_inst, new_inst);
-                    //     block->removeInst(third_inst);
-                    //     freeInsts.push_back(third_inst);
-                    // }
+                    else if (third_inst->getUse().size() == 2 &&
+                             *curr_inst->getDef()[0] == *third_inst->getUse()[1] && (curr_inst->getUse()[1]->isReg() || curr_inst->getUse()[1]->isVReg()) &&
+                             !(*second_inst->getDef()[0] == *curr_inst->getDef()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[1]))
+                    {
+                        if (third_inst->getUse()[0]->getValType()->isFloat())
+                            continue;
+                        auto new_inst = new StoreMInstruction(block, new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]));
+                        block->insertBefore(third_inst, new_inst);
+                        block->removeInst(third_inst);
+                        freeInsts.push_back(third_inst);
+                    }
                 }
 
                 else if (curr_inst->isSub() && third_inst->isStore())
@@ -881,7 +793,7 @@ void PeepholeOptimization::op3()
                         freeInsts.push_back(third_inst);
                     }
                 }
-            
+
                 else if (curr_inst->isAddShift() && third_inst->isStore())
                 {
                     // add r4, r2, r1, LSL #2
@@ -901,9 +813,7 @@ void PeepholeOptimization::op3()
                     {
                         if (third_inst->getUse()[0]->getValType()->isFloat())
                             continue;
-                        if(third_inst->getUse()[0]->getValType()->isInt() && (curr_inst->getUse()[1]->getVal() < -4095 || curr_inst->getUse()[1]->getVal() > 4095))
-                            continue;
-                        MachineInstruction* new_inst;
+                        MachineInstruction *new_inst;
                         switch (curr_inst->getOpType())
                         {
                         case BinaryMInstruction::ADDASR:
@@ -926,6 +836,101 @@ void PeepholeOptimization::op3()
     }
 }
 
+void PeepholeOptimization::op4()
+{
+
+    for (auto func_iter = unit->begin(); func_iter != unit->end(); func_iter++)
+    {
+        auto func = *func_iter;
+        for (auto block_iter = func->begin(); block_iter != func->end(); block_iter++)
+        {
+            auto block = *block_iter;
+            if (block->getInsts().empty())
+                continue;
+
+            std::vector<MachineInstruction *> insts;
+            insts.assign(block->begin(), block->end());
+            auto curr_inst_iter = insts.begin();
+            auto next_inst_iter = next(curr_inst_iter, 1);
+
+            for (; next_inst_iter != insts.end(); curr_inst_iter++, next_inst_iter++)
+            {
+                auto curr_inst = *curr_inst_iter;
+                auto next_inst = *next_inst_iter;
+
+                if (curr_inst->isAddShift() && next_inst->isLoad())
+                {
+                    // add r7, r5, r6, LSL #2
+                    // ldr r5, [r7]
+                    // ​--->
+                    // ​add r7, r5, r6, LSL #2
+                    // ​ldr r5, [ r5, r6, LSL #2] （浮点不行）
+                    if (*curr_inst->getDef()[0] == *curr_inst->getUse()[0] || *curr_inst->getDef()[0] == *curr_inst->getUse()[1])
+                        continue;
+
+                    if (next_inst->getUse().size() == 1 &&
+                        *curr_inst->getDef()[0] == *next_inst->getUse()[0] &&
+                        curr_inst->getUse()[2]->isImm())
+                    {
+                        if (next_inst->getDef()[0]->getValType()->isFloat())
+                            continue;
+                        MachineInstruction *new_inst;
+                        switch (curr_inst->getOpType())
+                        {
+                        case BinaryMInstruction::ADDASR:
+                            new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), LoadMInstruction::LOADASR, new MachineOperand(*curr_inst->getUse()[2]));
+                            break;
+                        case BinaryMInstruction::ADDLSR:
+                            new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), LoadMInstruction::LOADLSR, new MachineOperand(*curr_inst->getUse()[2]));
+                            break;
+                        case BinaryMInstruction::ADDLSL:
+                            new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), LoadMInstruction::LOADLSL, new MachineOperand(*curr_inst->getUse()[2]));
+                            break;
+                        }
+                        block->insertBefore(next_inst, new_inst);
+                        block->removeInst(next_inst);
+                        freeInsts.push_back(next_inst);
+                    }
+                }
+
+                else if (curr_inst->isAddShift() && next_inst->isStore())
+                {
+                    // add r7, r5, r6, LSL #2
+                    // str r5, [r7]
+                    // ​--->
+                    // ​add r7, r5, r6, LSL #2
+                    // ​str r5, [ r5, r6, LSL #2] （浮点不行）
+                    if (*curr_inst->getDef()[0] == *curr_inst->getUse()[0] || *curr_inst->getDef()[0] == *curr_inst->getUse()[1])
+                        continue;
+
+                    if (next_inst->getUse().size() == 2 &&
+                        *curr_inst->getDef()[0] == *next_inst->getUse()[1] &&
+                        curr_inst->getUse()[2]->isImm())
+                    {
+                        if (next_inst->getUse()[0]->getValType()->isFloat())
+                            continue;
+                        MachineInstruction *new_inst;
+                        switch (curr_inst->getOpType())
+                        {
+                        case BinaryMInstruction::ADDASR:
+                            new_inst = new StoreMInstruction(block, new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), StoreMInstruction::STOREASR, new MachineOperand(*curr_inst->getUse()[2]));
+                            break;
+                        case BinaryMInstruction::ADDLSR:
+                            new_inst = new StoreMInstruction(block, new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), StoreMInstruction::STORELSR, new MachineOperand(*curr_inst->getUse()[2]));
+                            break;
+                        case BinaryMInstruction::ADDLSL:
+                            new_inst = new StoreMInstruction(block, new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), StoreMInstruction::STORELSL, new MachineOperand(*curr_inst->getUse()[2]));
+                            break;
+                        }
+                        block->insertBefore(next_inst, new_inst);
+                        block->removeInst(next_inst);
+                        freeInsts.push_back(next_inst);
+                    }
+                }
+            }
+        }
+    }
+}
 
 // // 按numerical顺序push还是WA，push窥孔优化似乎不行 https://developer.arm.com/documentation/dui0473/m/arm-and-thumb-instructions/push?lang=en
 // void PeepholeOptimization::op4()
@@ -967,11 +972,10 @@ void PeepholeOptimization::op3()
 //                     if(old_insts.size()==1) continue;
 //                     // if(old_insts.size()>1)    printf("old_insts.size() = %d\n",old_insts.size());
 
-
 //                     std::vector<std::vector<MachineOperand *>> result;
 //                     int vectorSize = tem_vec.size();
 //                     int lasti = 0;
-//                     for (int i = 1; i < vectorSize; i ++) 
+//                     for (int i = 1; i < vectorSize; i ++)
 //                     {
 //                         if(tem_vec[i-1]->getReg() > tem_vec[i]->getReg())
 //                         {
@@ -982,12 +986,12 @@ void PeepholeOptimization::op3()
 //                     if(lasti != vectorSize)
 //                         result.push_back(std::vector<MachineOperand *>(tem_vec.begin() + lasti, tem_vec.begin() + vectorSize));
 
-//                     if(result.size()>1)   
+//                     if(result.size()>1)
 //                     {
 //                         // printf("size = %d\n",result.size());
 //                         continue;
 //                     }
-                    
+
 //                     for(auto regs : result)
 //                     {
 //                         auto new_inst = new StackMInstruction(block, StackMInstruction::PUSH, regs);
@@ -1005,4 +1009,3 @@ void PeepholeOptimization::op3()
 //         }
 //     }
 // }
-

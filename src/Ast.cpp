@@ -888,7 +888,11 @@ DeclStmt::DeclStmt(Id *id, InitNode *expr) : id(id), expr(expr)
 
     if (expr != nullptr)
     {
-        if (id->getType()->isARRAY())
+        // 全局声明 a[10] = {}; 和 a[10];同样处理
+        if (expr->getleaves().empty() && !expr->isLeaf() &&
+            id->getSymPtr() != nullptr && id->getSymPtr()->isVariable() && dynamic_cast<IdentifierSymbolEntry *>(id->getSymPtr())->isGlobal())
+            this->expr = nullptr;
+        else if (id->getType()->isARRAY())
         {
             std::vector<int> origin_dim = ((ArrayType *)(id->getType()))->fetch();
             expr->fill(0, origin_dim, ((ArrayType *)(id->getType()))->getElemType());

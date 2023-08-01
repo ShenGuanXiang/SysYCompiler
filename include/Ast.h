@@ -166,7 +166,7 @@ public:
     void output(int level);
     // void typeCheck();
     void genCode();
-    ExprNode* getChild(){return expr;};
+    ExprNode *getChild() { return expr; };
     ~ImplicitCast() { delete expr; };
 };
 

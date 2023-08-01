@@ -649,7 +649,6 @@ void SparseCondConstProp::visit(Instruction *inst)
                     cur_size /= dims[k++];
             }
             inst = inst->getNext();
-            assert(!inst->isGep());
             // }
             if (const_ptr)
             {

@@ -586,24 +586,24 @@ bool MachineInstruction::isCritical() const
     return false;
 }
 
-bool MachineInstruction::isPush() const 
-{ 
-    return type == STACK && op == StackMInstruction::PUSH && !(use_list[0]->getValType()->isFloat()); 
+bool MachineInstruction::isPush() const
+{
+    return type == STACK && op == StackMInstruction::PUSH && !(use_list[0]->getValType()->isFloat());
 };
 
-bool MachineInstruction::isVPush() const 
-{ 
-    return type == STACK && op == StackMInstruction::PUSH && use_list[0]->getValType()->isFloat(); 
+bool MachineInstruction::isVPush() const
+{
+    return type == STACK && op == StackMInstruction::PUSH && use_list[0]->getValType()->isFloat();
 };
 
-bool MachineInstruction::isPop() const 
-{ 
-    return type == STACK && op == StackMInstruction::POP && !(use_list[0]->getValType()->isFloat()); 
+bool MachineInstruction::isPop() const
+{
+    return type == STACK && op == StackMInstruction::POP && !(use_list[0]->getValType()->isFloat());
 };
 
-bool MachineInstruction::isVPop() const 
-{ 
-    return type == STACK && op == StackMInstruction::POP && use_list[0]->getValType()->isFloat(); 
+bool MachineInstruction::isVPop() const
+{
+    return type == STACK && op == StackMInstruction::POP && use_list[0]->getValType()->isFloat();
 };
 
 DummyMInstruction::DummyMInstruction(
@@ -785,21 +785,21 @@ void BinaryMInstruction::output()
     case BinaryMInstruction::SUBLSL:
     case BinaryMInstruction::RSBLSL:
         if ((int)this->use_list[2]->getVal())
-            fprintf(yyout, ", LSL #%d", (int)this->use_list[2]->getVal());
+            fprintf(yyout, ", lsl #%d", (int)this->use_list[2]->getVal());
         break;
 
     case BinaryMInstruction::ADDLSR:
     case BinaryMInstruction::SUBLSR:
     case BinaryMInstruction::RSBLSR:
         if ((int)this->use_list[2]->getVal())
-            fprintf(yyout, ", LSR #%d", (int)this->use_list[2]->getVal());
+            fprintf(yyout, ", lsr #%d", (int)this->use_list[2]->getVal());
         break;
 
     case BinaryMInstruction::ADDASR:
     case BinaryMInstruction::SUBASR:
     case BinaryMInstruction::RSBASR:
         if ((int)this->use_list[2]->getVal())
-            fprintf(yyout, ", ASR #%d", (int)this->use_list[2]->getVal());
+            fprintf(yyout, ", asr #%d", (int)this->use_list[2]->getVal());
         break;
 
     default:
@@ -810,9 +810,9 @@ void BinaryMInstruction::output()
 }
 
 LoadMInstruction::LoadMInstruction(MachineBlock *p,
-                     MachineOperand *dst, MachineOperand *src1, MachineOperand *src2,
-                     int op, MachineOperand *shifter,
-                     int cond)
+                                   MachineOperand *dst, MachineOperand *src1, MachineOperand *src2,
+                                   int op, MachineOperand *shifter,
+                                   int cond)
 {
     this->parent = p;
     this->type = MachineInstruction::LOAD;
@@ -829,7 +829,7 @@ LoadMInstruction::LoadMInstruction(MachineBlock *p,
 
     if (shifter != nullptr)
     {
-        assert(op == LOADASR || op == LOADLSL || op == LOADLSR );
+        assert(op == LOADASR || op == LOADLSL || op == LOADLSR);
         assert(shifter->isImm() && shifter->getValType()->isInt());
         this->use_list.push_back(shifter);
         shifter->setParent(this);
@@ -951,7 +951,7 @@ void LoadMInstruction::output()
 
     else if (this->use_list.size() == 3)
     {
-        assert(op==LoadMInstruction::LOADASR || op==LoadMInstruction::LOADLSL || op==LoadMInstruction::LOADLSR);
+        assert(op == LoadMInstruction::LOADASR || op == LoadMInstruction::LOADLSL || op == LoadMInstruction::LOADLSR);
         assert(this->use_list[2]->isImm());
         fprintf(yyout, ", ");
         this->use_list[1]->output();
@@ -959,13 +959,13 @@ void LoadMInstruction::output()
         switch (op)
         {
         case LoadMInstruction::LOADASR:
-            fprintf(yyout, "ASR ");
+            fprintf(yyout, "asr ");
             break;
         case LoadMInstruction::LOADLSL:
-            fprintf(yyout, "LSL ");
+            fprintf(yyout, "lsl ");
             break;
         case LoadMInstruction::LOADLSR:
-            fprintf(yyout, "LSR ");
+            fprintf(yyout, "lsr ");
             break;
         }
         this->use_list[2]->output();
@@ -996,7 +996,7 @@ StoreMInstruction::StoreMInstruction(MachineBlock *p,
 
     if (shifter != nullptr)
     {
-        assert(op == STOREASR || op == STORELSL || op == STORELSR );
+        assert(op == STOREASR || op == STORELSL || op == STORELSR);
         assert(shifter->isImm() && shifter->getValType()->isInt());
         this->use_list.push_back(shifter);
         shifter->setParent(this);
@@ -1029,11 +1029,9 @@ void StoreMInstruction::output()
         this->use_list[2]->output();
     }
 
-
-
     else if (this->use_list.size() == 4)
     {
-        assert(op==StoreMInstruction::STOREASR || op==StoreMInstruction::STORELSL || op==StoreMInstruction::STORELSR);
+        assert(op == StoreMInstruction::STOREASR || op == StoreMInstruction::STORELSL || op == StoreMInstruction::STORELSR);
         assert(this->use_list[3]->isImm());
         fprintf(yyout, ", ");
         this->use_list[2]->output();
@@ -1041,18 +1039,17 @@ void StoreMInstruction::output()
         switch (op)
         {
         case StoreMInstruction::STOREASR:
-            fprintf(yyout, "ASR ");
+            fprintf(yyout, "asr ");
             break;
         case StoreMInstruction::STORELSL:
-            fprintf(yyout, "LSL ");
+            fprintf(yyout, "lsl ");
             break;
         case StoreMInstruction::STORELSR:
-            fprintf(yyout, "LSR ");
+            fprintf(yyout, "lsr ");
             break;
         }
         this->use_list[3]->output();
     }
-
 
     if (this->use_list[1]->isReg() || this->use_list[1]->isVReg())
         fprintf(yyout, "]");

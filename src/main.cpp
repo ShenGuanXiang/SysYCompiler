@@ -34,12 +34,11 @@ bool dump_ast = false;
 bool dump_ir = false;
 bool dump_asm = false;
 bool optimize = false;
-bool opt_gvnpre = false;
 
 int main(int argc, char *argv[])
 {
     int opt;
-    while ((opt = getopt(argc, argv, "Siato:O::M::")) != -1)
+    while ((opt = getopt(argc, argv, "Siato:O::")) != -1)
     {
         switch (opt)
         {
@@ -60,9 +59,6 @@ int main(int argc, char *argv[])
             break;
         case 'O':
             optimize = true;
-            break;
-        case 'M':
-            opt_gvnpre = true;
             break;
         default:
             fprintf(stderr, "Usage: %s [-o outfile] infile\n", argv[0]);
@@ -124,6 +120,10 @@ int main(int argc, char *argv[])
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
         }
+
+        GVNPRE gvnpre(unit);
+        gvnpre.pass(); // 部分冗余消除&循环不变外提
+
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {

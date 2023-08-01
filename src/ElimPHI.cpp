@@ -57,7 +57,7 @@ void ElimPHI::pass()
                         auto src = dynamic_cast<PhiInstruction *>(i)->getSrcs()[pred];
                         src->removeUse(i);
                         pcopy[pred].push_back(new BinaryInstruction(BinaryInstruction::ADD, def, src,
-                         new Operand(new ConstantSymbolEntry(Var2Const(def->getType()), 0))));
+                                                                    new Operand(new ConstantSymbolEntry(Var2Const(def->getType()), 0))));
                         freeList.insert(i);
                         to_remove.push_back(i);
                     }

@@ -3,17 +3,18 @@
 
 #include "MachineCode.h"
 
-class PeepholeOptimization {
+class PeepholeOptimization
+{
 
     MachineUnit *unit;
 
 public:
-    PeepholeOptimization(MachineUnit* unit): unit(unit) {};
+    PeepholeOptimization(MachineUnit *unit) : unit(unit){};
     void pass();
     void op1();
     void op2();
     void op3();
-    // void op4();
+    void op4();
 };
 
-#endif 
+#endif

@@ -73,7 +73,6 @@ static Lattice transfer(Lattice in, BasicBlock *bb, bool is_global)
         {
         case Instruction::GEP:
         {
-            assert(!inst->getNext()->isGep());
             SymbolEntry *se = inst->getUses()[0]->getEntry();
             int offset = 0;
             if (se != nullptr)
@@ -191,6 +190,8 @@ void MemoryOpt::pass()
 void MemoryOpt::pass(Function *func)
 {
     auto entry = func->getEntry();
+
+    // TODO：做参数的数组分配一定空间？
 
     if (dynamic_cast<IdentifierSymbolEntry *>(func->getSymPtr())->getName() == "main")
     {
