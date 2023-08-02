@@ -6,11 +6,17 @@ static std::vector<MachineInstruction *> freeInsts;
 void PeepholeOptimization::pass()
 {
     op1();
+    MachineDeadCodeElim mdce1(unit);
+    mdce1.pass(false); // 死代码消除
     op2();
+    MachineDeadCodeElim mdce2(unit);
+    mdce2.pass(false); // 死代码消除
     op3();
+    MachineDeadCodeElim mdce3(unit);
+    mdce3.pass(false); // 死代码消除
     op4();
-    MachineDeadCodeElim mdce(unit);
-    mdce.pass(false); // 死代码消除
+    MachineDeadCodeElim mdce4(unit);
+    mdce4.pass(false); // 死代码消除
 
     for (auto inst : freeInsts)
     {
@@ -211,6 +217,8 @@ void PeepholeOptimization::op1()
                     if (*curr_inst->getUse()[0] == *next_inst->getUse()[0] &&
                         ((curr_inst->getUse().size() == 1 && next_inst->getUse().size() == 1) || (curr_inst->getUse().size() == 2 && next_inst->getUse().size() == 2 && *curr_inst->getUse()[1] == *next_inst->getUse()[1])))
                     {
+                        if (*curr_inst->getDef()[0] == *curr_inst->getUse()[0] || (curr_inst->getUse().size() == 2 && *curr_inst->getDef()[0] == *curr_inst->getUse()[1]))
+                            continue;
                         auto src = new MachineOperand(*curr_inst->getDef()[0]);
                         auto dst = new MachineOperand(*next_inst->getDef()[0]);
                         MachineInstruction *new_inst = new MovMInstruction(block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src);
@@ -743,7 +751,7 @@ void PeepholeOptimization::op3()
                         continue;
 
                     if (third_inst->getUse().size() == 2 &&
-                        *curr_inst->getDef()[0] == *third_inst->getUse()[1] && curr_inst->getUse()[1]->isImm() &&
+                        *curr_inst->getDef()[0] == *third_inst->getUse()[1] && curr_inst->getUse()[1]->isImm() && second_inst->getDef().size() == 1 &&
                         !(*second_inst->getDef()[0] == *curr_inst->getDef()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[1]))
                     {
                         if ((third_inst->getUse()[0]->getValType()->isFloat() && (curr_inst->getUse()[1]->isIllegalShifterOperand() || curr_inst->getUse()[1]->getVal() < -1023 || curr_inst->getUse()[1]->getVal() > 1023)) || (third_inst->getUse()[0]->getValType()->isInt() && (curr_inst->getUse()[1]->getVal() < -4095 || curr_inst->getUse()[1]->getVal() > 4095)))
@@ -755,7 +763,7 @@ void PeepholeOptimization::op3()
                     }
 
                     else if (third_inst->getUse().size() == 2 &&
-                             *curr_inst->getDef()[0] == *third_inst->getUse()[1] && (curr_inst->getUse()[1]->isReg() || curr_inst->getUse()[1]->isVReg()) &&
+                             *curr_inst->getDef()[0] == *third_inst->getUse()[1] && (curr_inst->getUse()[1]->isReg() || curr_inst->getUse()[1]->isVReg()) && second_inst->getDef().size() == 1 &&
                              !(*second_inst->getDef()[0] == *curr_inst->getDef()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[1]))
                     {
                         if (third_inst->getUse()[0]->getValType()->isFloat())
@@ -781,7 +789,7 @@ void PeepholeOptimization::op3()
                         continue;
 
                     if (third_inst->getUse().size() == 2 &&
-                        *curr_inst->getDef()[0] == *third_inst->getUse()[1] && curr_inst->getUse()[1]->isImm() &&
+                        *curr_inst->getDef()[0] == *third_inst->getUse()[1] && curr_inst->getUse()[1]->isImm() && second_inst->getDef().size() == 1 &&
                         !(*second_inst->getDef()[0] == *curr_inst->getDef()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[1]))
                     {
                         auto src_imm = new MachineOperand(MachineOperand::IMM, -1 * curr_inst->getUse()[1]->getVal(), TypeSystem::constIntType);
@@ -808,7 +816,7 @@ void PeepholeOptimization::op3()
                         continue;
 
                     if (third_inst->getUse().size() == 2 &&
-                        *curr_inst->getDef()[0] == *third_inst->getUse()[1] && curr_inst->getUse()[2]->isImm() &&
+                        *curr_inst->getDef()[0] == *third_inst->getUse()[1] && curr_inst->getUse()[2]->isImm() && second_inst->getDef().size() == 1 &&
                         !(*second_inst->getDef()[0] == *curr_inst->getDef()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[1]))
                     {
                         if (third_inst->getUse()[0]->getValType()->isFloat())
@@ -824,6 +832,44 @@ void PeepholeOptimization::op3()
                             break;
                         case BinaryMInstruction::ADDLSL:
                             new_inst = new StoreMInstruction(block, new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), StoreMInstruction::STORELSL, new MachineOperand(*curr_inst->getUse()[2]));
+                            break;
+                        }
+                        block->insertBefore(third_inst, new_inst);
+                        block->removeInst(third_inst);
+                        freeInsts.push_back(third_inst);
+                    }
+                }
+
+                else if (curr_inst->isMovShift() && third_inst->isStore())
+                {
+                    // lsl r2, r1, #2
+                    // mov r3, #0
+                    // str r3, [r4, r2]
+                    // --->
+                    // lsl r2, r1, #2
+                    // mov r3, #0
+                    // str r3, [r4, r1, LSL #2]
+
+                    if (*curr_inst->getDef()[0] == *curr_inst->getUse()[0] || *curr_inst->getDef()[0] == *curr_inst->getUse()[1])
+                        continue;
+
+                    if (third_inst->getUse().size() == 3 &&
+                        *curr_inst->getDef()[0] == *third_inst->getUse()[2] && curr_inst->getUse()[1]->isImm() && second_inst->getDef().size() == 1 &&
+                        !(*second_inst->getDef()[0] == *curr_inst->getDef()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[1]))
+                    {
+                        if (third_inst->getUse()[0]->getValType()->isFloat())
+                            continue;
+                        MachineInstruction *new_inst;
+                        switch (curr_inst->getOpType())
+                        {
+                        case MovMInstruction::MOVASR:
+                            new_inst = new StoreMInstruction(block, new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*third_inst->getUse()[1]), new MachineOperand(*curr_inst->getUse()[0]), StoreMInstruction::STOREASR, new MachineOperand(*curr_inst->getUse()[1]));
+                            break;
+                        case MovMInstruction::MOVLSR:
+                            new_inst = new StoreMInstruction(block, new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*third_inst->getUse()[1]), new MachineOperand(*curr_inst->getUse()[0]), StoreMInstruction::STORELSR, new MachineOperand(*curr_inst->getUse()[1]));
+                            break;
+                        case MovMInstruction::MOVLSL:
+                            new_inst = new StoreMInstruction(block, new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*third_inst->getUse()[1]), new MachineOperand(*curr_inst->getUse()[0]), StoreMInstruction::STORELSL, new MachineOperand(*curr_inst->getUse()[1]));
                             break;
                         }
                         block->insertBefore(third_inst, new_inst);
@@ -920,6 +966,76 @@ void PeepholeOptimization::op4()
                             break;
                         case BinaryMInstruction::ADDLSL:
                             new_inst = new StoreMInstruction(block, new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[1]), StoreMInstruction::STORELSL, new MachineOperand(*curr_inst->getUse()[2]));
+                            break;
+                        }
+                        block->insertBefore(next_inst, new_inst);
+                        block->removeInst(next_inst);
+                        freeInsts.push_back(next_inst);
+                    }
+                }
+
+                else if (curr_inst->isMovShift() && next_inst->isLoad())
+                {
+                    //    lsl vr371, vr27, #2
+                    //    ldr vr189, [vr181, vr371]
+                    //    ->
+                    //    lsl vr371, vr27, #2
+                    //    ldr vr189, [vr181, vr27, lsl #2]
+                    if (*curr_inst->getDef()[0] == *curr_inst->getUse()[0])
+                        continue;
+
+                    if (next_inst->getUse().size() == 2 &&
+                        *curr_inst->getDef()[0] == *next_inst->getUse()[1] &&
+                        curr_inst->getUse()[1]->isImm())
+                    {
+                        if (next_inst->getDef()[0]->getValType()->isFloat())
+                            continue;
+                        MachineInstruction *new_inst;
+                        switch (curr_inst->getOpType())
+                        {
+                        case MovMInstruction::MOVASR:
+                            new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), LoadMInstruction::LOADASR, new MachineOperand(*curr_inst->getUse()[1]));
+                            break;
+                        case MovMInstruction::MOVLSR:
+                            new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), LoadMInstruction::LOADLSR, new MachineOperand(*curr_inst->getUse()[1]));
+                            break;
+                        case MovMInstruction::MOVLSL:
+                            new_inst = new LoadMInstruction(block, new MachineOperand(*next_inst->getDef()[0]), new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), LoadMInstruction::LOADLSL, new MachineOperand(*curr_inst->getUse()[1]));
+                            break;
+                        }
+                        block->insertBefore(next_inst, new_inst);
+                        block->removeInst(next_inst);
+                        freeInsts.push_back(next_inst);
+                    }
+                }
+
+                else if (curr_inst->isMovShift() && next_inst->isStore())
+                {
+                    // lsl r5, r3, #2
+                    // str r4, [r6, r5]
+                    // ->
+                    // lsl r5, r3, #2
+                    // str r4, [r6, r3, lsl #2]
+                    if (*curr_inst->getDef()[0] == *curr_inst->getUse()[0])
+                        continue;
+
+                    if (next_inst->getUse().size() == 3 &&
+                        *curr_inst->getDef()[0] == *next_inst->getUse()[2] &&
+                        curr_inst->getUse()[1]->isImm())
+                    {
+                        if (next_inst->getUse()[0]->getValType()->isFloat())
+                            continue;
+                        MachineInstruction *new_inst;
+                        switch (curr_inst->getOpType())
+                        {
+                        case MovMInstruction::MOVASR:
+                            new_inst = new StoreMInstruction(block, new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*next_inst->getUse()[1]), new MachineOperand(*curr_inst->getUse()[0]), StoreMInstruction::STOREASR, new MachineOperand(*curr_inst->getUse()[1]));
+                            break;
+                        case MovMInstruction::MOVLSR:
+                            new_inst = new StoreMInstruction(block, new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*next_inst->getUse()[1]), new MachineOperand(*curr_inst->getUse()[0]), StoreMInstruction::STORELSR, new MachineOperand(*curr_inst->getUse()[1]));
+                            break;
+                        case MovMInstruction::MOVLSL:
+                            new_inst = new StoreMInstruction(block, new MachineOperand(*next_inst->getUse()[0]), new MachineOperand(*next_inst->getUse()[1]), new MachineOperand(*curr_inst->getUse()[0]), StoreMInstruction::STORELSL, new MachineOperand(*curr_inst->getUse()[1]));
                             break;
                         }
                         block->insertBefore(next_inst, new_inst);

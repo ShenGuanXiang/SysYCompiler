@@ -24,10 +24,9 @@
 
       --->
 
-   
-   ​        add r0, fp, #-12
-   
-   ​        str r1, [fp, #-12]
+     add r0, fp, #-12
+     
+     str r1, [fp, #-12]
    
    - add vr7279, fp, #-12
    
@@ -152,6 +151,26 @@
       add r7, r5, r6, LSL #2
     
       ldr r5, [ r5, r6, LSL #2] （浮点不行）（放在add r7, r5, r6, LSL #2的优化后面）
+      
+    - lsl vr371, vr27, #2
+    
+      ldr vr189, [vr181, vr371]
+    
+      ->
+    
+      lsl vr371, vr27, #2
+    
+      ldr vr189, [vr181, vr27, lsl #2]
+    
+    - lsl r5, r3, #2
+    
+      str r4, [r6, r5]     
+    
+      ->
+      
+      lsl r5, r3, #2
+      
+      str r4, [r6, r3, lsl #2]     
 
 ## memset
 
@@ -332,18 +351,6 @@
 3. 将多条store替换为vdup和vstm【暂时不做了 :) 】
 
 4. 多条push/pop合并为一条push/pop【发现有个bug :( 】
-
-5.   
-
-   - lsl vr371, vr27, #2
-
-     ldr vr189, [vr181, vr371]
-
-     ->
-
-     lsl vr371, vr27, #2
-
-     ldr vr189, [vr181, vr27, lsl #2]
 
 ## 参考网站
 
