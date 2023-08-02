@@ -45,7 +45,14 @@ Instruction::~Instruction()
     for (auto op : freeOps)
     {
         if (op != nullptr)
+        {
+            if (op->getEntry() && op->getEntry()->isVariable())
+            {
+                dynamic_cast<IdentifierSymbolEntry *>(op->getEntry())->setParamOpe(nullptr);
+                dynamic_cast<IdentifierSymbolEntry *>(op->getEntry())->setAddr(nullptr);
+            }
             delete op;
+        }
     }
 }
 

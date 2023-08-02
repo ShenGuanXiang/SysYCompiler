@@ -150,7 +150,7 @@ void Function::genMachineCode(AsmBuilder *builder)
         {
             auto id_se = dynamic_cast<IdentifierSymbolEntry *>(param);
             Type *type = param->getType()->isPTR() ? TypeSystem::intType : param->getType();
-            if (id_se->getParamOpe()->usersNum() == 0)
+            if (id_se->getParamOpe() == nullptr || id_se->getParamOpe()->usersNum() == 0)
                 continue;
             else if (!id_se->paramMem2RegAble() && id_se->getParamNo() < 4)
             {

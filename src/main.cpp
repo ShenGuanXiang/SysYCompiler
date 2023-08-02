@@ -120,10 +120,6 @@ int main(int argc, char *argv[])
             // DeadCodeElim dce(unit);
             // dce.pass(); // 死代码删除
         }
-
-        // GVNPRE gvnpre(unit);
-        // gvnpre.pass(); // 部分冗余消除&循环不变外提
-
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {

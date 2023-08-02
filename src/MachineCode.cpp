@@ -955,20 +955,23 @@ void LoadMInstruction::output()
         assert(this->use_list[2]->isImm());
         fprintf(yyout, ", ");
         this->use_list[1]->output();
-        fprintf(yyout, ", ");
-        switch (op)
+        if (this->use_list[2]->getVal())
         {
-        case LoadMInstruction::LOADASR:
-            fprintf(yyout, "asr ");
-            break;
-        case LoadMInstruction::LOADLSL:
-            fprintf(yyout, "lsl ");
-            break;
-        case LoadMInstruction::LOADLSR:
-            fprintf(yyout, "lsr ");
-            break;
+            fprintf(yyout, ", ");
+            switch (op)
+            {
+            case LoadMInstruction::LOADASR:
+                fprintf(yyout, "asr ");
+                break;
+            case LoadMInstruction::LOADLSL:
+                fprintf(yyout, "lsl ");
+                break;
+            case LoadMInstruction::LOADLSR:
+                fprintf(yyout, "lsr ");
+                break;
+            }
+            this->use_list[2]->output();
         }
-        this->use_list[2]->output();
     }
 
     if (this->use_list[0]->isReg() || this->use_list[0]->isVReg())
@@ -1035,20 +1038,23 @@ void StoreMInstruction::output()
         assert(this->use_list[3]->isImm());
         fprintf(yyout, ", ");
         this->use_list[2]->output();
-        fprintf(yyout, ", ");
-        switch (op)
+        if (this->use_list[3]->getVal())
         {
-        case StoreMInstruction::STOREASR:
-            fprintf(yyout, "asr ");
-            break;
-        case StoreMInstruction::STORELSL:
-            fprintf(yyout, "lsl ");
-            break;
-        case StoreMInstruction::STORELSR:
-            fprintf(yyout, "lsr ");
-            break;
+            fprintf(yyout, ", ");
+            switch (op)
+            {
+            case StoreMInstruction::STOREASR:
+                fprintf(yyout, "asr ");
+                break;
+            case StoreMInstruction::STORELSL:
+                fprintf(yyout, "lsl ");
+                break;
+            case StoreMInstruction::STORELSR:
+                fprintf(yyout, "lsr ");
+                break;
+            }
+            this->use_list[3]->output();
         }
-        this->use_list[3]->output();
     }
 
     if (this->use_list[1]->isReg() || this->use_list[1]->isVReg())

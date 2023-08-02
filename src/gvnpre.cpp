@@ -37,7 +37,7 @@ static void printset(Exprset set)
 #endif
 }
 
-unsigned getInstOp(Instruction *inst)
+static unsigned getInstOp(Instruction *inst)
 {
     switch (inst->getInstType())
     {
