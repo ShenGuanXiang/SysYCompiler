@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
     // ast.typeCheck();
     ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
-    optimize = false;
+    // optimize = false;
     // yyout = stderr;
     if (dump_ir && !optimize)
     {
@@ -129,12 +129,12 @@ int main(int argc, char *argv[])
         ElimPHI ep(unit);
         ep.pass();
     }
-    LoopAnalyzer La;
-    for (auto f : unit->getFuncList())
-    {
-        La.FindLoops(f);
-        La.PrintInfo(f);
-    }
+    // LoopAnalyzer La;
+    // for (auto f : unit->getFuncList())
+    // {
+    //     La.FindLoops(f);
+    //     La.PrintInfo(f);
+    // }
     if (dump_asm)
     {
         unit->genMachineCode(mUnit);

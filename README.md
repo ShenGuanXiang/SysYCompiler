@@ -18,32 +18,28 @@
 
      ldr r1, [fp, #-12]
 
-   - ldr r3, =4094
+   - add r0, fp, #-12
 
-     add/sub r0, fp, r3
+     str r1, [r0]
 
-     ldr r1, [r0]
+      --->
 
-     --->
-
-     ldr r3, =4094
-
-     add/sub r0, fp, r3
-
-     ldr r1, [fp, #4094/#-4094]
-
+     add r0, fp, #-12
+     
+     str r1, [fp, #-12]
+   
    - add vr7279, fp, #-12
-
+   
      mov vr28908, #0
-
+   
      str vr28908, [vr7279]
-
+   
      --->
-
+   
      add vr7279, fp, #-12
-
+   
      mov vr28908, #0
-
+   
      str vr28908, [fp, #-12]
 
 
@@ -130,6 +126,52 @@
 
      (寄存器不能重定义，v4!=v2 且 v4!=v5)
 
+6. ldr/str 移位
+
+    - add r4, r2, r1, LSL #2
+
+      mov r3, #0
+
+      str r3, [r4] 
+
+      --->
+
+      add r4, r2, r1, LSL #2
+
+      mov r3, #0
+
+      str r3, [r2, r1, LSL #2] (浮点不行) （放在add r4, r2, r1, LSL #2的优化后面）
+
+    - add r7, r5, r6, LSL #2
+    
+      ldr r5, [r7]
+    
+      --->
+    
+      add r7, r5, r6, LSL #2
+    
+      ldr r5, [ r5, r6, LSL #2] （浮点不行）（放在add r7, r5, r6, LSL #2的优化后面）
+      
+    - lsl vr371, vr27, #2
+    
+      ldr vr189, [vr181, vr371]
+    
+      ->
+    
+      lsl vr371, vr27, #2
+    
+      ldr vr189, [vr181, vr27, lsl #2]
+    
+    - lsl r5, r3, #2
+    
+      str r4, [r6, r5]     
+    
+      ->
+      
+      lsl r5, r3, #2
+      
+      str r4, [r6, r3, lsl #2]     
+
 ## memset
 
 ## 寄存器分配
@@ -192,6 +234,10 @@
 
 # TODO
 
+## median2 opt llvm、arr_init_nd、many_dimensions
+
+## 图着色寄存器分配
+
 ## Inliner
 
 - 递归函数展开若干层
@@ -199,48 +245,6 @@
 - 如果一个函数的返回值从未由调用者使用，则将返回值设为0
 - 尾递归转循环
 - 用散列表保存单参数的递归函数的返回值
-
-## 窥孔优化
-
-1. 
-
- - add r0, fp, #-12
-
-   str r1, [r0]
-   
-   --->
-   
-   add r0, fp, #-12
-   
-   str r1, [fp, #-12]
-   
- - add r4, r2, r1, LSL #2
-
-   mov r3, #0
-
-   str r3, [r4] 
-
-   --->
-
-   add r4, r2, r1, LSL #2
-
-   mov r3, #0
-
-   str r3, [r2, r1, LSL #2] (浮点不行) （放在add r4, r2, r1, LSL #2的优化后面）
-
- - add r7, r5, r6, LSL #2
-
-   ldr r5, [r7]
-
-   --->
-
-   add r7, r5, r6, LSL #2
-
-   ldr r5, [ r5, r6, LSL #2] （浮点不行）（放在add r7, r5, r6, LSL #2的优化后面）
-
-2. 将多条store替换为vdup和vstm
-
-3. 多条push/pop合并为一条push/pop（比如函数调用传参时）
 
 ## 代数化简
 
@@ -323,6 +327,30 @@
   %t0 = icmp slt i32 %t26, 100
 
 ## 后端指令从vector改为链表形式，加速删除、插入
+
+## 窥孔优化
+
+1. 在op1之前：
+
+   ldr r3, =4094
+
+   add/sub r0, fp, r3
+
+   ldr r1, [r0]
+
+   --->
+
+   ldr r3, =4094
+
+   add/sub r0, fp, r3
+
+   ldr r1, [fp, #4094/#-4094]
+
+2. // TODO：next_inst为vmov/mov && next_inst目标为r0~r3/s0~s3 && curr_inst目标 = next_inst源, curr_inst可以是其它指令=>
+
+3. 将多条store替换为vdup和vstm【暂时不做了 :) 】
+
+4. 多条push/pop合并为一条push/pop【发现有个bug :( 】
 
 ## 参考网站
 

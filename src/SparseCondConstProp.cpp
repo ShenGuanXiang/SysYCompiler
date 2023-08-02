@@ -635,21 +635,21 @@ void SparseCondConstProp::visit(Instruction *inst)
             auto cur_size = arrType->getSize() / dynamic_cast<ArrayType *>(arrType)->getElemType()->getSize();
             auto dims = ((ArrayType *)(dynamic_cast<PointerType *>(inst->getUses()[0]->getType())->getValType()))->fetch();
             auto k = 0U;
-            while (const_ptr && inst->isGep())
+            // while (const_ptr && inst->isGep())
+            // {
+            for (auto i = 1U; i != inst->getUses().size(); i++)
             {
-                for (auto i = 1U; i != inst->getUses().size(); i++)
+                if (status_map[inst->getUses()[i]] == NAC || status_map[inst->getUses()[i]] == UNDEF)
                 {
-                    if (status_map[inst->getUses()[i]] == NAC || status_map[inst->getUses()[i]] == UNDEF)
-                    {
-                        const_ptr = false;
-                        break;
-                    }
-                    offset += value_map[inst->getUses()[i]] * cur_size;
-                    if (k != dims.size())
-                        cur_size /= dims[k++];
+                    const_ptr = false;
+                    break;
                 }
-                inst = inst->getNext();
+                offset += value_map[inst->getUses()[i]] * cur_size;
+                if (k != dims.size())
+                    cur_size /= dims[k++];
             }
+            inst = inst->getNext();
+            // }
             if (const_ptr)
             {
                 if (inst->isStore())

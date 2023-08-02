@@ -124,9 +124,8 @@ private:
     IdentifierSymbolEntry *func_se;              // for param
     std::set<IdentifierSymbolEntry *> params_se; // for func
     Operand *paramOpe;                           // for param
+    Function *f;                                 // for func
     // You can add any field you need here.
-    // DCE
-    Function *f;
 
 public:
     enum

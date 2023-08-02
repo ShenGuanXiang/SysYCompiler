@@ -1,8 +1,10 @@
 #include "gvnpre.h"
 #include "SimplifyCFG.h"
 #include <queue>
+#include <sstream>
+#include <map>
 
-void logf(const char *formmat, ...)
+static void logf(const char *formmat, ...)
 {
 #ifdef DEBUG_GVNPRE
 
@@ -12,147 +14,51 @@ void logf(const char *formmat, ...)
     va_end(args);
 #endif
 }
-void printset(Exprset set)
+static void printset(Exprset set)
 {
 #ifdef DEBUG_GVNPRE
 
-    if (set.empty())
+    if (set.getExprs().empty())
         logf("empty\n");
     else
     {
-        for (auto pair : set)
-        {
-            std::string valstr = pair.first->toStr();
-            std::string exprstr = pair.second.tostr();
-            logf("%s:%s\n", valstr.c_str(), exprstr.c_str());
-        }
+        for (auto e : set.getExprs())
+            logf("%s\t", e.tostr().c_str());
         logf("\n");
     }
 #endif
 }
 
-std::vector<Expr> topological(Exprset set)
+static unsigned getInstOp(Instruction *inst)
 {
-    // convert set to array in topological order
-    std::unordered_map<Expr, std::vector<Expr>> antigraph; // reversed the dependency graph
-    std::unordered_map<Expr, unsigned> degree;
-    std::queue<Expr> q;        // Expr with zero in degree after reverse the dependency graph
-    std::vector<Expr> toplist; // exprset in topology order
-    Exprset newset;
-    for (auto pair : set)
-    {
-        Expr e = pair.second;
-        std::string str = pair.first->toStr();
-        degree[e] = 0;
-    }
-    for (auto it = set.begin(); it != set.end(); it++)
-    {
-        Expr e = it->second;
-        if (e.op == 0)
-            continue;
-        for (auto val : e.vals)
-        {
-            if (!set.count(val))
-                continue;
-            Expr op = set[val];
-            antigraph[op].push_back(e);
-            degree[e]++;
-        }
-    }
-    for (auto it = degree.begin(); it != degree.end(); it++)
-    {
-        if (it->second == 0)
-            q.push(it->first);
-    }
-    while (!q.empty())
-    {
-        Expr e = q.front();
-        q.pop();
-        toplist.push_back(e);
-        for (auto &to : antigraph[e])
-        {
-            degree[to]--;
-            if (degree[to] == 0)
-                q.push(to);
-        }
-    }
-    return toplist;
-}
-
-Expr GVNPRE::genExpr(Instruction *inst)
-{
-    Expr expr;
     switch (inst->getInstType())
     {
     case Instruction::BINARY:
     {
-        auto binst = dynamic_cast<BinaryInstruction *>(inst);
-        switch (binst->getOpcode())
+        auto bin_inst = dynamic_cast<BinaryInstruction *>(inst);
+        switch (bin_inst->getOpcode())
         {
         case BinaryInstruction::ADD:
-            expr.op = Expr::ADD;
-            break;
+            return ExprOp::ADD;
         case BinaryInstruction::SUB:
-            expr.op = Expr::SUB;
-            break;
+            return ExprOp::SUB;
         case BinaryInstruction::MUL:
-            expr.op = Expr::MUL;
-            break;
+            return ExprOp::MUL;
         case BinaryInstruction::DIV:
-            expr.op = Expr::DIV;
-            break;
+            return ExprOp::DIV;
         case BinaryInstruction::MOD:
-            expr.op = Expr::MOD;
-            break;
+            return ExprOp::MOD;
         default:
             assert(0);
         }
-        for (auto use : binst->getUses())
-        {
-            Expr use_expr = genExpr(use);
-            Operand *use_val = lookup(use_expr);
-            expr.vals.push_back(use_val);
-        }
-        break;
     }
+    case Instruction::GEP:
+        return ExprOp::GEP;
+    case Instruction::PHI:
+        return ExprOp::PHI;
     default:
         assert(0);
     }
-    return expr;
-}
-
-Expr GVNPRE::genExpr(Operand *temp)
-{
-    Expr newexpr;
-    newexpr.vals.push_back(temp);
-    auto t = temp->getType();
-    if (t->isConst())
-    {
-        if (t->isConstInt())
-        {
-            int v = temp->getEntry()->getValue();
-            if (!int2Expr.count(v))
-            {
-                int2Expr[v] = newexpr;
-                htable[newexpr] = temp;
-            }
-            return int2Expr[v];
-        }
-        else if (t->isConstFloat())
-        {
-            float v = temp->getEntry()->getValue();
-            if (!float2Expr.count(v))
-            {
-                float2Expr[v] = newexpr;
-                htable[newexpr] = temp;
-            }
-            return float2Expr[v];
-        }
-        else
-            return newexpr;
-    }
-    else
-        return newexpr;
 }
 
 Instruction *GVNPRE::genInst(Operand *dst, unsigned op, std::vector<Operand *> leaders)
@@ -160,21 +66,28 @@ Instruction *GVNPRE::genInst(Operand *dst, unsigned op, std::vector<Operand *> l
     Instruction *inst;
     switch (op)
     {
-    case Expr::ADD:
+    case ExprOp::ADD:
         inst = new BinaryInstruction(BinaryInstruction::ADD, dst, leaders[0], leaders[1]);
         break;
-    case Expr::SUB:
+    case ExprOp::SUB:
         inst = new BinaryInstruction(BinaryInstruction::SUB, dst, leaders[0], leaders[1]);
         break;
-    case Expr::MUL:
+    case ExprOp::MUL:
         inst = new BinaryInstruction(BinaryInstruction::MUL, dst, leaders[0], leaders[1]);
         break;
-    case Expr::DIV:
+    case ExprOp::DIV:
         inst = new BinaryInstruction(BinaryInstruction::DIV, dst, leaders[0], leaders[1]);
         break;
-    case Expr::MOD:
+    case ExprOp::MOD:
         inst = new BinaryInstruction(BinaryInstruction::MOD, dst, leaders[0], leaders[1]);
         break;
+    case ExprOp::GEP:
+    {
+        std::vector<Operand *> idxs;
+        std::copy(leaders.begin() + 1, leaders.end(), std::back_inserter(idxs));
+        inst = new GepInstruction(dst, leaders[0], idxs);
+        break;
+    }
     default:
         assert(0);
     }
@@ -193,173 +106,146 @@ Instruction *GVNPRE::genInst(Operand *dst, unsigned op, std::map<BasicBlock *, O
     return (Instruction *)inst;
 }
 
-Operand *GVNPRE::lookup(Expr expr)
-{
-    if (expr.op != 0)
-        return htable.count(expr) ? htable[expr] : nullptr;
-
-    Operand *temp = expr.vals[0];
-    Type *t = temp->getType();
-    if (temp->getEntry()->isConstant())
-    {
-        if (t->isConstInt())
-        {
-            int v = temp->getEntry()->getValue();
-            if (!int2Expr.count(v))
-                int2Expr[v] = expr;
-            return int2Expr[v].vals[0];
-        }
-        else if (t->isConstFloat())
-        {
-            float v = temp->getEntry()->getValue();
-            if (!float2Expr.count(v))
-                float2Expr[v] = expr;
-            return float2Expr[v].vals[0];
-        }
-        else
-            assert(0);
-    }
-    else
-        return htable.count(expr) ? htable[expr] : nullptr;
-}
-
-void GVNPRE::vinsert(Exprset &set, Expr expr)
-{
-    if (!htable.count(expr))
-    {
-        std::string name = expr.vals[0]->toStr();
-        assert(htable.count(expr));
-    }
-    Operand *val = htable[expr];
-    if (!set.count(val))
-        set[val] = expr;
-}
-
 Exprset GVNPRE::phi_trans(Exprset set, BasicBlock *from, BasicBlock *to)
 {
     // convert set to array in topological order
-    std::vector<Expr> toplist = topological(set);
+    const std::vector<Expr> &toplist = set.topological_sort();
     Exprset newset;
     // translate each expression in order
-    std::unordered_map<Operand *, Operand *> trans_cache;
+
+    std::unordered_map<ValueNr, ValueNr> &cur_cache = trans_cache[{from->getNo(), to->getNo()}];
     for (size_t i = 0; i < toplist.size(); i++)
     {
         Expr e = toplist[i];
-        if (e.op == 0) // tempraray
+        if (e.getOpcode() == ExprOp::TEMP) // tempraray
         {
-            Instruction *definst = e.vals[0]->getDef();
+            Operand *oldval = lookup(e);
+            Instruction *definst = oldval->getDef();
             if (definst && definst->getInstType() == Instruction::PHI && definst->getParent() == to)
             {
-                ValueNr oldval = htable[e];
                 Operand *newtemp = dynamic_cast<PhiInstruction *>(definst)->getSrcs()[from];
-                e.vals[0] = newtemp;
-
-                ValueNr newval = lookup(e);
-                trans_cache[oldval] = newval;
-                newset[newval] = e;
+                Expr newexpr(newtemp);
+                // ValueNr newval = lookup(e);
+                ValueNr newval = lookup(newexpr);
+                cur_cache[oldval] = newval;
+                newset.insert(newexpr);
             }
             else
-                newset[lookup(e)] = e;
+            {
+                newset.insert(e);
+            }
         }
         else
         { // expression
-            bool changed = false;
             ValueNr oldval = lookup(e);
-            for (auto &val : e.vals)
+            std::vector<ValueNr> newvals;
+            for (auto tmp : e.getOperands())
             {
-                if (trans_cache.count(val))
+                ValueNr val = lookup(tmp);
+                if (cur_cache.count(val))
+                    newvals.push_back(cur_cache[val]);
+                else
                 {
-                    val = trans_cache[val];
-                    changed = true;
+                    newvals.push_back(val);
                 }
             }
-            if (changed)
+            Expr newexpr(e.getOpcode(), newvals);
+            if (e != newexpr)
             {
                 // e's composite val is changed now, e is not ever the old e
-                if (!htable.count(e)) // modify htable in the process (insert new mapping)
-                    htable[e] = new Operand(new TemporarySymbolEntry(oldval->getType(), SymbolTable::getLabel()));
-                ValueNr newval = lookup(e);
-                trans_cache[oldval] = newval;
+                if (!htable.count(newexpr)) // modify htable in the process (insert new mapping)
+                {
+                    Operand *tmp = new Operand(new TemporarySymbolEntry(oldval->getType(), SymbolTable::getLabel()));
+                    htable[tmp] = tmp;
+                    htable[newexpr] = tmp;
+                }
+                ValueNr newval = lookup(newexpr);
+                cur_cache[oldval] = newval;
             }
-            newset[lookup(e)] = e;
+            newset.insert(newexpr);
         }
     }
-
     return newset;
 }
 
 Expr GVNPRE::phi_trans(Expr expr, BasicBlock *from, BasicBlock *to)
 {
+    std::unordered_map<ValueNr, ValueNr> &cur_cache = trans_cache[{from->getNo(), to->getNo()}];
+    // add tag to further speedup
+    if (cur_cache.empty())
+        phi_trans(antic_in[to], from, to);
+
+    std::vector<ValueNr> newvals;
+    for (auto tmp : expr.getOperands())
+    {
+        ValueNr val = lookup(tmp);
+        if (cur_cache.count(val))
+            val = cur_cache[val];
+        newvals.push_back(val);
+    }
+    return Expr(expr.getOpcode(), newvals);
+
+    //-------------old implementation----------------
     // expr is bound to defined in bb'to'
-    std::vector<Expr> toplist = topological(antic_in[to]);
-    Exprset newset;
+    const std::vector<Expr> &toplist = antic_in[to].topological_sort();
+    size_t epos = 0;
+    for (; epos < toplist.size(); epos++)
+        if (toplist[epos] == expr)
+            break;
+    if (epos == toplist.size())
+        return expr;
+
     // translate each expression in order
     std::unordered_map<Operand *, Operand *> trans_cache;
-    for (size_t i = 0; i < toplist.size(); i++)
+    for (size_t i = 0; i <= epos; i++)
     {
-        bool flag = false;
         Expr e = toplist[i];
-        if (e == expr)
-            flag = true;
-        if (e.op == 0) // tempraray
+        if (e.getOpcode() == ExprOp::TEMP) // tempraray
         {
-            Instruction *definst = e.vals[0]->getDef();
+            Operand *oldval = lookup(e);
+            Instruction *definst = oldval->getDef();
             if (definst && definst->getInstType() == Instruction::PHI && definst->getParent() == to)
             {
-                ValueNr oldval = htable[e];
                 Operand *newtemp = dynamic_cast<PhiInstruction *>(definst)->getSrcs()[from];
-                e.vals[0] = newtemp;
-
-                ValueNr newval = lookup(e);
+                Expr newexpr(newtemp);
+                ValueNr newval = lookup(newexpr);
                 trans_cache[oldval] = newval;
-                newset[newval] = e;
+                // logf("mapping %s to %s\n",oldval->toStr().c_str(),newval->toStr().c_str());
+                if (i == epos)
+                    return newexpr;
             }
-            else
-                newset[lookup(e)] = e;
         }
         else
         { // expression
-            bool changed = false;
             ValueNr oldval = lookup(e);
-            for (auto &val : e.vals)
+            std::vector<ValueNr> newvals;
+            for (auto tmp : e.getOperands())
             {
+                ValueNr val = lookup(tmp);
                 if (trans_cache.count(val))
-                {
                     val = trans_cache[val];
-                    changed = true;
-                }
+                newvals.push_back(val);
             }
-            if (changed)
+            Expr newexpr(e.getOpcode(), newvals);
+            if (e != newexpr)
             {
                 // e's composite val is changed now, e is not ever the old e
-                if (!htable.count(e)) // modify htable in the process (insert new mapping)
-                    htable[e] = new Operand(new TemporarySymbolEntry(oldval->getType(), SymbolTable::getLabel()));
-                ValueNr newval = lookup(e);
+                if (!htable.count(newexpr)) // modify htable in the process (insert new mapping)
+                {
+                    Operand *tmp = new Operand(new TemporarySymbolEntry(oldval->getType(), SymbolTable::getLabel()));
+                    htable[tmp] = tmp;
+                    htable[newexpr] = tmp;
+                    // htable[newexpr] = new Operand(new TemporarySymbolEntry(oldval->getType(), SymbolTable::getLabel()));
+                }
+                ValueNr newval = lookup(newexpr);
                 trans_cache[oldval] = newval;
+                // logf("mapping %s to %s\n",oldval->toStr().c_str(),newval->toStr().c_str());
+                if (i == epos)
+                    return newexpr;
             }
-            newset[lookup(e)] = e;
         }
-        if (flag)
-            return e;
     }
-
-    assert(0);
-
-    // //translate single expression via one phi seems need no cache?
-    // //not necessary, but cache can tranlate more expression, recognize more exprs
-    // if(expr.op!=0){//v1 op v2 etc.
-    //     for(auto& val : expr.vals){
-    //         if(val->defsNum() &&val->getDef()->isPHI() && val->getDef()->getParent()==to){
-    //             auto phi = dynamic_cast<PhiInstruction*>(val->getDef());
-    //             Operand* newtemp = phi->getSrcs()[from];
-    //             ValueNr newval = lookup(newtemp);
-    //             val = newval;
-    //         }
-    //     }
-    // }
-    // //this function is used in insert phase
-    // //no need to add new value, cuz the new value will be tested later
-    // return expr;
+    return expr;
 }
 
 void GVNPRE::clean(Exprset &set)
@@ -367,19 +253,18 @@ void GVNPRE::clean(Exprset &set)
     // it seems that we don't need maintain 'kill' set ?
     // logf("before cleaning:\n");
     // printset(set);
-    std::vector<Expr> toplist = topological(set);
+    std::vector<Expr> toplist = set.topological_sort();
+    const std::set<ValueNr> &valset = set.getValnrs();
     for (const Expr &e : toplist)
     {
-        ValueNr v = lookup(e);
-        assert(v != nullptr);
-        if (e.op == 0)
+        assert(lookup(e));
+        if (e.getOpcode() == ExprOp::TEMP) // tempraray
             continue;
-        for (auto val : e.vals)
+        for (auto item : e.getOperands())
         {
-            if (!set.count(val))
+            if (!valset.count(lookup(item)))
             {
-                set.erase(v);
-                break;
+                set.erase(e);
             }
         }
     }
@@ -388,108 +273,10 @@ void GVNPRE::clean(Exprset &set)
     // TODO : could the dag be separated into several parts?
 }
 
-// void GVNPRE::clean(Exprset &set)
-// {
-//     logf("before cleaning:\n");
-//     printset(set);
-
-//     std::vector<ValueNr> torm;
-//     for(auto pair : set){
-//         ValueNr val = pair.first;
-//         Expr e = pair.second;
-//         if(e.op==0) continue;
-//         for(auto v : e.vals){
-//             if(!set.count(v)){
-//                 torm.push_back(val);
-//                 continue;
-//             }
-//         }
-//     }
-//     for(auto v : torm)
-//         set.erase(v);
-
-//     //convert set to array in topological order
-//     std::unordered_map<Expr*,std::vector<Expr*>> antigraph;//reversed the dependency graph
-//     std::unordered_map<Expr*,unsigned> degree;
-//     std::queue<Expr*>q; //Expr with zero in degree after reverse the dependency graph
-//     std::vector<Expr*>toplist; //exprset in topology order
-//     for(auto& pair : set){
-//         Expr* e = &pair.second;
-//         degree[e]=0;
-//     }
-
-//     for(auto it=set.begin();it!=set.end();it++){
-//         Expr* e = &it->second;
-//         if(e->op==0) continue; // tempraray points to itself, no need to reverse this dependency
-//         for(auto val : e->vals){
-//             if(!set.count(val)) {
-//                 logf("expr's val not in set:%s\n",e->tostr().c_str());
-//                 logf("not in set:%s\n",val->toStr().c_str());
-//                 logf("set:\n");
-//                 printset(set);
-//                 assert(set.count(val));
-//             }
-//             Expr* op = &set[val];
-//             antigraph[op].push_back(e);
-//             degree[e]++;
-//         }
-//     }
-//     for(auto it=degree.begin();it!=degree.end();it++){
-//         if(it->second==0)
-//             q.push(it->first);
-//     }
-//     while(!q.empty()){
-//         Expr* e =q.front();
-//         q.pop();
-//         toplist.push_back(e);
-//         for(auto op : antigraph[e]){
-//             degree[op]--;
-//             if(degree[op]==0) q.push(op);
-//         }
-//     }
-
-//     //clean
-//     for(size_t i=0;i<toplist.size();i++){
-//         Expr* e = toplist[i];
-//         bool tokill=false;
-//         for(auto val : e->vals){
-//             if(kill.count(val)){
-//                 tokill=true;
-//                 break;
-//             }
-//         }
-//         if(tokill){
-//             auto val = htable[*e];
-//             set.erase(val);
-//             kill.insert(val);
-//         }
-//     }
-//     // logf("after cleaning:\n");
-//     // printset(set);
-// }
-
-Operand *GVNPRE::find_leader(Exprset set, ValueNr val)
-{
-    // when phi_tran gen new value, the new value has no leader
-    if (!val)
-        return nullptr;
-    if (val->getEntry()->isConstant())
-        return val; // all literal constant has its leader anywhere
-    if (val->getEntry()->isVariable())
-        return val; // function param, global also hold
-    if (!set.count(val))
-        return nullptr;
-    else
-        return set[val].vals[0];
-    // assert(set[val].op==0)
-    // if(!htable.count(val)) return nullptr;
-    // if(!htable.count(val)) return nullptr;
-}
-
 Operand *GVNPRE::gen_fresh_tmep(Expr e)
 {
     // gen new temp as e's type
-    Operand *val = lookup(e);
+    ValueNr val = lookup(e);
     assert(val);
     return new Operand(new TemporarySymbolEntry(val->getEntry()->getType(), SymbolTable::getLabel()));
 }
@@ -572,40 +359,108 @@ void GVNPRE::rmcEdge(Function *func)
     }
 }
 
+void GVNPRE::addGval(Function *func)
+{
+    // htable for each function, so clear it
+    //  add global value to htable
+    for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
+    {
+        BasicBlock *bb = *it_bb;
+        for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
+        {
+            if (inst->isPHI())
+            {
+                for (auto p : dynamic_cast<PhiInstruction *>(inst)->getSrcs())
+                {
+                    const auto &symentry = p.second->getEntry();
+                    if (symentry->isConstant() || symentry->isVariable())
+                        htable[p.second] = p.second;
+                }
+            }
+            else
+            {
+                for (auto operand : inst->getUses())
+                {
+                    const auto &symentry = operand->getEntry();
+                    if (symentry->isConstant() || symentry->isVariable())
+                        htable[operand] = operand;
+                }
+            }
+        }
+    }
+}
+
 void GVNPRE::buildDomTree(Function *func)
 {
     func->ComputeDom();
     for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
     {
         BasicBlock *bb = *it_bb;
-        if (!bb->getIDom())
+        if (!bb->getIDom() || bb == func->getEntry())
             continue;
         domtree[bb->getIDom()].push_back(bb);
+    }
+    // print domtree
+    logf("dom:\n");
+    for (auto it = domtree.begin(); it != domtree.end(); it++)
+    {
+        BasicBlock *bb = it->first;
+        logf("bb%d:", bb->getNo());
+        for (auto succ : it->second)
+            logf("bb%d ", succ->getNo());
+        logf("\n");
     }
 }
 
 void GVNPRE::gvnpre(Function *func)
 {
-    for (auto param : func->getParamsOp())
-    {
-        Expr newexpr;
-        newexpr.vals.push_back(param);
-        htable[newexpr] = param;
-    }
+    addGval(func);
     rmcEdge(func);
     buildDomTree(func);
     buildSets(func);
     buildAntic(func);
+    for (auto [expr, val] : htable)
+    {
+        logf("(%s,value:%s)\n", expr.tostr().c_str(), val->toStr().c_str());
+    }
+    for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
+    {
+        BasicBlock *bb = *it_bb;
+        logf("bb%d:\n", bb->getNo());
+        logf("avail_out:\n");
+        printset(avail_out[bb]);
+        logf("antic_in:\n");
+        printset(antic_in[bb]);
+        logf("\n");
+    }
+    logf("perform insertion\n");
     insert(func);
-    buildSets(func);
+
+    for (auto [expr, val] : htable)
+    {
+        logf("(%s,value:%s)\n", expr.tostr().c_str(), val->toStr().c_str());
+    }
+    // for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
+    // {
+    //     BasicBlock *bb = *it_bb;
+    //     logf("bb%d:\n", bb->getNo());
+    //     logf("avail_out:\n");
+    //     printset(avail_out[bb]);
+    //     logf("leader:\n");
+    //     for(auto e : avail_out[bb]){
+    //         auto leader = avail_out[bb].find_leader(lookup(e));
+    //         logf("(%s,value:%s,leader:%s)\n",e.tostr().c_str(),lookup(e)->toStr().c_str(),leader->toStr().c_str());
+    //     }
+    //     logf("antic_in:\n");
+    //     printset(antic_in[bb]);
+    //     logf("\n");
+    // }
     elminate(func);
 }
 
 void GVNPRE::buildSets(Function *func)
 {
-
     // bfs domtree,from entry
-
     std::queue<BasicBlock *> q;
     std::set<BasicBlock *> visited;
     q.push(func->getEntry());
@@ -616,6 +471,7 @@ void GVNPRE::buildSets(Function *func)
         if (visited.count(bb))
             continue;
         visited.insert(bb);
+
         BasicBlock *dom = bb->getIDom();
         if (avail_out.count(dom))
             avail_out[bb] = avail_out[dom];
@@ -624,42 +480,53 @@ void GVNPRE::buildSets(Function *func)
             if (inst->hasNoDef())
                 continue;
 
-            Expr dst = genExpr(inst->getDef());
+            // inst->output();
+
+            Operand *dst = inst->getDef();
+
             if (inst->isPHI())
             {
-                Operand *vnr = inst->getDef();
-                htable[dst] = vnr;
-                phi_gen[bb][vnr] = dst;
+                Expr e(dst);
+                htable[e] = dst;
+                phi_gen[bb].insert(e);
             }
-            else if (inst->isBinary())
+            else if (inst->isBinary() || inst->isGep())
             {
-                auto expr = genExpr(inst);
-                if (!htable.count(expr))
-                    htable[expr] = inst->getDef();
-                htable[dst] = htable[expr];
-                for (auto use : inst->getUses())
+                const std::vector<Operand *> &temps = inst->getUses();
+                std::vector<Operand *> valnrs;
+                for (Operand *temp : temps)
                 {
-                    auto e = genExpr(use);
-                    vinsert(expr_gen[bb], e);
+                    if (htable.find(temp) == htable.end())
+                    {
+                        const auto &symentry = temp->getEntry();
+                        // global, parameter, constant is available anywhere instinctly
+                        assert(symentry->isConstant() || symentry->isVariable());
+                        // add a new value number
+                        htable[temp] = temp;
+                    }
+                    valnrs.push_back(htable[temp]);
                 }
-                vinsert(expr_gen[bb], expr);
-                tmp_gen[bb][inst->getDef()] = dst;
+                Expr e(getInstOp(inst), valnrs);
+                if (htable.find(e) == htable.end())
+                {
+                    htable[e] = dst;
+                }
+                htable[dst] = htable[e];
+                for (Operand *operand : temps)
+                {
+                    expr_gen[bb].vinsert(htable[operand]);
+                }
+                expr_gen[bb].vinsert(e);
+                tmp_gen[bb].insert(dst);
             }
-            else if (!inst->hasNoDef())
+            else
             {
-                htable[dst] = inst->getDef();
-                tmp_gen[bb][inst->getDef()] = dst;
-
-                kill.insert(inst->getDef());
-
-                // only delete for vundrun testcase!!!!!!!
-                // decomment later!!!
+                htable[dst] = dst;
+                tmp_gen[bb].insert(dst);
             }
-            vinsert(avail_out[bb], dst);
+            avail_out[bb].vinsert(dst);
         }
 
-        // for(auto succ : domtree[bb])
-        //     q.push(succ);
         if (domtree.count(bb))
             for (auto succ_it = domtree[bb].rbegin(); succ_it != domtree[bb].rend(); succ_it++)
                 q.push(*succ_it);
@@ -669,10 +536,12 @@ void GVNPRE::buildSets(Function *func)
 void GVNPRE::buildAntic(Function *func)
 {
     bool changed = true;
+    int iter = 0;
     while (changed)
     {
         changed = false;
-
+        iter++;
+        // TODO : traverse postdominator tree
         std::queue<BasicBlock *> q;
         std::set<BasicBlock *> visited;
         q.push(func->getEntry());
@@ -683,6 +552,7 @@ void GVNPRE::buildAntic(Function *func)
             if (visited.count(bb))
                 continue;
             visited.insert(bb);
+            // logf("iter %d: compute bb%d\n", iter, bb->getNo());
 
             Exprset _antic_out;
             Exprset old = antic_in[bb];
@@ -700,55 +570,52 @@ void GVNPRE::buildAntic(Function *func)
                 for (succ_it++; succ_it != bb->succ_end(); succ_it++)
                 {
                     auto succ = *succ_it;
-                    std::vector<ValueNr> toerase;
-                    for (auto it = _antic_out.begin(); it != _antic_out.end(); it++)
+                    std::vector<Expr> toerase;
+                    for (const auto &e : _antic_out)
                     {
-                        ValueNr val = it->first;
-                        if (!find_leader(antic_in[succ], val))
-                        {
-                            toerase.push_back(val);
-                        }
+                        ValueNr val = lookup(e);
+                        if (!antic_in[succ].find_leader(val))
+                            toerase.push_back(e);
                     }
-                    for (auto val : toerase)
-                    {
-                        _antic_out.erase(val);
-                    }
+                    for (auto e : toerase)
+                        _antic_out.erase(e);
                 }
             }
-            Exprset S = _antic_out;
-            for (auto it = tmp_gen[bb].begin(); it != tmp_gen[bb].end(); it++)
+            Exprset S;
+            antic_in[bb].clear();
+            std::set_difference(_antic_out.getExprs().begin(), _antic_out.getExprs().end(), tmp_gen[bb].getExprs().begin(), tmp_gen[bb].getExprs().end(), std::inserter(S.getExprs(), S.getExprs().end()));
+            std::set_difference(expr_gen[bb].getExprs().begin(), expr_gen[bb].getExprs().end(), tmp_gen[bb].getExprs().begin(), tmp_gen[bb].getExprs().end(), std::inserter(antic_in[bb].getExprs(), antic_in[bb].end()));
+            for (const auto &e : antic_in[bb])
             {
-                auto val = it->first;
-                auto e = it->second;
-                if (S.count(val) && S[val] == e)
-                    S.erase(val);
+                antic_in[bb].getValnrs().insert(lookup(e));
             }
-            antic_in[bb] = expr_gen[bb];
-            for (auto it = tmp_gen[bb].begin(); it != tmp_gen[bb].end(); it++)
+            // logf("antic_in[bb%d]:\n", bb->getNo());
+            // printset(antic_in[bb]);
+            // logf("S:\n");
+            // printset(S);
+
+            for (const auto &e : S)
             {
-                auto val = it->first;
-                auto e = it->second;
-                if (antic_in[bb].count(val) && antic_in[bb][val] == e)
-                    antic_in[bb].erase(val);
+                if (!antic_in[bb].find_leader(lookup(e)))
+                    antic_in[bb].vinsert(e);
             }
-            for (auto it = S.begin(); it != S.end(); it++)
-            {
-                auto val = it->first;
-                if (!antic_in[bb].count(val))
-                    antic_in[bb][val] = it->second;
-            }
+
+            // logf("antic_in[bb%d]:\n", bb->getNo());
+            // printset(antic_in[bb]);
+
             clean(antic_in[bb]);
+            // logf("after clean:\nantic_in[bb%d]:\n", bb->getNo());
+            // printset(antic_in[bb]);
+            // logf("\n");
 
             if (old != antic_in[bb])
                 changed = true;
-
-            // for(auto succ : domtree[bb])
-            //     q.push(succ);
             if (domtree.count(bb))
                 for (auto succ_it = domtree[bb].rbegin(); succ_it != domtree[bb].rend(); succ_it++)
                     q.push(*succ_it);
         }
     }
+    // logf("build antic iterate over %d times\n",iter);
 }
 
 void GVNPRE::insert(Function *func)
@@ -757,6 +624,7 @@ void GVNPRE::insert(Function *func)
     while (new_stuff)
     {
         new_stuff = false;
+        logf("new iteration\n");
 
         std::queue<BasicBlock *> q;
         std::set<BasicBlock *> visited;
@@ -769,46 +637,49 @@ void GVNPRE::insert(Function *func)
             if (visited.count(bb))
                 continue;
             visited.insert(bb);
+            // new_sets[bb].clear();
+            // TODO: find good time to clear new_sets
             BasicBlock *dom = bb->getIDom();
+
+            logf("visiting bb%d\n", bb->getNo());
+
             // if(dom){
-            //     new_sets[bb]=new_sets[dom];
-            //     for(auto pair: new_sets[dom])
-            //         avail_out[bb][pair.first]=pair.second;
+            //     // new_sets[bb].clear();
+            //     logf("bb%d inherit from bb%d\n",bb->getNo(), dom->getNo());
+            //     for(const auto& e : new_sets[dom]){
+            //         new_sets[bb].vinsert(e);
+            //         avail_out[bb].vrplc(e);
+            //     }
             // }
 
             if (bb->getNumOfPred() > 1)
             {
-                std::vector<Expr> toplist = topological(antic_in[bb]);
-                logf("toplist: of bb%d:\n", bb->getNo());
-                // print toplist
-                for (auto expr : toplist)
-                    logf("%s ", expr.tostr().c_str());
-                logf("\n");
-
-                for (auto e : toplist)
+                std::vector<Expr> toplist = antic_in[bb].topological_sort();
+                for (const auto &e : toplist)
                 {
-                    Operand *val = lookup(e);
-                    if (e.op != 0)
+                    if (e.getOpcode() != ExprOp::TEMP)
                     { // v1 op v2 etc.
-                        if (find_leader(avail_out[dom], val))
+                        if (avail_out[dom].find_leader(lookup(e)))
                             continue;
+
                         std::unordered_map<BasicBlock *, Expr> avail;
                         bool by_some = false, all_same = true;
-                        Expr first_s;
+                        Expr *first_s = nullptr;
                         for (auto pred_it = bb->pred_begin(); pred_it != bb->pred_end(); pred_it++)
                         {
                             auto pred = *pred_it;
                             // TODO: optimize 'phi_trans' to avoid calulating the whole set
                             Expr trans_e = phi_trans(e, pred, bb);
+                            // logf("%s->%s\n",e.tostr().c_str(),trans_e.tostr().c_str());
                             ValueNr trans_val = lookup(trans_e);
-                            if (Operand *temp_leader = find_leader(avail_out[pred], trans_val))
+                            if (Operand *temp_leader = avail_out[pred].find_leader(trans_val))
                             {
-                                Expr avail_e = genExpr(temp_leader);
-                                avail[pred] = avail_e;
+                                Expr leader(temp_leader);
+                                avail[pred] = leader;
                                 by_some = true;
-                                if (first_s.vals.empty())
-                                    first_s = avail_e;
-                                else if (lookup(first_s) != lookup(avail_e))
+                                if (!first_s)
+                                    first_s = new Expr(leader);
+                                else if (*first_s != leader)
                                     all_same = false;
                             }
                             else
@@ -817,24 +688,34 @@ void GVNPRE::insert(Function *func)
                                 all_same = false;
                             }
                         }
+                        if (first_s)
+                            delete first_s;
+
                         if (!all_same && by_some)
                         {
-                            bool new_expr = false;
+                            logf("inserting:%s in bb%d\n", e.tostr().c_str(), bb->getNo());
+                            for (auto item : avail)
+                                logf("bb%d: %s\n", item.first->getNo(), item.second.tostr().c_str());
+
+                            // bool new_expr = false;
+                            bool insert_phi = false;
                             for (auto pred_it = bb->pred_begin(); pred_it != bb->pred_end(); pred_it++)
                             {
                                 auto pred = *pred_it;
                                 Expr avail_e = avail[pred];
-                                if (avail_e.op != 0)
+                                if (avail_e.getOpcode() != ExprOp::TEMP && avail_e.getOpcode() != ExprOp::PHI)
                                 {
-                                    logf("copy %s from bb%d to bb%d\n", avail_e.tostr().c_str(), bb->getNo(), pred->getNo());
-                                    new_stuff = true;
+                                    insert_phi = true;
+                                    // logf("copy %s from bb%d to bb%d\n", avail_e.c_str(), bb->getNo(), pred->getNo());
+                                    // new_stuff = true;
                                     std::vector<Operand *> leaders;
-                                    for (auto val : avail_e.vals)
+                                    for (auto item : avail_e.getOperands())
                                     {
-                                        Operand *leader = find_leader(avail_out[pred], val);
+                                        logf("%s\n", item->toStr().c_str());
+                                        Operand *leader = avail_out[pred].find_leader(lookup(item));
                                         if (!leader)
                                         {
-                                            logf("pred bb%d,find leader of val %s\n", pred->getNo(), val->toStr().c_str());
+                                            logf("pred bb%d,find leader of val %s\n", pred->getNo(), item->toStr().c_str());
                                             logf("leader in bb%d:\n", pred->getNo());
                                             printset(avail_out[pred]);
                                             assert(leader);
@@ -843,7 +724,12 @@ void GVNPRE::insert(Function *func)
                                     }
                                     Operand *t = gen_fresh_tmep(e);
                                     logf("gen fresh tmp %s\n", t->toStr().c_str());
-                                    auto freash_inst = genInst(t, e.op, leaders);
+                                    if (!lookup(avail_e))
+                                        htable[avail_e] = t;
+                                    ValueNr val = lookup(avail_e);
+                                    htable[t] = val;
+                                    logf("VALNR: %s\n", val->toStr().c_str());
+                                    auto freash_inst = genInst(t, e.getOpcode(), leaders);
                                     // t <- inst
                                     for (auto inst = pred->rbegin(); inst != pred->rend(); inst = inst->getPrev())
                                     {
@@ -853,91 +739,194 @@ void GVNPRE::insert(Function *func)
                                             break;
                                         }
                                     }
-                                    if (!lookup(avail_e))
-                                        htable[avail_e] = t;
-                                    ValueNr val = lookup(avail_e);
-                                    logf("VALNR: %s\n", val->toStr().c_str());
-                                    htable[genExpr(t)] = val;
-                                    avail_out[pred][val] = genExpr(t);
+
+                                    // avail_out[pred].insert(t);
+                                    avail_out[pred].vrplc(t);
                                     // vinsert(avail_out[pred],genExpr(t));
-                                    avail[pred] = genExpr(t);
-                                    new_expr = true;
-                                    new_stuff = true;
+                                    avail[pred] = t;
+                                    // new_expr = true;
+                                    // new_stuff = true;
+                                    // I this the following statement is necessary, but the thesis didn't mention
+                                    // new_sets[pred].insert(t);
+                                    new_sets[pred].vinsert(t);
                                 }
                             }
-                            if (new_expr)
+                            // only need to insert phi when actually generate new temp
+                            // not mentioned as well in thesis
+                            if (insert_phi)
                             {
                                 Operand *t = gen_fresh_tmep(e);
-                                htable[genExpr(t)] = lookup(e);
-                                avail_out[bb][lookup(e)] = genExpr(t);
-                                // 这个phi生成的不知对不对，，
+                                htable[t] = lookup(e);
+                                logf("insert phi %s, val is %s\n", t->toStr().c_str(), lookup(e)->toStr().c_str());
+                                avail_out[bb].insert(t);
                                 std::map<BasicBlock *, Operand *> args;
                                 for (auto pair : avail)
                                 {
                                     auto bb = pair.first;
-                                    auto val = pair.second.vals[0];
+                                    assert(pair.second.getOpcode() == ExprOp::TEMP);
+                                    auto val = pair.second.getOperands()[0];
                                     args[bb] = val;
                                 }
-                                auto phi = genInst(t, Expr::PHI, args);
+                                auto phi = genInst(t, ExprOp::PHI, args);
                                 bb->insertFront(phi);
-                                // t <- phi
-                                //  avail_out[bb][t]=genExpr(t);
-                                //  new_sets[bb][lookup(e)]=genExpr(t);
-                                vinsert(avail_out[bb], genExpr(t));
-
-                                // vinsert(new_sets[bb],t);
                                 new_stuff = true;
+                                // new_sets[bb].insert(t);
+                                new_sets[bb].vrplc(t);
                             }
                         }
                     }
                 }
+
+                // pass new values to dom children
             }
 
             for (auto succ : domtree[bb])
+            {
                 q.push(succ);
+                for (auto e : new_sets[bb])
+                {
+                    logf("bb%d pass %s to bb%d\n", bb->getNo(), e.tostr().c_str(), succ->getNo());
+                    new_sets[succ].vinsert(e);
+                    avail_out[succ].vrplc(e);
+                }
+            }
+            new_sets[bb].clear();
         }
-        for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
-        {
-            avail_out[*bb_it].clear();
-            expr_gen[*bb_it].clear();
-            tmp_gen[*bb_it].clear();
-            phi_gen[*bb_it].clear();
-        }
-        buildSets(func);
+        // for(auto [bb,set] : new_sets){
+        //     for(auto child : domtree[bb]){
+        //         for(auto e : new_sets[bb]){
+        //             logf("bb%d pass %s to bb%d\n",bb->getNo(),e.tostr().c_str(),child->getNo());
+        //             new_sets[child].vinsert(e);
+        //             avail_out[child].vrplc(e);
+        //         }
+        //     }
+        //     new_sets[bb].clear();
+        // }
     }
 }
 
 void GVNPRE::elminate(Function *func)
 {
+    std::vector<Instruction *> torm;
     for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
     {
         auto bb = *bb_it;
 
-        std::vector<Instruction *> torm;
+        // speed up find_leader:
+        for (auto e : avail_out[bb])
+        {
+            avail_out[bb].leader_map[lookup(e)] = e.getOperands()[0];
+        }
+
         for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
         {
             if (inst->hasNoDef())
                 continue;
-            Operand *dst = inst->getDef();
-            Operand *leader = find_leader(avail_out[bb], lookup(genExpr(dst)));
-            if (leader != dst)
+            if (inst->isBinary() || inst->isGep())
             {
-                inst->replaceAllUsesWith(leader);
-                torm.push_back(inst);
+                Operand *dst = inst->getDef();
+                logf("dst:%s\n", dst->toStr().c_str());
+                Operand *leader = avail_out[bb].find_leader(lookup(dst));
+                if (leader != dst)
+                {
+                    logf("dst:%s\n", dst->toStr().c_str());
+                    logf("value of %s is %s, leader is %s\n", dst->toStr().c_str(), lookup(dst)->toStr().c_str(), leader->toStr().c_str());
+                    inst->replaceAllUsesWith(leader);
+                    torm.push_back(inst);
+                }
             }
         }
-        for (auto i : torm)
-        {
-            bb->remove(i);
-            delete i;
-        }
+    }
+    for (auto i : torm)
+    {
+        // i->output();
+        i->getParent()->remove(i);
+        delete i;
+        // decomment the delete statement when we are not in debug mode!
     }
 }
 
 void GVNPRE::pass()
 {
     for (auto func_it = unit->begin(); func_it != unit->end(); func_it++)
+    {
         gvnpre(*func_it);
+        domtree.clear();
+        htable.clear();
+        // htable must be clear here, because some expr can be used in multiple functions
+        // causing some function use local value number of other functions
+    }
     SimplifyCFG scfg(unit);
     scfg.pass();
+}
+
+std::vector<Expr> Exprset::topological_sort()
+{
+    if (!changed)
+        return topological_seq;
+    topological_seq.clear();
+    // the parameter set is expected to be canonical, i.e. no expr with same value number
+    // if violated,,,??
+
+    // compute value's topological order, then output the corresponding expr
+    std::unordered_map<ValueNr, std::vector<ValueNr>> antigraph; // reversed the dependency graph
+    std::unordered_map<ValueNr, unsigned> degree;
+    std::unordered_map<ValueNr, Expr> val2e;
+
+    for (const auto &e : exprs)
+    {
+        ValueNr val = lookup(e);
+        assert(!val2e.count(val));
+        val2e[val] = e;
+        degree[val] = 0;
+    }
+    for (const auto &e : exprs)
+    {
+        if (e.getOpcode() == ExprOp::TEMP)
+            continue;
+        // iterate over the operands
+        ValueNr val_e = lookup(e);
+        for (auto operand : e.getOperands())
+        {
+            ValueNr val_operand = lookup(operand);
+            if (!val2e.count(val_operand))
+                continue;
+            antigraph[val_operand].push_back(lookup(e));
+            degree[val_e]++;
+        }
+    }
+    // print anti-graph
+    //  for(auto it = antigraph.begin();it!=antigraph.end();it++){
+    //      logf("%s:",val2e[it->first].c_str());
+    //      for(auto val : it->second)
+    //          logf("%s,",val2e[val].c_str());
+    //      logf("\n");
+    //  }
+
+    std::queue<ValueNr> q; // Expr with zero in degree after reverse the dependency graph
+    for (auto it = degree.begin(); it != degree.end(); it++)
+        if (it->second == 0)
+            q.push(it->first);
+
+    std::vector<ValueNr> toplist; // exprset in topology order
+    while (!q.empty())
+    {
+        ValueNr val = q.front();
+        q.pop();
+        toplist.push_back(val);
+        for (auto &to : antigraph[val])
+        {
+            degree[to]--;
+            if (degree[to] == 0)
+                q.push(to);
+        }
+    }
+
+    std::vector<Expr> ret;
+    for (auto val : toplist)
+        ret.push_back(val2e[val]);
+    return ret;
+
+    changed = false;
+    return topological_seq;
 }

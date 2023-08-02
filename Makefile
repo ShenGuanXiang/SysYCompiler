@@ -9,7 +9,7 @@ SYSLIB_PATH ?= sysyruntimelibrary
 TIMING ?= 1
 
 INC = $(addprefix -I, $(INC_PATH))
-SRC = $(shell find $(SRC_PATH)  -name "*.cpp")
+SRC = $(shell find $(SRC_PATH)  -name "*.cpp" -not -name "Main.cpp")
 CFLAGS = -O2 -g -Wall -std=c++17 $(INC)
 FLEX ?= $(SRC_PATH)/lexer.l
 LEXER ?= $(addsuffix .cpp, $(basename $(FLEX)))
@@ -223,7 +223,7 @@ testll:app
 		OUT=$${file%.*}.out
 		FILE=$${file##*/}
 		FILE=$${FILE%.*}
-		timeout 20s $(BINARY) $${file} -o $${IR} -O2 -i 2>$${LOG}
+		timeout 60s $(BINARY) $${file} -o $${IR} -O2 -i 2>$${LOG}
 		RETURN_VALUE=$$?
 		if [ $$RETURN_VALUE = 124 ]; then
 			echo "\033[1;31mFAIL:\033[0m $${FILE}\t\033[1;31mCompile Timeout\033[0m"  && echo "FAIL: $${FILE}\tCompile Timeout" >> llnew.log

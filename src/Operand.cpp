@@ -9,6 +9,7 @@ extern std::string DeclArray(ArrayType *type, std::vector<double> initializer);
 
 std::string Operand::toStr() const
 {
+
     if (se->isVariable())
     {
         auto se_id = (IdentifierSymbolEntry *)se;
