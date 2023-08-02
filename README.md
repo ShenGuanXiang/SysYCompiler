@@ -127,7 +127,7 @@
 
      (寄存器不能重定义，v4!=v2 且 v4!=v5)
 
-6. 
+6. ldr/str 移位
 
     - add r4, r2, r1, LSL #2
 
@@ -214,6 +214,10 @@
 - 简化无条件跳转到只有一个ret语句的基本块的情况。
 
 # TODO
+
+## median2 opt llvm、arr_init_nd、many_dimensions
+
+## 图着色寄存器分配
 
 ## Inliner
 
