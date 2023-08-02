@@ -1392,10 +1392,10 @@ ExprNode *typeCast(ExprNode *fromNode, Type *to)
         return fromNode;
 }
 
-void Print(std::vector<int> d, const char* log) {
+void Print(std::vector<int> pos, const char* log) {
     fprintf(stderr, "%s is ", log);
-    for (size_t i = 0; i < d.size(); i ++ )
-            fprintf(stderr, "%d ", d[i]);
+    for (size_t i = 0; i < pos.size(); i ++ )
+        fprintf(stderr, "%d ", pos[i]);
     fprintf(stderr, "\n");
 }
 
@@ -1411,9 +1411,14 @@ void AddPos(std::vector<int> d, std::vector<int>& pos, int i) {
 }
 
 int FindDimUnfilled(std::vector<int> pos) {
-    for (size_t i = pos.size() - 1; i >= 0; i --)
-        if (pos[i] != 0) 
+    assert(!pos.empty());
+    for (int i = pos.size() - 1; i >= 0; i --) {
+        fprintf(stderr, "Find %d\n", i);
+        if (pos[i] != 0) {
+            fprintf(stderr, "choose %d\n", i);
             return i;
+        }
+    }
     return 0;
 }
 
@@ -1468,8 +1473,8 @@ void InitNode::fill(std::vector<int> d, Type *type)
             Print(pos, "pos1");
             continue;
         }
-        Print(pos, "pos3");
         int stg = FindDimUnfilled(pos);
+        Print(pos, "pos3");
         fprintf(stderr, "stage is %d\n", stg);
         assert(stg < stage.size());
         leaves[i]->fill(stage[stg], type);
