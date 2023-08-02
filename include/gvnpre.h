@@ -109,8 +109,8 @@ class Exprset
     // TODO:
     // most set is value canonical (i.e. each value has only one expr), we can
     // further speed it up
-    std::set<ValueNr> valnrs;
     std::set<Expr> exprs;
+    std::unordered_map<ValueNr,std::set<Expr>> val2exprs;
     std::vector<Expr> topological_seq;
     bool changed = true; // if changed after compute topological_seq last time
 public:
@@ -124,7 +124,7 @@ public:
     {
         assert(htable.count(expr));
         exprs.insert(expr);
-        valnrs.insert(htable[expr]);
+        val2exprs[htable[expr]].insert(expr);
         changed = true;
 
         // if(expr.getOpcode()==ExprOp::TEMP)
@@ -134,7 +134,9 @@ public:
     {
         assert(htable.count(expr));
         exprs.erase(expr);
-        valnrs.erase(htable[expr]);
+        val2exprs[htable[expr]].erase(expr);
+        if(val2exprs[htable[expr]].empty())
+            val2exprs.erase(htable[expr]);
         changed = true;
     }
     void vinsert(Expr expr)
@@ -145,27 +147,21 @@ public:
                 printf("%s : %s\n", e.tostr().c_str(), v->toStr().c_str());
             assert(htable.count(expr));
         }
-        if (valnrs.find(htable[expr]) == valnrs.end())
+        if (!val2exprs.count(htable[expr]))
         {
             exprs.insert(expr);
-            valnrs.insert(htable[expr]);
+            val2exprs[htable[expr]].insert(expr);
             changed = true;
         }
     }
     void vrplc(Expr expr)
     {
         ValueNr val = lookup(expr);
-        if (valnrs.count(val) != 0)
+        if (val2exprs.count(val) != 0)
         {
-            std::vector<Expr> sameval;
-            for (const auto &e : exprs)
-                if (lookup(e) == val)
-                {
-                    sameval.push_back(e);
-                    // break; //speed up: only one expr can be replaced
-                }
-            for (const auto &e : sameval)
+            for (auto e : val2exprs[val])
                 exprs.erase(e);
+            val2exprs[val].clear();
         }
         insert(expr);
         changed = true;
@@ -181,34 +177,34 @@ public:
         if (leader_map.count(val))
             return leader_map[val];
 
-        if (!val || valnrs.count(val) == 0)
+        if (!val || val2exprs.count(val) == 0)
             return nullptr;
         // return nullptr;
-        for (const auto &e : exprs)
+        for (const auto &e : val2exprs[val])
         {
-            if (e.getOpcode() == ExprOp::TEMP && lookup(e) == val)
+            if (e.getOpcode() == ExprOp::TEMP )
                 return e.getOperands()[0];
         }
         return nullptr;
     }
     void clear()
     {
-        valnrs.clear();
+        val2exprs.clear();
         exprs.clear();
         changed = true;
     }
     bool empty() const { return exprs.empty(); }
     bool operator==(const Exprset &set) const
     {
-        return valnrs == set.valnrs && exprs == set.exprs;
+        return exprs == set.exprs;
     }
     bool operator!=(const Exprset &set) const
     {
-        return valnrs != set.valnrs || exprs != set.exprs;
+        return exprs != set.exprs;
     }
     std::vector<Expr> topological_sort();
     std::set<Expr> &getExprs() { return exprs; }
-    std::set<ValueNr> &getValnrs() { return valnrs; }
+    std::unordered_map<ValueNr,std::set<Expr>> &getValnrs() { return val2exprs; }
 };
 
 #define DEBUG_GVNPRE

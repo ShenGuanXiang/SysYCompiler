@@ -25,6 +25,14 @@ static void printset(Exprset set)
         for (auto e : set.getExprs())
             logf("%s\t", e.tostr().c_str());
         logf("\n");
+        logf("val2expr map:\n");
+        for (auto [val, exprs] : set.getValnrs())
+        {
+            logf("%s:\t", val->toStr().c_str());
+            for (auto e : exprs)
+                logf("%s\t", e.tostr().c_str());
+            logf("\n");
+        }
     }
 #endif
 }
@@ -251,10 +259,10 @@ Expr GVNPRE::phi_trans(Expr expr, BasicBlock *from, BasicBlock *to)
 void GVNPRE::clean(Exprset &set)
 {
     // it seems that we don't need maintain 'kill' set ?
-    // logf("before cleaning:\n");
-    // printset(set);
+    logf("before cleaning:\n");
+    printset(set);
     std::vector<Expr> toplist = set.topological_sort();
-    const std::set<ValueNr> &valset = set.getValnrs();
+    auto& valset = set.getValnrs();
     for (const Expr &e : toplist)
     {
         assert(lookup(e));
@@ -265,11 +273,18 @@ void GVNPRE::clean(Exprset &set)
             if (!valset.count(lookup(item)))
             {
                 set.erase(e);
+                set.getValnrs().erase(lookup(e));
+                logf("erase %s\n", e.tostr().c_str());
+            }else{
+                auto s = valset[lookup(item)];
+                for(auto e :s){
+                    logf("e:%s\n",e.tostr().c_str());
+                }
             }
         }
+    printset(set);
     }
-    // logf("after cleaning:\n");
-    // printset(set);
+    logf("after cleaning:\n");
     // TODO : could the dag be separated into several parts?
 }
 
@@ -482,8 +497,7 @@ void GVNPRE::buildSets(Function *func)
 
             // inst->output();
 
-            
-            Operand* dst = inst->getDef();
+            Operand *dst = inst->getDef();
 
             if (inst->isPHI())
             {
@@ -588,7 +602,7 @@ void GVNPRE::buildAntic(Function *func)
             std::set_difference(expr_gen[bb].getExprs().begin(), expr_gen[bb].getExprs().end(), tmp_gen[bb].getExprs().begin(), tmp_gen[bb].getExprs().end(), std::inserter(antic_in[bb].getExprs(), antic_in[bb].end()));
             for (const auto &e : antic_in[bb])
             {
-                antic_in[bb].getValnrs().insert(lookup(e));
+                antic_in[bb].getValnrs()[lookup(e)].insert(e);
             }
             // logf("antic_in[bb%d]:\n", bb->getNo());
             // printset(antic_in[bb]);
@@ -601,8 +615,8 @@ void GVNPRE::buildAntic(Function *func)
                     antic_in[bb].vinsert(e);
             }
 
-            // logf("antic_in[bb%d]:\n", bb->getNo());
-            // printset(antic_in[bb]);
+            logf("antic_in[bb%d]:\n", bb->getNo());
+            printset(antic_in[bb]);
 
             clean(antic_in[bb]);
             // logf("after clean:\nantic_in[bb%d]:\n", bb->getNo());
