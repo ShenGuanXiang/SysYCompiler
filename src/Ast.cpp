@@ -805,7 +805,9 @@ void InitNode::genCode()
             cur_z++;
         }
     }
-    if (10 * cur_z < vec_val.size() && cur_z < 25)
+    if (
+        // 0
+        10 * cur_z < vec_val.size() && cur_z < 25)
     {
         auto val = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0)),
              len = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 4 * vec_val.size()));
@@ -889,7 +891,7 @@ DeclStmt::DeclStmt(Id *id, InitNode *expr) : id(id), expr(expr)
         if (id->getType()->isARRAY())
         {
             std::vector<int> origin_dim = ((ArrayType *)(id->getType()))->fetch();
-            expr->fill(0, origin_dim, ((ArrayType *)(id->getType()))->getElemType());
+            expr->fill(origin_dim, ((ArrayType *)(id->getType()))->getElemType());
             vec_val.clear();
             get_vec_val(expr);
             std::vector<double> arrVals;
@@ -1390,54 +1392,95 @@ ExprNode *typeCast(ExprNode *fromNode, Type *to)
         return fromNode;
 }
 
-void InitNode::fill(int level, std::vector<int> d, Type *type)
+void Print(std::vector<int> d, const char* log) {
+    fprintf(stderr, "%s is ", log);
+    for (size_t i = 0; i < d.size(); i ++ )
+            fprintf(stderr, "%d ", d[i]);
+    fprintf(stderr, "\n");
+}
+
+void AddPos(std::vector<int> d, std::vector<int>& pos, int i) {
+    assert(i < pos.size() && i >= 0);
+    pos[i] = pos[i] + 1;
+    for (size_t idx = i; idx > 0; idx --) {
+        if (pos[idx] < d[idx]) break;
+        pos[idx - 1] += pos[idx] / d[idx];
+        pos[idx] %= d[idx];
+    }
+    assert(pos[0] <= d[0] && "Too many Array Elements");
+}
+
+int FindDimUnfilled(std::vector<int> pos) {
+    for (size_t i = pos.size() - 1; i >= 0; i --)
+        if (pos[i] != 0) 
+            return i;
+    return 0;
+}
+
+int Finish(std::vector<int> d, std::vector<int>& pos) {
+    int sum = 1, cur_sum = 0;
+    for (size_t i = 0; i < pos.size(); i ++ ) {
+        sum *= d[i];
+        cur_sum = cur_sum * d[i] + pos[i];
+    }
+    fprintf(stderr, "sum is %d, cur_sum is %d\n", sum, cur_sum);
+    return sum - cur_sum;
+}
+
+
+/*
+    Array A[M][N][P][Q]
+    case 0: {{}, {}}, {} as the beginning
+    case 1: {a[0...m], {}, {}}, vec as the beginning
+    case 2: {a[0...m]}, just a vec
+    case 3: {a[0...m], {}, b[0...n], {}, c[0...q]} mix
+
+    we define the vec pos to simulate arrayIdx
+    case 3:
+        if a[1...m] have been matched, the first {}'s type should be judged by pos
+            pos[][][][0]
+*/
+void InitNode::fill(std::vector<int> d, Type *type)
 {
-    if (level == (int)d.size() || leaf != nullptr)
-    {
-        if (leaf == nullptr)
-            setleaf(new Constant(new ConstantSymbolEntry(Var2Const(type), 0)));
+    std::vector<int> pos(d.size(), 0);
+    int p = 0, dimension = pos.size();
+    std::vector<std::vector<int>> stage;
+    std::vector<int> temp = d;
+    temp.erase(temp.begin());
+    while (temp.size() > 0) {
+        stage.push_back(temp);
+        temp.erase(temp.begin());
+    }
+    if (stage.size() == 0) {
+        while (leaves.size() < d[0])
+        {
+            InitNode *new_const_node = new InitNode();
+            new_const_node->setleaf(new Constant(new ConstantSymbolEntry(Var2Const(type), 0)));
+            addleaf(new_const_node);
+        }
         return;
     }
-    int cap = 1, num = 0;
-    for (size_t i = level + 1; i < d.size(); i++)
-        cap *= d[i];
-    for (int i = (int)leaves.size() - 1; i >= 0; i--)
-        if (leaves[i]->isLeaf())
-            num++;
-        else
-            break;
-    while (num % cap)
+    for (size_t i = 0; i < leaves.size(); i ++)
     {
+        if (leaves[i]->isLeaf()) {
+            p = dimension - 1;
+            AddPos(d, pos, p);
+            Print(pos, "pos1");
+            continue;
+        }
+        Print(pos, "pos3");
+        int stg = FindDimUnfilled(pos);
+        fprintf(stderr, "stage is %d\n", stg);
+        assert(stg < stage.size());
+        leaves[i]->fill(stage[stg], type);
+        AddPos(d, pos, stg);
+        Print(pos, "pos2");
+    }
+    int num = Finish(d, pos);
+    assert(num >= 0);
+    while (num --) {
         InitNode *new_const_node = new InitNode();
         new_const_node->setleaf(new Constant(new ConstantSymbolEntry(Var2Const(type), 0)));
         addleaf(new_const_node);
-        num++;
     }
-    auto t = getSize(cap);
-    while (t < d[level])
-    {
-        InitNode *new_node = new InitNode();
-        addleaf(new_node);
-        t++;
-    }
-    for (auto l : leaves)
-        l->fill(level + 1, d, type);
-}
-
-int InitNode::getSize(int d_nxt)
-{
-    int num = 0, cur_fit = 0;
-    for (auto l : leaves)
-    {
-        if (l->leaf != nullptr)
-            num++;
-        else
-            cur_fit++;
-        if (num == d_nxt)
-        {
-            cur_fit++;
-            num = 0;
-        }
-    }
-    return cur_fit + num / d_nxt;
 }
