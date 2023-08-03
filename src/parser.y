@@ -791,7 +791,7 @@ FuncArrayIndices
     : FuncArrayIndices LBRACKET ConstExp RBRACKET {
         dynamic_cast<IndicesNode*>($1)->addNew($3);
         $$ = $1;
-        arrayIdx.push_back(-1);
+        arrayIdx.push_back((int)dynamic_cast<ExprNode*>($3)->getSymPtr()->getValue());
     }
     | LBRACKET RBRACKET {
         SymbolEntry *addDim = new ConstantSymbolEntry(TypeSystem::constIntType, -1);

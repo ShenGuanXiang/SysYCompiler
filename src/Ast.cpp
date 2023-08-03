@@ -336,8 +336,10 @@ void FuncDefParamsNode::addChild(Id *next)
 std::vector<Type *> FuncDefParamsNode::getParamsType()
 {
     std::vector<Type *> ans;
-    for (auto param : paramsList)
+    for (auto param : paramsList) {
         ans.push_back(param->getType());
+        fprintf(stderr, "paramsType is %s\n", param->getType()->toStr().c_str());
+    }
     return ans;
 }
 
@@ -398,10 +400,7 @@ void Id::genCode()
                 tempSrc = dst1;
             }
             std::vector<int> currr_dim;
-            if (!isPtr)
-                currr_dim = cur_type->fetch(); // if is params, it should be 0
-            else
-                currr_dim = ((ArrayType *)((PointerType *)getSymPtr()->getType())->getValType())->fetch();
+            currr_dim = cur_type->fetch();
             if (currr_dim.size() != indices->getExprList().size() && !isPtr)
                 is_FP = true;
 
@@ -426,10 +425,14 @@ void Id::genCode()
             }
             ArrayType *curr_type;
             PointerType *final_type;
-            if (currr_dim.size())
+            if ((int)currr_dim.size() > 0)
             {
                 curr_type = arrTypeLike(cur_type);
+                if (is_FP) currr_dim.erase(currr_dim.begin());
                 curr_type->setDim(currr_dim);
+                for (auto d : currr_dim)
+                    fprintf(stderr, "cur_dim is %d\n", d);
+                fprintf(stderr, "\n");
                 final_type = new PointerType(curr_type);
             }
             else
@@ -447,6 +450,16 @@ void Id::genCode()
                 dst = tempSrc;
                 return;
             }
+            if (is_FP)
+            {
+                // dst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                // dst = new Operand(new TemporarySymbolEntry(new PointerType(((ArrayType*)final_type->getValType())->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                dst = tempSrc;
+                dst->getEntry()->setType(final_type);
+                // assert(0);
+                is_FP = false;
+                return;
+            }
             if (!isPtr)
             {
                 dst1 = new Operand(new TemporarySymbolEntry(Const2Var(getType()), SymbolTable::getLabel()));
@@ -457,16 +470,6 @@ void Id::genCode()
                     dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
                 else
                     dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::floatType, SymbolTable::getLabel()));
-            }
-            if (is_FP)
-            {
-                // dst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
-                // dst = new Operand(new TemporarySymbolEntry(new PointerType(((ArrayType*)final_type->getValType())->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
-                dst = tempSrc;
-                dst->getEntry()->setType(new PointerType(((ArrayType *)final_type->getValType())->getElemType()));
-                // assert(0);
-                is_FP = false;
-                return;
             }
             new LoadInstruction(dst1, tempSrc, bb);
             dst = dst1;
@@ -1443,9 +1446,9 @@ void AddPos(std::vector<int> d, std::vector<int>& pos, int i) {
 int FindDimUnfilled(std::vector<int> pos) {
     assert(!pos.empty());
     for (int i = pos.size() - 1; i >= 0; i --) {
-        fprintf(stderr, "Find %d\n", i);
+        // fprintf(stderr, "Find %d\n", i);
         if (pos[i] != 0) {
-            fprintf(stderr, "choose %d\n", i);
+            // fprintf(stderr, "choose %d\n", i);
             return i;
         }
     }
@@ -1458,7 +1461,7 @@ int Finish(std::vector<int> d, std::vector<int>& pos) {
         sum *= d[i];
         cur_sum = cur_sum * d[i] + pos[i];
     }
-    fprintf(stderr, "sum is %d, cur_sum is %d\n", sum, cur_sum);
+    // fprintf(stderr, "sum is %d, cur_sum is %d\n", sum, cur_sum);
     return sum - cur_sum;
 }
 
@@ -1500,16 +1503,16 @@ void InitNode::fill(std::vector<int> d, Type *type)
         if (leaves[i]->isLeaf()) {
             p = dimension - 1;
             AddPos(d, pos, p);
-            Print(pos, "pos1");
+            // Print(pos, "pos1");
             continue;
         }
         int stg = FindDimUnfilled(pos);
-        Print(pos, "pos3");
-        fprintf(stderr, "stage is %d\n", stg);
+        // Print(pos, "pos3");
+        // fprintf(stderr, "stage is %d\n", stg);
         assert(stg < stage.size());
         leaves[i]->fill(stage[stg], type);
         AddPos(d, pos, stg);
-        Print(pos, "pos2");
+        // Print(pos, "pos2");
     }
     int num = Finish(d, pos);
     assert(num >= 0);
