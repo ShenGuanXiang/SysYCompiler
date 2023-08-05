@@ -336,9 +336,9 @@ void FuncDefParamsNode::addChild(Id *next)
 std::vector<Type *> FuncDefParamsNode::getParamsType()
 {
     std::vector<Type *> ans;
-    for (auto param : paramsList) {
+    for (auto param : paramsList)
+    {
         ans.push_back(param->getType());
-        fprintf(stderr, "paramsType is %s\n", param->getType()->toStr().c_str());
     }
     return ans;
 }
@@ -428,11 +428,12 @@ void Id::genCode()
             if ((int)currr_dim.size() > 0)
             {
                 curr_type = arrTypeLike(cur_type);
-                if (is_FP) currr_dim.erase(currr_dim.begin());
+                if (is_FP)
+                    currr_dim.erase(currr_dim.begin());
                 curr_type->setDim(currr_dim);
-                for (auto d : currr_dim)
-                    fprintf(stderr, "cur_dim is %d\n", d);
-                fprintf(stderr, "\n");
+                // for (auto d : currr_dim)
+                //     fprintf(stderr, "cur_dim is %d\n", d);
+                // fprintf(stderr, "\n");
                 final_type = new PointerType(curr_type);
             }
             else
@@ -1425,29 +1426,36 @@ ExprNode *typeCast(ExprNode *fromNode, Type *to)
         return fromNode;
 }
 
-void Print(std::vector<int> pos, const char* log) {
-    fprintf(stderr, "%s is ", log);
-    for (size_t i = 0; i < pos.size(); i ++ )
-        fprintf(stderr, "%d ", pos[i]);
-    fprintf(stderr, "\n");
-}
+// static void Print(std::vector<int> pos, const char *log)
+// {
+//     fprintf(stderr, "%s is ", log);
+//     for (size_t i = 0; i < pos.size(); i++)
+//         fprintf(stderr, "%d ", pos[i]);
+//     fprintf(stderr, "\n");
+// }
 
-void AddPos(std::vector<int> d, std::vector<int>& pos, int i) {
+static void AddPos(std::vector<int> d, std::vector<int> &pos, int i)
+{
     assert(i < pos.size() && i >= 0);
     pos[i] = pos[i] + 1;
-    for (size_t idx = i; idx > 0; idx --) {
-        if (pos[idx] < d[idx]) break;
+    for (size_t idx = i; idx > 0; idx--)
+    {
+        if (pos[idx] < d[idx])
+            break;
         pos[idx - 1] += pos[idx] / d[idx];
         pos[idx] %= d[idx];
     }
     assert(pos[0] <= d[0] && "Too many Array Elements");
 }
 
-int FindDimUnfilled(std::vector<int> pos) {
+static int FindDimUnfilled(std::vector<int> pos)
+{
     assert(!pos.empty());
-    for (int i = pos.size() - 1; i >= 0; i --) {
+    for (int i = pos.size() - 1; i >= 0; i--)
+    {
         // fprintf(stderr, "Find %d\n", i);
-        if (pos[i] != 0) {
+        if (pos[i] != 0)
+        {
             // fprintf(stderr, "choose %d\n", i);
             return i;
         }
@@ -1455,16 +1463,17 @@ int FindDimUnfilled(std::vector<int> pos) {
     return 0;
 }
 
-int Finish(std::vector<int> d, std::vector<int>& pos) {
+int Finish(std::vector<int> d, std::vector<int> &pos)
+{
     int sum = 1, cur_sum = 0;
-    for (size_t i = 0; i < pos.size(); i ++ ) {
+    for (size_t i = 0; i < pos.size(); i++)
+    {
         sum *= d[i];
         cur_sum = cur_sum * d[i] + pos[i];
     }
     // fprintf(stderr, "sum is %d, cur_sum is %d\n", sum, cur_sum);
     return sum - cur_sum;
 }
-
 
 /*
     Array A[M][N][P][Q]
@@ -1485,11 +1494,13 @@ void InitNode::fill(std::vector<int> d, Type *type)
     std::vector<std::vector<int>> stage;
     std::vector<int> temp = d;
     temp.erase(temp.begin());
-    while (temp.size() > 0) {
+    while (temp.size() > 0)
+    {
         stage.push_back(temp);
         temp.erase(temp.begin());
     }
-    if (stage.size() == 0) {
+    if (stage.size() == 0)
+    {
         while (leaves.size() < d[0])
         {
             InitNode *new_const_node = new InitNode();
@@ -1498,9 +1509,10 @@ void InitNode::fill(std::vector<int> d, Type *type)
         }
         return;
     }
-    for (size_t i = 0; i < leaves.size(); i ++)
+    for (size_t i = 0; i < leaves.size(); i++)
     {
-        if (leaves[i]->isLeaf()) {
+        if (leaves[i]->isLeaf())
+        {
             p = dimension - 1;
             AddPos(d, pos, p);
             // Print(pos, "pos1");
@@ -1516,7 +1528,8 @@ void InitNode::fill(std::vector<int> d, Type *type)
     }
     int num = Finish(d, pos);
     assert(num >= 0);
-    while (num --) {
+    while (num--)
+    {
         InitNode *new_const_node = new InitNode();
         new_const_node->setleaf(new Constant(new ConstantSymbolEntry(Var2Const(type), 0)));
         addleaf(new_const_node);

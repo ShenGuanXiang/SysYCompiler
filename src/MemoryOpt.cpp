@@ -4,14 +4,12 @@
 #include <stack>
 
 // TODO：如果写操作不会对之后的读操作产生影响，则删除写操作
-// TODO：对于数组没有被修改过的情况，将对数组的固定下标的访问替换为数组全局初始化的值
-
-static std::map<Function *, std::set<SymbolEntry *>> changed_arr;
 
 struct Info
 {
     std::map<SymbolEntry *, Operand *> scalar2op;              // (int/float var, op)
-    std::map<SymbolEntry *, std::map<int, Operand *>> arr2ops; // (arr, {op}) op == nullptr means uncertain
+    std::map<SymbolEntry *, std::map<int, Operand *>> arr2ops; // (arr, {op})
+    std::set<SymbolEntry *> unknown_arr;                       // clear the whole array TODO:加一个起始偏移，数组部分未知
 
     bool operator==(const Info &other) const
     {
@@ -20,16 +18,21 @@ struct Info
 
     void print()
     {
-        fprintf(stderr, "scalar2op:\n-------------------------------------------\n");
+        fprintf(stderr, "scalar2op:\n");
         for (auto [se, op] : scalar2op)
         {
             fprintf(stderr, "%s, %s\n", se->toStr().c_str(), op == nullptr ? "nullptr" : op->toStr().c_str());
         }
-        fprintf(stderr, "arr2ops:\n---------------------------------------------\n");
+        fprintf(stderr, "arr2ops:\n");
         for (auto [se, mp] : arr2ops)
         {
             for (auto [idx, op] : mp)
                 fprintf(stderr, "%s, (%d, %s)\n", se->toStr().c_str(), idx, op == nullptr ? "nullptr" : op->toStr().c_str());
+        }
+        fprintf(stderr, "unknown_arr:\n");
+        for (auto se : unknown_arr)
+        {
+            fprintf(stderr, "%s\n", se->toStr().c_str());
         }
     }
 };
@@ -41,27 +44,66 @@ static Info meet(Info a, Info b)
 {
     Info result;
 
-    for (auto element : a.scalar2op)
+    for (auto [se, op] : a.scalar2op)
     {
-        if (b.scalar2op.count(element.first) && b.scalar2op[element.first] == element.second)
+        if (!b.scalar2op.count(se) || b.scalar2op[se] == op || (b.scalar2op[se] != nullptr && b.scalar2op[se]->getType()->isConst() && op != nullptr && op->getType()->isConst() && b.scalar2op[se]->getEntry()->getValue() == op->getEntry()->getValue()))
         {
-            result.scalar2op.insert(element);
+            result.scalar2op[se] = op;
+        }
+        else if (b.scalar2op.count(se))
+        {
+            result.scalar2op[se] = nullptr;
+        }
+    }
+    for (auto [se, op] : b.scalar2op)
+    {
+        if (!a.scalar2op.count(se) || a.scalar2op[se] == op || (a.scalar2op[se] != nullptr && a.scalar2op[se]->getType()->isConst() && op != nullptr && op->getType()->isConst() && a.scalar2op[se]->getEntry()->getValue() == op->getEntry()->getValue()))
+        {
+            result.scalar2op[se] = op;
         }
     }
 
-    for (auto element : a.arr2ops)
+    for (auto [se, idx2op] : a.arr2ops)
     {
-        if (b.arr2ops.count(element.first))
+        for (auto [i, op] : idx2op)
         {
-            for (auto [i, op] : element.second)
+            if (b.arr2ops.count(se) && b.arr2ops[se].count(i))
             {
-                if (b.arr2ops[element.first].count(i) && b.arr2ops[element.first][i] == op)
+                if (b.arr2ops[se][i] == op || (b.arr2ops[se][i] != nullptr && b.arr2ops[se][i]->getType()->isConst() && op != nullptr && op->getType()->isConst() && b.arr2ops[se][i]->getEntry()->getValue() == op->getEntry()->getValue()))
                 {
-                    result.arr2ops[element.first][i] = op;
+                    result.arr2ops[se][i] = op;
+                }
+                else
+                {
+                    result.arr2ops[se][i] = nullptr;
+                }
+            }
+            else
+            {
+                if (!b.unknown_arr.count(se))
+                {
+                    result.arr2ops[se][i] = op;
                 }
             }
         }
     }
+    for (auto [se, idx2op] : b.arr2ops)
+    {
+        for (auto [i, op] : idx2op)
+        {
+            if (a.arr2ops.count(se) && a.arr2ops[se].count(i))
+                ;
+            else
+            {
+                if (!a.unknown_arr.count(se))
+                {
+                    result.arr2ops[se][i] = op;
+                }
+            }
+        }
+    }
+
+    std::set_union(a.unknown_arr.begin(), a.unknown_arr.end(), b.unknown_arr.begin(), b.unknown_arr.end(), inserter(result.unknown_arr, result.unknown_arr.end()));
 
     return result;
 }
@@ -181,11 +223,6 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                 {
                     return std::pair<Info, bool>{out, false};
                 }
-                for (auto se : changed_arr[callee->getFunction()])
-                {
-                    in.arr2ops.erase(se);
-                    out.arr2ops.erase(se);
-                }
                 for (auto [se, idx2op] : func_out[callee->getFunction()].arr2ops)
                 {
                     if (se->isVariable() && dynamic_cast<IdentifierSymbolEntry *>(se)->isGlobal())
@@ -226,6 +263,43 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                             for (auto [i, op] : idx2op)
                                 out.arr2ops[origin_se][i + offset] = op;
                         }
+                    }
+                }
+                for (auto se : func_out[callee->getFunction()].unknown_arr)
+                {
+                    SymbolEntry *origin_se = nullptr;
+                    if (se->isVariable() && dynamic_cast<IdentifierSymbolEntry *>(se)->isGlobal())
+                        origin_se = se;
+                    else if (se->isVariable() && dynamic_cast<IdentifierSymbolEntry *>(se)->isParam())
+                    {
+                        auto param_op = dynamic_cast<FuncCallInstruction *>(inst)->getUses()[dynamic_cast<IdentifierSymbolEntry *>(se)->getParamNo()];
+                        if (param_op->getDef() == nullptr)
+                        {
+                            assert(param_op->getEntry()->isVariable());
+                            origin_se = param_op->getEntry();
+                        }
+                        else
+                        {
+                            assert(param_op->getDef()->isAlloca() || param_op->getDef()->isGep() || param_op->getDef()->isPHI() || param_op->getDef()->isLoad());
+                            if (param_op->getDef()->isAlloca())
+                                origin_se = param_op->getEntry();
+                            else if (param_op->getDef()->isGep())
+                            {
+                                origin_se = analyzeGep(param_op->getDef()).first;
+                                if (origin_se == nullptr)
+                                    return std::pair<Info, bool>{out, false};
+                            }
+                            else
+                            {
+                                return std::pair<Info, bool>{out, false};
+                            }
+                        }
+                    }
+                    if (origin_se != nullptr)
+                    {
+                        in.arr2ops.erase(origin_se);
+                        out.arr2ops.erase(origin_se);
+                        out.unknown_arr.insert(origin_se);
                     }
                 }
                 for (auto [se, op] : func_out[callee->getFunction()].scalar2op)
@@ -276,7 +350,8 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                     // auto arrType = dynamic_cast<ArrayType *>(dynamic_cast<PointerType *>(origin_se->getType())->getValType());
                     // for (int i = offset; i != arrType->getSize() / arrType->getElemType()->getSize(); i++)
                     //     out.arr2ops[origin_se][i] = nullptr;
-                    changed_arr[bb->getParent()].insert(origin_se);
+                    out.unknown_arr.insert(origin_se);
+                    // func_out[bb->getParent()].unknown_arr.insert(origin_se);
                 }
                 else
                 {
@@ -302,6 +377,7 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                         for (auto idx : to_rm)
                             out.arr2ops[origin_se].erase(idx);
                     }
+                    out.unknown_arr.insert(origin_se);
                 }
             }
             break;
@@ -316,7 +392,7 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                 if (out.scalar2op.count(dst_addr->getEntry()))
                 {
                     auto old_src = out.scalar2op[dst_addr->getEntry()];
-                    if (old_src == inst->getUses()[1] || (old_src->getType()->isConst() && inst->getUses()[1]->getType()->isConst() && old_src->getEntry()->getValue() == inst->getUses()[1]->getEntry()->getValue()))
+                    if (old_src == inst->getUses()[1] || (old_src != nullptr && old_src->getType()->isConst() && inst->getUses()[1]->getType()->isConst() && old_src->getEntry()->getValue() == inst->getUses()[1]->getEntry()->getValue()))
                         freeInsts.insert(inst);
                     else
                         out.scalar2op[dst_addr->getEntry()] = inst->getUses()[1];
@@ -339,13 +415,15 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                             // {
                             //     out.arr2ops[se][i] = nullptr;
                             // }
-                            changed_arr[bb->getParent()].insert(se);
+                            out.unknown_arr.insert(se);
+                            // func_out[bb->getParent()].unknown_arr.insert(se);
                         }
                         else
                         {
                             // TODO：针对多次GEP的情况还可以更精细
                             in.arr2ops.erase(se);
                             out.arr2ops.erase(se);
+                            out.unknown_arr.insert(se);
                         }
                     }
                     else
@@ -396,7 +474,9 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
         default:
         {
             if (inst->constEval())
+            {
                 freeInsts.insert(inst);
+            }
             break;
         }
         }
@@ -446,33 +526,16 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                 }
             }
         }
-    }
-
-    if (!is_pre)
-    {
         std::set<SymbolEntry *> to_rm;
-        for (auto [se, op] : out.scalar2op)
+        for (auto se : out.unknown_arr)
         {
-            if (op == nullptr)
+            if (se->isTemporary() || (se->isVariable() && dynamic_cast<IdentifierSymbolEntry *>(se)->isLocal()))
             {
                 to_rm.insert(se);
             }
         }
         for (auto se : to_rm)
-        {
-            out.scalar2op.erase(se);
-        }
-
-        for (auto [se, idx2op] : out.arr2ops)
-        {
-            for (auto [idx, op] : idx2op)
-            {
-                if (op == nullptr)
-                {
-                    out.arr2ops[se].erase(idx);
-                }
-            }
-        }
+            out.unknown_arr.erase(se);
     }
 
     if (!is_global)
@@ -497,9 +560,21 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                 }
             }
         }
+        for (auto element : in.unknown_arr)
+        {
+            out.unknown_arr.insert(element);
+        }
         for (auto inst : freeInsts)
         {
             delete inst;
+        }
+    }
+    else
+    {
+        for (auto inst : freeInsts)
+        {
+            if (inst->isCond() || inst->isCmp())
+                delete inst;
         }
     }
 
@@ -554,6 +629,10 @@ void MemoryOpt::pass()
                             }
                         }
                     }
+                }
+                for (auto element : local_info.unknown_arr)
+                {
+                    bbs_sum.unknown_arr.insert(element);
                 }
             }
 
@@ -635,22 +714,17 @@ void MemoryOpt::pass(Function *func)
                     {
                         if (first)
                         {
-                            in = bb_out[*(bb_iter)];
+                            in = bb_out[*bb_iter];
                             first = false;
                         }
                         else
-                            in = meet(in, bb_out[*(bb_iter)]);
-                    }
-                    else
-                    {
-                        in = Info();
-                        break;
+                            in = meet(in, bb_out[*bb_iter]);
                     }
                 }
             }
 
-            fprintf(stderr, "cur_bb is %d\n", cur_bb->getNo());
-            in.print();
+            // fprintf(stderr, "-------------------\ncur_bb is %d\n-------------------\n", cur_bb->getNo());
+            // in.print();
 
             auto [out, success] = transfer(in, cur_bb, false);
 
@@ -663,7 +737,7 @@ void MemoryOpt::pass(Function *func)
                 return;
             }
 
-            out.print();
+            // out.print();
 
             for (auto succ_iter = cur_bb->succ_begin(); succ_iter != cur_bb->succ_end(); succ_iter++)
             {
@@ -676,10 +750,10 @@ void MemoryOpt::pass(Function *func)
 
             if (!bb_in.count(cur_bb) || !bb_out.count(cur_bb) || !(in == bb_in[cur_bb] && out == bb_out[cur_bb]))
             {
-                if (bb_out.count(cur_bb))
-                {
-                    fprintf(stderr, "%d%d\n", bb_out[cur_bb].arr2ops == out.arr2ops, bb_out[cur_bb].scalar2op == out.scalar2op);
-                }
+                // if (bb_out.count(cur_bb))
+                // {
+                //     fprintf(stderr, "%d%d\n", bb_out[cur_bb].arr2ops == out.arr2ops, bb_out[cur_bb].scalar2op == out.scalar2op);
+                // }
                 changed = true;
                 bb_in[cur_bb] = in;
                 bb_out[cur_bb] = out;
@@ -688,7 +762,7 @@ void MemoryOpt::pass(Function *func)
 
         func->SimplifyPHI();
 
-        fprintf(stderr, "one iter finished\n");
+        // fprintf(stderr, "one iter finished\n");
 
     } while (changed);
 
