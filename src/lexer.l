@@ -8,17 +8,11 @@
     #include <string>
     #include <ostream>
     #include <fstream>
-    #include <vector>
-    #include <unordered_set>
-    #include <unordered_map>
-    
     extern FILE *yyin; 
     extern FILE *yyout;
     extern bool dump_tokens;
      
     int offset = 1, part = 0, lastpart = 0, order = 0;
-    std::unordered_map<std::string, std::vector<int>> is_stack;
-    std::unordered_map<int, std::unordered_set<std::string>> cur_str;
 
     bool dump_first_line = true;
     void DEBUG_FOR_LEX(std::string token, std::string lexeme){
@@ -27,15 +21,16 @@
             dump_first_line = false;
         }
         fprintf(yyout, "[DEBUG LEX]:  %12s%12s%12d%12d%12d\n", token.c_str(), lexeme.c_str(), yylineno, offset, part);
+        fprintf(stderr, "[DEBUG LEX]:  %12s%12s%12d%12d%12d\n", token.c_str(), lexeme.c_str(), yylineno, offset, part);
     }
 %}
 
-DECIMAL [1-9][0-9]*|0|-2147483648
-HEX 0(x|X)[1-9a-fA-F][0-9a-fA-F]*|0
-OCT 0[1-7][0-7]*
+DECIMAL ([1-9][0-9]*|0)
+OCT (0[0-7]+)
+HEX (0[xX][0-9A-Fa-f]+)
+ID [[:alpha:]_][[:alpha:][:digit:]_]*
 DECIMAL_FLOAT ((([0-9]*[.][0-9]*([eE][+-]?[0-9]+)?)|([0-9]+[eE][+-]?[0-9]+))[fLlL]?)
 HEXADECIMAL_FLOAT (0[xX](([0-9A-Fa-f]*[.][0-9A-Fa-f]*([pP][+-]?[0-9]+)?)|([0-9A-Fa-f]+[pP][+-]?[0-9]+))[fLlL]?)
-ID [[:alpha:]_][[:alpha:][:digit:]_]*
 EOL (\r\n|\n|\r)
 WHITE [\t ]
 
@@ -281,10 +276,6 @@ LINECOMMENT (\/\/[^\n]*)
     if(dump_tokens){
         DEBUG_FOR_LEX("RBRACE", "}");
         offset += strlen(yytext);
-        for (std::string s : cur_str[part]) {
-            is_stack[s].pop_back();
-        }
-        cur_str.clear();
         part = lastpart;
     }
     return RBRACE;
@@ -499,8 +490,6 @@ LINECOMMENT (\/\/[^\n]*)
 }
 {ID} {
     if(dump_tokens){
-        if (!cur_str[part].count(std::string(yytext))) cur_str[part].insert(std::string(yytext));
-        is_stack[std::string(yytext)].push_back(part);
         DEBUG_FOR_LEX("ID", std::string(yytext));
         offset += strlen(yytext);
     }

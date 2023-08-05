@@ -240,8 +240,7 @@ public:
         leaves.clear();
     };
     bool isLeaf() { return leaves.empty() && leaf != nullptr; };
-    void fill(int level, std::vector<int> d, Type *type);
-    int getSize(int d_nxt);
+    void fill(std::vector<int> d, Type *type);
     void output(int level);
     void genCode();
     std::vector<InitNode *> getleaves() { return leaves; };

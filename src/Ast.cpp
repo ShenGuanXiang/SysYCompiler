@@ -336,8 +336,10 @@ void FuncDefParamsNode::addChild(Id *next)
 std::vector<Type *> FuncDefParamsNode::getParamsType()
 {
     std::vector<Type *> ans;
-    for (auto param : paramsList)
+    for (auto param : paramsList) {
         ans.push_back(param->getType());
+        fprintf(stderr, "paramsType is %s\n", param->getType()->toStr().c_str());
+    }
     return ans;
 }
 
@@ -398,10 +400,7 @@ void Id::genCode()
                 tempSrc = dst1;
             }
             std::vector<int> currr_dim;
-            if (!isPtr)
-                currr_dim = cur_type->fetch(); // if is params, it should be 0
-            else
-                currr_dim = ((ArrayType *)((PointerType *)getSymPtr()->getType())->getValType())->fetch();
+            currr_dim = cur_type->fetch();
             if (currr_dim.size() != indices->getExprList().size() && !isPtr)
                 is_FP = true;
 
@@ -426,10 +425,14 @@ void Id::genCode()
             }
             ArrayType *curr_type;
             PointerType *final_type;
-            if (currr_dim.size())
+            if ((int)currr_dim.size() > 0)
             {
                 curr_type = arrTypeLike(cur_type);
+                if (is_FP) currr_dim.erase(currr_dim.begin());
                 curr_type->setDim(currr_dim);
+                for (auto d : currr_dim)
+                    fprintf(stderr, "cur_dim is %d\n", d);
+                fprintf(stderr, "\n");
                 final_type = new PointerType(curr_type);
             }
             else
@@ -447,6 +450,16 @@ void Id::genCode()
                 dst = tempSrc;
                 return;
             }
+            if (is_FP)
+            {
+                // dst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                // dst = new Operand(new TemporarySymbolEntry(new PointerType(((ArrayType*)final_type->getValType())->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
+                dst = tempSrc;
+                dst->getEntry()->setType(final_type);
+                // assert(0);
+                is_FP = false;
+                return;
+            }
             if (!isPtr)
             {
                 dst1 = new Operand(new TemporarySymbolEntry(Const2Var(getType()), SymbolTable::getLabel()));
@@ -457,16 +470,6 @@ void Id::genCode()
                     dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
                 else
                     dst1 = new Operand(new TemporarySymbolEntry(TypeSystem::floatType, SymbolTable::getLabel()));
-            }
-            if (is_FP)
-            {
-                // dst = new Operand(new TemporarySymbolEntry(new PointerType(curr_type->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
-                // dst = new Operand(new TemporarySymbolEntry(new PointerType(((ArrayType*)final_type->getValType())->getElemType()), ((TemporarySymbolEntry *)tempSrc->getEntry())->getLabel()));
-                dst = tempSrc;
-                dst->getEntry()->setType(new PointerType(((ArrayType *)final_type->getValType())->getElemType()));
-                // assert(0);
-                is_FP = false;
-                return;
             }
             new LoadInstruction(dst1, tempSrc, bb);
             dst = dst1;
@@ -895,7 +898,7 @@ DeclStmt::DeclStmt(Id *id, InitNode *expr) : id(id), expr(expr)
         else if (id->getType()->isARRAY())
         {
             std::vector<int> origin_dim = ((ArrayType *)(id->getType()))->fetch();
-            expr->fill(0, origin_dim, ((ArrayType *)(id->getType()))->getElemType());
+            expr->fill(origin_dim, ((ArrayType *)(id->getType()))->getElemType());
             vec_val.clear();
             get_vec_val(expr);
             std::vector<double> arrVals;
@@ -1422,54 +1425,100 @@ ExprNode *typeCast(ExprNode *fromNode, Type *to)
         return fromNode;
 }
 
-void InitNode::fill(int level, std::vector<int> d, Type *type)
+void Print(std::vector<int> pos, const char* log) {
+    fprintf(stderr, "%s is ", log);
+    for (size_t i = 0; i < pos.size(); i ++ )
+        fprintf(stderr, "%d ", pos[i]);
+    fprintf(stderr, "\n");
+}
+
+void AddPos(std::vector<int> d, std::vector<int>& pos, int i) {
+    assert(i < pos.size() && i >= 0);
+    pos[i] = pos[i] + 1;
+    for (size_t idx = i; idx > 0; idx --) {
+        if (pos[idx] < d[idx]) break;
+        pos[idx - 1] += pos[idx] / d[idx];
+        pos[idx] %= d[idx];
+    }
+    assert(pos[0] <= d[0] && "Too many Array Elements");
+}
+
+int FindDimUnfilled(std::vector<int> pos) {
+    assert(!pos.empty());
+    for (int i = pos.size() - 1; i >= 0; i --) {
+        // fprintf(stderr, "Find %d\n", i);
+        if (pos[i] != 0) {
+            // fprintf(stderr, "choose %d\n", i);
+            return i;
+        }
+    }
+    return 0;
+}
+
+int Finish(std::vector<int> d, std::vector<int>& pos) {
+    int sum = 1, cur_sum = 0;
+    for (size_t i = 0; i < pos.size(); i ++ ) {
+        sum *= d[i];
+        cur_sum = cur_sum * d[i] + pos[i];
+    }
+    // fprintf(stderr, "sum is %d, cur_sum is %d\n", sum, cur_sum);
+    return sum - cur_sum;
+}
+
+
+/*
+    Array A[M][N][P][Q]
+    case 0: {{}, {}}, {} as the beginning
+    case 1: {a[0...m], {}, {}}, vec as the beginning
+    case 2: {a[0...m]}, just a vec
+    case 3: {a[0...m], {}, b[0...n], {}, c[0...q]} mix
+
+    we define the vec pos to simulate arrayIdx
+    case 3:
+        if a[1...m] have been matched, the first {}'s type should be judged by pos
+            pos[][][][0]
+*/
+void InitNode::fill(std::vector<int> d, Type *type)
 {
-    if (level == (int)d.size() || leaf != nullptr)
-    {
-        if (leaf == nullptr)
-            setleaf(new Constant(new ConstantSymbolEntry(Var2Const(type), 0)));
+    std::vector<int> pos(d.size(), 0);
+    int p = 0, dimension = pos.size();
+    std::vector<std::vector<int>> stage;
+    std::vector<int> temp = d;
+    temp.erase(temp.begin());
+    while (temp.size() > 0) {
+        stage.push_back(temp);
+        temp.erase(temp.begin());
+    }
+    if (stage.size() == 0) {
+        while (leaves.size() < d[0])
+        {
+            InitNode *new_const_node = new InitNode();
+            new_const_node->setleaf(new Constant(new ConstantSymbolEntry(Var2Const(type), 0)));
+            addleaf(new_const_node);
+        }
         return;
     }
-    int cap = 1, num = 0;
-    for (size_t i = level + 1; i < d.size(); i++)
-        cap *= d[i];
-    for (int i = (int)leaves.size() - 1; i >= 0; i--)
-        if (leaves[i]->isLeaf())
-            num++;
-        else
-            break;
-    while (num % cap)
+    for (size_t i = 0; i < leaves.size(); i ++)
     {
+        if (leaves[i]->isLeaf()) {
+            p = dimension - 1;
+            AddPos(d, pos, p);
+            // Print(pos, "pos1");
+            continue;
+        }
+        int stg = FindDimUnfilled(pos);
+        // Print(pos, "pos3");
+        // fprintf(stderr, "stage is %d\n", stg);
+        assert(stg < stage.size());
+        leaves[i]->fill(stage[stg], type);
+        AddPos(d, pos, stg);
+        // Print(pos, "pos2");
+    }
+    int num = Finish(d, pos);
+    assert(num >= 0);
+    while (num --) {
         InitNode *new_const_node = new InitNode();
         new_const_node->setleaf(new Constant(new ConstantSymbolEntry(Var2Const(type), 0)));
         addleaf(new_const_node);
-        num++;
     }
-    auto t = getSize(cap);
-    while (t < d[level])
-    {
-        InitNode *new_node = new InitNode();
-        addleaf(new_node);
-        t++;
-    }
-    for (auto l : leaves)
-        l->fill(level + 1, d, type);
-}
-
-int InitNode::getSize(int d_nxt)
-{
-    int num = 0, cur_fit = 0;
-    for (auto l : leaves)
-    {
-        if (l->leaf != nullptr)
-            num++;
-        else
-            cur_fit++;
-        if (num == d_nxt)
-        {
-            cur_fit++;
-            num = 0;
-        }
-    }
-    return cur_fit + num / d_nxt;
 }
