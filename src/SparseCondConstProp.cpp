@@ -610,6 +610,7 @@ void SparseCondConstProp::visit(Instruction *inst)
     }
     case Instruction::GEP:
     {
+        // TODO ：参数数组寻址
         if ((dynamic_cast<PointerType *>(inst->getUses()[0]->getType())->getValType())->isARRAY())
         {
             IdentifierSymbolEntry *arr = nullptr;
@@ -695,33 +696,12 @@ void SparseCondConstProp::constFold(Function *func)
     // cond_br with const cond
     for (auto bb : func->getBlockList())
     {
-        if (bb->rbegin()->isCond() && bb->rbegin()->getUses()[0]->getType()->isConst())
+        if (bb->rbegin()->isCond())
         {
             auto cond_br = dynamic_cast<CondBrInstruction *>(bb->rbegin());
-            auto *true_bb = cond_br->getTrueBranch();
-            auto *false_bb = cond_br->getFalseBranch();
-            if (cond_br->getUses()[0]->getEntry()->getValue() == 1)
+            if (cond_br->constEval())
             {
-                freeInsts.push_back(bb->rbegin());
-                bb->remove(bb->rbegin());
-                new UncondBrInstruction(true_bb, bb);
-
-                bb->removeSucc(false_bb);
-                false_bb->removePred(bb);
-                for (auto i = false_bb->begin(); i != false_bb->end() && i->isPHI(); i = i->getNext())
-                    dynamic_cast<PhiInstruction *>(i)->removeEdge(bb);
-            }
-            else
-            {
-                assert(cond_br->getUses()[0]->getEntry()->getValue() == 0);
-                freeInsts.push_back(bb->rbegin());
-                bb->remove(bb->rbegin());
-                new UncondBrInstruction(false_bb, bb);
-
-                bb->removeSucc(true_bb);
-                true_bb->removePred(bb);
-                for (auto i = true_bb->begin(); i != true_bb->end() && i->isPHI(); i = i->getNext())
-                    dynamic_cast<PhiInstruction *>(i)->removeEdge(bb);
+                freeInsts.push_back(cond_br);
             }
         }
     }

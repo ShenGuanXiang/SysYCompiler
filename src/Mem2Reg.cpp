@@ -615,28 +615,17 @@ void Mem2Reg::InsertPhi(Function *func)
 // 删除源操作数均相同的PHI
 void Function::SimplifyPHI()
 {
+    std::set<Instruction *> to_rm;
     for (auto bb : getBlockList())
     {
         for (auto phi = bb->begin(); phi != bb->end() && phi->isPHI(); phi = phi->getNext())
         {
-            auto srcs = phi->getUses();
-            auto last_src = srcs[0];
-            bool Elim = true;
-            for (auto src : srcs)
-            {
-                if (src != last_src && !(src->getType()->isConst() && last_src->getType()->isConst() && src->getEntry()->getValue() == last_src->getEntry()->getValue()))
-                {
-                    Elim = false;
-                    break;
-                }
-            }
-            if (Elim)
-            {
-                phi->replaceAllUsesWith(last_src);
-                delete phi;
-            }
+            if (phi->constEval())
+                to_rm.insert(phi);
         }
     }
+    for (auto phi : to_rm)
+        delete phi;
 }
 
 // https://roife.github.io/2022/02/07/mem2reg/

@@ -10,7 +10,7 @@ TIMING ?= 1
 
 INC = $(addprefix -I, $(INC_PATH))
 SRC = $(shell find $(SRC_PATH)  -name "*.cpp" -not -name "Main.cpp")
-CFLAGS = -O2 -g -Wall -std=c++17 $(INC)
+CFLAGS = -O0 -g -Wall -std=c++17 $(INC)
 FLEX ?= $(SRC_PATH)/lexer.l
 LEXER ?= $(addsuffix .cpp, $(basename $(FLEX)))
 BISON ?= $(SRC_PATH)/parser.y
@@ -47,7 +47,7 @@ $(OBJ_PATH)/%.o:$(SRC_PATH)/%.cpp
 	@clang++ $(CFLAGS) -c -o $@ $<
 
 $(BINARY):$(OBJ)
-	@clang++ -O2 -g -o $@ $^
+	@clang++ -g -o $@ $^
 
 app:$(LEXER) $(PARSER) $(BINARY)
 

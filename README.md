@@ -234,17 +234,17 @@
 
 # TODO
 
-## median2 opt llvm、arr_init_nd、many_dimensions
+## median2 opt llvm、sl1 RE
+
+## 递归函数 记忆化搜索
 
 ## 图着色寄存器分配
 
 ## Inliner
 
-- 递归函数展开若干层
-- 如果一个函数的某个参数在所有调用中相同，则将其替换为常量
-- 如果一个函数的返回值从未由调用者使用，则将返回值设为0
-- 尾递归转循环
 - 用散列表保存单参数的递归函数的返回值
+- 递归函数展开若干层
+- 尾递归转循环
 
 ## 代数化简
 
@@ -255,14 +255,18 @@
 ## 循环优化
 
 - 不变代码外提 & 部分冗余消除
+
 - 循环中的强度削弱
   https://en.wikipedia.org/wiki/Induction_variable
+  
+  https://www.cs.cornell.edu/courses/cs6120/2019fa/blog/ive/
 
 ## 指令调度
 
+- 乱序执行
 - 调整基本块内指令顺序，尽可能缩短变量的生存期，从而减少寄存器分配中的溢出
 
-- Global Code Motion?
+## Global Code Motion
 
 ## 访存优化
 
