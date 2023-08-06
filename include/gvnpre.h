@@ -207,7 +207,7 @@ public:
     std::unordered_map<ValueNr,std::set<Expr>> &getValnrs() { return val2exprs; }
 };
 
-#define DEBUG_GVNPRE
+// #define DEBUG_GVNPRE
 
 // typedef std::vector<std::pair<Operand*,std::string>> Exprset;
 

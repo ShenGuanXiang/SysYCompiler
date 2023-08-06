@@ -17,6 +17,7 @@
 #include "PeepholeOptimization.h"
 #include "gvnpre.h"
 #include "LoopUnroll.h"
+#include "GlobalCodeMotion.h"
 
 Ast ast;
 Unit *unit = new Unit();
@@ -101,24 +102,26 @@ int main(int argc, char *argv[])
 
     if (optimize)
     {
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i < 4; i++)
         {
-            // AutoInliner autoinliner(unit);
-            // autoinliner.pass(); // 函数自动内联
+            AutoInliner autoinliner(unit);
+            autoinliner.pass(); // 函数自动内联
             Mem2Reg m2r(unit);
             m2r.pass();
-            // GVNPRE gvnpre(unit);
-            // gvnpre.pass(); // 部分冗余消除&循环不变外提
-            // // TODO:其它中间代码优化
-            // // 代数化简
-            // SparseCondConstProp sccp(unit);
-            // sccp.pass(); // 常量传播
-            // ComSubExprElim cse(unit);
-            // cse.pass3(); // 公共子表达式消除
-            // // 访存优化
-            // // 循环展开
-            // DeadCodeElim dce(unit);
-            // dce.pass(); // 死代码删除
+            SparseCondConstProp sccp(unit);
+            sccp.pass(); // 常量传播
+            ComSubExprElim cse(unit);
+            cse.pass3(); // 公共子表达式消除
+            GlobalCodeMotion gcm(unit);
+            gcm.pass(); // 全局代码移动
+            GVNPRE gvnpre(unit);
+            gvnpre.pass(); // 部分冗余消除&循环不变外提
+            // TODO:其它中间代码优化
+            // 代数化简
+            // 访存优化
+            // 循环展开
+            DeadCodeElim dce(unit);
+            dce.pass(); // 死代码删除
         }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)

@@ -179,6 +179,57 @@ void ComSubExprElim::pass3()
     }
 }
 
+void ComSubExprElim::pass1(BasicBlock *bb)
+{
+    std::vector<Instruction *> torm; // instruction to remove
+    for (auto cur_inst = bb->begin(); cur_inst != bb->end(); cur_inst = cur_inst->getNext())
+    {
+        std::string instString;
+        instString += getOpString(cur_inst);
+        if (instString == "")
+            continue;
+        Operand *dst = cur_inst->getDef();
+        if (instString == "MEANINGLESS_PHI")
+        {
+            auto args = dynamic_cast<PhiInstruction *>(cur_inst)->getSrcs();
+            htable[dst->toStr()] = args.begin()->second;
+            torm.push_back(cur_inst);
+            cur_inst->replaceAllUsesWith(args.begin()->second);
+        }
+        else if (instString.substr(0, 3) == "PHI" &&
+                 htable.count(instString) &&
+                 htable[instString]->getDef()->getParent() == bb)
+        {
+            // redundant
+            htable[dst->toStr()] = htable[instString];
+            torm.push_back(cur_inst);
+            cur_inst->replaceAllUsesWith(htable[instString]);
+        }
+        else
+        {
+            if (htable.count(instString))
+            {
+                if(instString.substr(0,3) == "PHI")
+                    continue; //we cannot elminate phi here
+                auto src = htable[instString];
+                torm.push_back(cur_inst);
+                htable[dst->toStr()] = src;
+                cur_inst->replaceAllUsesWith(src);
+                fprintf(stderr, "[GVN]:%s->%s\n",dst->toStr().c_str(),src->toStr().c_str());
+            }
+            else
+            {
+                htable[instString] = dst;
+            }
+        }
+    }
+    for (auto i : torm)
+    {
+        bb->remove(i);
+        delete i;
+    }
+}
+
 // the following functions are used for value numbering in assmbly code generation phase
 
 void ComSubExprElimASM::computeDomTree(MachineFunction *func)

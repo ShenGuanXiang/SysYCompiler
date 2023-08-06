@@ -28,6 +28,18 @@ void BasicBlock::insertBefore(Instruction *dst, Instruction *src)
     dst->setParent(this);
 }
 
+// insert the instruction dst after src.
+void BasicBlock::insertAfter(Instruction *dst, Instruction *src)
+{
+    Instruction *next = src->getNext();
+    assert(next != nullptr);
+    next->setPrev(dst);
+    dst->setNext(next);
+    dst->setPrev(src);
+    src->setNext(dst);
+    dst->setParent(this);
+}
+
 // remove the instruction from intruction list.
 void BasicBlock::remove(Instruction *inst)
 {

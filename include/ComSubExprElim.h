@@ -20,13 +20,14 @@ class ComSubExprElim
 
 public:
     ComSubExprElim(Unit *unit) : unit(unit){};
+    ComSubExprElim() {}
     void dumpTable();
     void computeDomTree(Function *func);
     void dvnt(BasicBlock *bb);
     void pass3();
     void pass2(Function *func) {}
-    void pass1(){};
-    // pass1 is implemented using LVN, i.e. optimize within basic blocks
+    void pass1(BasicBlock* bb);
+    // pass1 is implemented using LVN, but negelect the block boundaries, used in gcm
     // pass2 is implemented using SVN, i.e. optimize within extended blocks (tree shape), to be implemented
     // pass3 is implemented using DVNT, dominator-based
     // we only use dvnt, so pass1 and pass2 are removed
