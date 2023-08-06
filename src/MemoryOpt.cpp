@@ -4,6 +4,7 @@
 #include <stack>
 
 // TODO：如果写操作不会对之后的读操作产生影响，则删除写操作
+// TODO：最近一次load出来的结果，加入map
 
 struct Info
 {
@@ -144,17 +145,37 @@ static std::pair<SymbolEntry *, int> analyzeGep(Instruction *inst)
 
         if (se == nullptr)
             return {nullptr, -1};
+        else if (offset == -1)
+            return {se, -1};
         else
         {
-            assert(se->getType()->isPTR() && dynamic_cast<PointerType *>(se->getType())->getValType()->isARRAY());
-            auto arrType = dynamic_cast<ArrayType *>(dynamic_cast<PointerType *>(se->getType())->getValType());
-            cur_size = arrType->getSize() / arrType->getElemType()->getSize();
-            dims = arrType->fetch();
+            assert(se->getType()->isPTR());
+            if (dynamic_cast<PointerType *>(se->getType())->getValType()->isARRAY())
+            {
+                auto arrType = dynamic_cast<ArrayType *>(dynamic_cast<PointerType *>(se->getType())->getValType());
+                cur_size = arrType->getSize() / arrType->getElemType()->getSize();
+                dims = arrType->fetch();
+
+                int delta_k = 0;
+                for (int i = 1; i < inst->getUses().size(); i++)
+                {
+                    if (k < dims.size())
+                    {
+                        cur_size /= dims[k++];
+                        delta_k++;
+                    }
+                }
+                if (delta_k == inst->getUses().size() - 1)
+                    cur_size *= dims[--k];
+            }
+            else
+                cur_size = 1;
 
             while (!st.empty())
             {
                 inst = st.top();
                 st.pop();
+                int delta_k = 0;
                 for (auto i = 1U; i != inst->getUses().size(); i++)
                 {
                     if (!inst->getUses()[i]->getType()->isConst())
@@ -163,8 +184,13 @@ static std::pair<SymbolEntry *, int> analyzeGep(Instruction *inst)
                     }
                     offset += inst->getUses()[i]->getEntry()->getValue() * cur_size;
                     if (k < dims.size())
+                    {
                         cur_size /= dims[k++];
+                        delta_k++;
+                    }
                 }
+                if (delta_k == inst->getUses().size() - 1)
+                    cur_size *= dims[--k];
             }
 
             inst = origin_inst;
@@ -217,7 +243,77 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
         case Instruction::CALL:
         {
             auto callee = dynamic_cast<FuncCallInstruction *>(inst)->getFuncSe();
-            if (callee->getFunction() != nullptr)
+            if (callee->getName() == "memset")
+            {
+                assert(inst->getUses()[0]->getType()->isPTR() && dynamic_cast<PointerType *>(inst->getUses()[0]->getType())->getValType()->isARRAY());
+                auto arrType = dynamic_cast<ArrayType *>(dynamic_cast<PointerType *>(inst->getUses()[0]->getType())->getValType());
+                assert(arrType->getElemType()->getSize() == 4);
+                assert(inst->getUses()[1]->getEntry()->getValue() == 0);
+                auto se = inst->getUses()[0]->getEntry();
+                for (int i = 0; i < inst->getUses()[2]->getEntry()->getValue() / 4; i++)
+                {
+                    if (bb_out[bb].arr2ops.count(se) && bb_out[bb].arr2ops[se].count(i) && bb_out[bb].arr2ops[se][i] != nullptr && bb_out[bb].arr2ops[se][i]->getType() == Var2Const(inst->getUses()[1]->getType()) && bb_out[bb].arr2ops[se][i]->getEntry()->getValue() == inst->getUses()[1]->getEntry()->getValue())
+                        out.arr2ops[se][i] = bb_out[bb].arr2ops[se][i];
+                    else
+                        out.arr2ops[se][i] = new Operand(new ConstantSymbolEntry(inst->getUses()[1]->getType(), inst->getUses()[1]->getEntry()->getValue()));
+                }
+            }
+            else if (callee->getName() == "getarray" || callee->getName() == "getfarray")
+            {
+                auto param_op = inst->getUses()[0];
+                assert(param_op->getDef() != nullptr); // TODO：这里没考虑int f(int a[]) { getarray(a);}; 这种
+                assert(param_op->getDef()->isGep() || param_op->getDef()->isPHI());
+                int offset = 0;
+                SymbolEntry *origin_se;
+                if (param_op->getDef()->isGep())
+                {
+                    auto res = analyzeGep(param_op->getDef());
+                    origin_se = res.first;
+                    offset = res.second;
+                    if (origin_se == nullptr)
+                        return std::pair<Info, bool>{out, false};
+                }
+                else
+                {
+                    return std::pair<Info, bool>{out, false};
+                }
+                assert(origin_se->getType()->isPTR() && dynamic_cast<PointerType *>(origin_se->getType())->getValType()->isARRAY());
+                if (is_pre)
+                {
+                    // auto arrType = dynamic_cast<ArrayType *>(dynamic_cast<PointerType *>(origin_se->getType())->getValType());
+                    // for (int i = offset; i != arrType->getSize() / arrType->getElemType()->getSize(); i++)
+                    //     out.arr2ops[origin_se][i] = nullptr;
+                    out.unknown_arr.insert(origin_se);
+                    // func_out[bb->getParent()].unknown_arr.insert(origin_se);
+                }
+                else
+                {
+                    if (in.arr2ops.count(origin_se))
+                    {
+                        std::set<int> to_rm;
+                        for (auto [idx, op] : in.arr2ops[origin_se])
+                        {
+                            if (idx >= offset)
+                                to_rm.insert(idx);
+                        }
+                        for (auto idx : to_rm)
+                            in.arr2ops[origin_se].erase(idx);
+                    }
+                    if (out.arr2ops.count(origin_se))
+                    {
+                        std::set<int> to_rm;
+                        for (auto [idx, op] : out.arr2ops[origin_se])
+                        {
+                            if (idx >= offset)
+                                to_rm.insert(idx);
+                        }
+                        for (auto idx : to_rm)
+                            out.arr2ops[origin_se].erase(idx);
+                    }
+                    out.unknown_arr.insert(origin_se);
+                }
+            }
+            else if (callee->getFunction() != nullptr && !callee->isLibFunc())
             {
                 if (!func_out.count(callee->getFunction()))
                 {
@@ -310,76 +406,6 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                     }
                 }
             }
-            else if (callee->getName() == "memset")
-            {
-                assert(inst->getUses()[0]->getType()->isPTR() && dynamic_cast<PointerType *>(inst->getUses()[0]->getType())->getValType()->isARRAY());
-                auto arrType = dynamic_cast<ArrayType *>(dynamic_cast<PointerType *>(inst->getUses()[0]->getType())->getValType());
-                assert(arrType->getElemType()->getSize() == 4);
-                assert(inst->getUses()[1]->getEntry()->getValue() == 0);
-                auto se = inst->getUses()[0]->getEntry();
-                for (int i = 0; i < inst->getUses()[2]->getEntry()->getValue() / 4; i++)
-                {
-                    if (bb_out[bb].arr2ops.count(se) && bb_out[bb].arr2ops[se].count(i) && bb_out[bb].arr2ops[se][i] != nullptr && bb_out[bb].arr2ops[se][i]->getType() == Var2Const(inst->getUses()[1]->getType()) && bb_out[bb].arr2ops[se][i]->getEntry()->getValue() == inst->getUses()[1]->getEntry()->getValue())
-                        out.arr2ops[se][i] = bb_out[bb].arr2ops[se][i];
-                    else
-                        out.arr2ops[se][i] = new Operand(new ConstantSymbolEntry(inst->getUses()[1]->getType(), inst->getUses()[1]->getEntry()->getValue()));
-                }
-            }
-            else if (callee->getName() == "getarray" || callee->getName() == "getfarray")
-            {
-                auto param_op = inst->getUses()[0];
-                assert(param_op->getDef() != nullptr); // TODO：这里没考虑int f(int a[]) { getarray(a);}; 这种
-                assert(param_op->getDef()->isGep() || param_op->getDef()->isPHI());
-                int offset = 0;
-                SymbolEntry *origin_se;
-                if (param_op->getDef()->isGep())
-                {
-                    auto res = analyzeGep(param_op->getDef());
-                    origin_se = res.first;
-                    offset = res.second;
-                    if (origin_se == nullptr)
-                        return std::pair<Info, bool>{out, false};
-                }
-                else
-                {
-                    return std::pair<Info, bool>{out, false};
-                }
-                assert(origin_se->getType()->isPTR() && dynamic_cast<PointerType *>(origin_se->getType())->getValType()->isARRAY());
-                if (is_pre)
-                {
-                    // auto arrType = dynamic_cast<ArrayType *>(dynamic_cast<PointerType *>(origin_se->getType())->getValType());
-                    // for (int i = offset; i != arrType->getSize() / arrType->getElemType()->getSize(); i++)
-                    //     out.arr2ops[origin_se][i] = nullptr;
-                    out.unknown_arr.insert(origin_se);
-                    // func_out[bb->getParent()].unknown_arr.insert(origin_se);
-                }
-                else
-                {
-                    if (in.arr2ops.count(origin_se))
-                    {
-                        std::set<int> to_rm;
-                        for (auto [idx, op] : in.arr2ops[origin_se])
-                        {
-                            if (idx >= offset)
-                                to_rm.insert(idx);
-                        }
-                        for (auto idx : to_rm)
-                            in.arr2ops[origin_se].erase(idx);
-                    }
-                    if (out.arr2ops.count(origin_se))
-                    {
-                        std::set<int> to_rm;
-                        for (auto [idx, op] : out.arr2ops[origin_se])
-                        {
-                            if (idx >= offset)
-                                to_rm.insert(idx);
-                        }
-                        for (auto idx : to_rm)
-                            out.arr2ops[origin_se].erase(idx);
-                    }
-                    out.unknown_arr.insert(origin_se);
-                }
-            }
             break;
         }
         case Instruction::STORE:
@@ -459,6 +485,10 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                     inst->replaceAllUsesWith(out.scalar2op[src_addr->getEntry()]);
                     freeInsts.insert(inst);
                 }
+                // else
+                // {
+                //     out.scalar2op[src_addr->getEntry()] = inst->getDef();
+                // }
             }
             else if (src_addr->getDef()->isGep())
             {
@@ -468,6 +498,10 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                     inst->replaceAllUsesWith(out.arr2ops[se][offset]);
                     freeInsts.insert(inst);
                 }
+                // else if (se != nullptr && offset != -1)
+                // {
+                //     out.arr2ops[se][offset] = inst->getDef();
+                // }
             }
             break;
         }

@@ -350,9 +350,17 @@
 
 2. // TODO：next_inst为vmov/mov && next_inst目标为r0~r3/s0~s3 && curr_inst目标 = next_inst源, curr_inst可以是其它指令=>
 
-3. 将多条store替换为vdup和vstm【暂时不做了 :) 】
+3. 
+  
+   lsl r3, r2, #2
+ 
+   add r12, r5, r2, lsl #2
+ 
+   ldr r3, [r5, r3] 
 
-4. 多条push/pop合并为一条push/pop【发现有个bug :( 】
+4. 将多条store替换为vdup和vstm【暂时不做了 :) 】
+
+5. 多条push/pop合并为一条push/pop【发现有个bug :( 】
 
 ## 参考网站
 
