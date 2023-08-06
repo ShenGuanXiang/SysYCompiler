@@ -234,17 +234,15 @@
 
 # TODO
 
-## median2 opt llvm、arr_init_nd、many_dimensions
+## median2 opt llvm、sl1 RE
 
 ## 图着色寄存器分配
 
 ## Inliner
 
+- 用散列表保存单参数的递归函数的返回值(记忆化搜索)
 - 递归函数展开若干层
-- 如果一个函数的某个参数在所有调用中相同，则将其替换为常量
-- 如果一个函数的返回值从未由调用者使用，则将返回值设为0
 - 尾递归转循环
-- 用散列表保存单参数的递归函数的返回值
 
 ## 代数化简
 
@@ -255,14 +253,18 @@
 ## 循环优化
 
 - 不变代码外提 & 部分冗余消除
+
 - 循环中的强度削弱
   https://en.wikipedia.org/wiki/Induction_variable
+  
+  https://www.cs.cornell.edu/courses/cs6120/2019fa/blog/ive/
 
 ## 指令调度
 
+- 乱序执行
 - 调整基本块内指令顺序，尽可能缩短变量的生存期，从而减少寄存器分配中的溢出
 
-- Global Code Motion?
+## Global Code Motion
 
 ## 访存优化
 
@@ -348,9 +350,17 @@
 
 2. // TODO：next_inst为vmov/mov && next_inst目标为r0~r3/s0~s3 && curr_inst目标 = next_inst源, curr_inst可以是其它指令=>
 
-3. 将多条store替换为vdup和vstm【暂时不做了 :) 】
+3. 
+  
+   lsl r3, r2, #2
+ 
+   add r12, r5, r2, lsl #2
+ 
+   ldr r3, [r5, r3] 
 
-4. 多条push/pop合并为一条push/pop【发现有个bug :( 】
+4. 将多条store替换为vdup和vstm【暂时不做了 :) 】
+
+5. 多条push/pop合并为一条push/pop【发现有个bug :( 】
 
 ## 参考网站
 

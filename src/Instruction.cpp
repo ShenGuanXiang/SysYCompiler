@@ -21,14 +21,11 @@ Instruction::Instruction(unsigned instType, BasicBlock *insert_bb)
 
 Instruction::~Instruction()
 {
-    std::set<Operand *> freeOps;
     for (auto def : def_list) // size of def_list = 1
     {
         if (def != nullptr)
         {
             def->removeDef(this);
-            if (def->defsNum() == 0 && def->usersNum() == 0)
-                freeOps.insert(def);
         }
     }
     for (auto use : use_list)
@@ -36,24 +33,10 @@ Instruction::~Instruction()
         if (use != nullptr)
         {
             use->removeUse(this);
-            if (use->defsNum() == 0 && use->usersNum() == 0)
-                freeOps.insert(use);
         }
     }
     if (parent != nullptr)
         parent->remove(this);
-    for (auto op : freeOps)
-    {
-        if (op != nullptr)
-        {
-            if (op->getEntry() && op->getEntry()->isVariable())
-            {
-                dynamic_cast<IdentifierSymbolEntry *>(op->getEntry())->setParamOpe(nullptr);
-                dynamic_cast<IdentifierSymbolEntry *>(op->getEntry())->setAddr(nullptr);
-            }
-            delete op;
-        }
-    }
 }
 
 BasicBlock *Instruction::getParent()
@@ -1395,4 +1378,158 @@ void GepInstruction::genMachineCode(AsmBuilder *builder)
 
     for (auto inst : insts)
         cur_block->insertBack(inst);
+}
+
+bool BinaryInstruction::constEval()
+{
+    if (this->getUses()[0]->getType()->isConst() && this->getUses()[1]->getType()->isConst())
+    {
+        auto val1 = this->getUses()[0]->getEntry()->getValue(), val2 = this->getUses()[1]->getEntry()->getValue();
+        switch (getOpcode())
+        {
+        case BinaryInstruction::ADD:
+            this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), val1 + val2)));
+            break;
+        case BinaryInstruction::SUB:
+            this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), val1 - val2)));
+            break;
+        case BinaryInstruction::MUL:
+            this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), val1 * val2)));
+            break;
+        case BinaryInstruction::DIV:
+        {
+            if (this->getDef()->getType()->isInt())
+                this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), (int)(val1 / val2))));
+            else
+            {
+                assert(this->getDef()->getType()->isFloat());
+                this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), val1 / val2)));
+            }
+            break;
+        }
+        case BinaryInstruction::MOD:
+            this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), (int)val1 % (int)val2)));
+            break;
+        default:
+            assert(0 && "unimplemented binary inst type");
+        }
+        return true;
+    }
+    return false;
+}
+
+bool CmpInstruction::constEval()
+{
+    if (this->getUses()[0]->getType()->isConst() && this->getUses()[1]->getType()->isConst())
+    {
+        auto val1 = this->getUses()[0]->getEntry()->getValue(), val2 = this->getUses()[1]->getEntry()->getValue();
+        switch (getOpcode())
+        {
+        case CmpInstruction::E:
+            this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), val1 == val2)));
+            break;
+        case CmpInstruction::NE:
+            this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), val1 != val2)));
+            break;
+        case CmpInstruction::L:
+            this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), val1 < val2)));
+            break;
+        case CmpInstruction::LE:
+            this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), val1 <= val2)));
+            break;
+        case CmpInstruction::G:
+            this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), val1 > val2)));
+            break;
+        case CmpInstruction::GE:
+            this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), val1 >= val2)));
+            break;
+        default:
+            assert(0 && "unimplemented cmp inst type");
+        }
+        return true;
+    }
+    return false;
+}
+
+bool CondBrInstruction::constEval()
+{
+    if (this->getUses()[0]->getType()->isConst())
+    {
+        auto *true_bb = this->getTrueBranch();
+        auto *false_bb = this->getFalseBranch();
+        auto *bb = this->getParent();
+        if (this->getUses()[0]->getEntry()->getValue() == 1)
+        {
+            new UncondBrInstruction(true_bb, bb);
+
+            bb->removeSucc(false_bb);
+            false_bb->removePred(bb);
+            for (auto i = false_bb->begin(); i != false_bb->end() && i->isPHI(); i = i->getNext())
+                dynamic_cast<PhiInstruction *>(i)->removeEdge(bb);
+        }
+        else
+        {
+            assert(this->getUses()[0]->getEntry()->getValue() == 0);
+            new UncondBrInstruction(false_bb, bb);
+
+            bb->removeSucc(true_bb);
+            true_bb->removePred(bb);
+            for (auto i = true_bb->begin(); i != true_bb->end() && i->isPHI(); i = i->getNext())
+                dynamic_cast<PhiInstruction *>(i)->removeEdge(bb);
+        }
+        return true;
+    }
+    return false;
+}
+
+bool ZextInstruction::constEval()
+{
+    if (this->getUses()[0]->getType()->isConst())
+    {
+        auto val = this->getUses()[0]->getEntry()->getValue();
+        this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), val)));
+        return true;
+    }
+    return false;
+}
+
+bool IntFloatCastInstruction::constEval()
+{
+    if (this->getUses()[0]->getType()->isConst())
+    {
+        auto val = this->getUses()[0]->getEntry()->getValue();
+        switch (getOpcode())
+        {
+        case IntFloatCastInstruction::S2F:
+            this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), val)));
+            break;
+        case IntFloatCastInstruction::F2S:
+            this->replaceAllUsesWith(new Operand(new ConstantSymbolEntry(this->getDef()->getType(), (int)val)));
+            break;
+        default:
+            assert(0 && "unimplemented i/f cast inst type");
+        }
+        return true;
+    }
+    return false;
+}
+
+bool PhiInstruction::constEval()
+{
+    auto srcs = this->getUses();
+    auto last_src = srcs[0];
+    bool Elim = true;
+    for (auto src : srcs)
+    {
+        if (src != last_src && !(src->getType()->isConst() && last_src->getType()->isConst() && src->getEntry()->getValue() == last_src->getEntry()->getValue()))
+        {
+            Elim = false;
+            break;
+        }
+    }
+    if (Elim)
+    {
+        this->replaceAllUsesWith(last_src);
+    }
+    return Elim;
 }

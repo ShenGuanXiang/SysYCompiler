@@ -18,12 +18,14 @@
 #include "gvnpre.h"
 #include "LoopUnroll.h"
 #include "GlobalCodeMotion.h"
+#include "MemoryOpt.h"
 
 Ast ast;
 Unit *unit = new Unit();
 MachineUnit *mUnit = new MachineUnit();
 extern FILE *yyin;
 extern FILE *yyout;
+extern void clearOperands();
 extern void clearSymbolEntries();
 extern void clearTypes();
 extern void clearMachineOperands();
@@ -108,6 +110,8 @@ int main(int argc, char *argv[])
             autoinliner.pass(); // 函数自动内联
             Mem2Reg m2r(unit);
             m2r.pass();
+            // TODO:其它中间代码优化
+            // 代数化简
             SparseCondConstProp sccp(unit);
             sccp.pass(); // 常量传播
             ComSubExprElim cse(unit);
@@ -118,7 +122,10 @@ int main(int argc, char *argv[])
             gvnpre.pass(); // 部分冗余消除&循环不变外提
             // TODO:其它中间代码优化
             // 代数化简
-            // 访存优化
+            MemoryOpt memopt(unit);
+            memopt.pass(); // 访存优化
+            GVNPRE gvnpre(unit);
+            gvnpre.pass(); // 部分冗余消除&循环不变外提
             // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
@@ -179,6 +186,7 @@ int main(int argc, char *argv[])
     }
     delete mUnit;
     delete unit;
+    clearOperands();
     clearSymbolEntries();
     clearTypes();
     clearMachineOperands();
