@@ -17,8 +17,8 @@
 #include "PeepholeOptimization.h"
 #include "gvnpre.h"
 #include "LoopUnroll.h"
-#include "GlobalCodeMotion.h"
 #include "MemoryOpt.h"
+#include "GlobalCodeMotion.h"
 
 Ast ast;
 Unit *unit = new Unit();
@@ -116,14 +116,10 @@ int main(int argc, char *argv[])
             sccp.pass(); // 常量传播
             ComSubExprElim cse(unit);
             cse.pass3(); // 公共子表达式消除
-            GlobalCodeMotion gcm(unit);
-            gcm.pass(); // 全局代码移动
-            GVNPRE gvnpre(unit);
-            gvnpre.pass(); // 部分冗余消除&循环不变外提
-            // TODO:其它中间代码优化
-            // 代数化简
             MemoryOpt memopt(unit);
             memopt.pass(); // 访存优化
+            GlobalCodeMotion gcm(unit);
+            gcm.pass(); // 全局代码移动
             GVNPRE gvnpre(unit);
             gvnpre.pass(); // 部分冗余消除&循环不变外提
             // 循环展开
