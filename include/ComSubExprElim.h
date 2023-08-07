@@ -18,6 +18,7 @@ class ComSubExprElim
     std::string getOpString(Instruction *inst);
     std::unordered_map<BasicBlock *, std::vector<BasicBlock *>> domtree;
 
+    std::string getIdentity(Instruction *inst);
 public:
     ComSubExprElim(Unit *unit) : unit(unit){};
     ComSubExprElim() {}
@@ -47,7 +48,6 @@ class ComSubExprElimASM
     std::set<MachineOperand> redef;
 
     std::set<MachineInstruction *> freeInsts;
-
 public:
     ComSubExprElimASM(MachineUnit *munit) : munit(munit){};
     void findredef(MachineBlock *bb);

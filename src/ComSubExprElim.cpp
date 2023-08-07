@@ -91,6 +91,24 @@ std::string ComSubExprElim::getOpString(Instruction *inst)
     return instString;
 }
 
+std::string ComSubExprElim::getIdentity(Instruction *inst)
+{ 
+    std::string instString = "";
+    if(inst->isBinary()){
+        BinaryInstruction* bin = dynamic_cast<BinaryInstruction*>(inst);
+        if(bin->getOpcode() == BinaryInstruction::ADD)
+            instString += "ADD";
+        else if(bin->getOpcode() == BinaryInstruction::MUL)
+            instString += "MUL";
+        if(instString!=""){
+            assert(bin->getUses().size() == 2);
+            instString += "," + bin->getUses()[1]->toStr();
+            instString += "," + bin->getUses()[0]->toStr();
+        }
+    }
+    return instString;
+}
+
 void ComSubExprElim::dumpTable()
 {
     printf("------\n");
@@ -152,6 +170,10 @@ void ComSubExprElim::dvnt(BasicBlock *bb)
             else
             {
                 htable[instString] = dst;
+                std::string identity = getIdentity(cur_inst);
+                if(identity != ""){
+                    htable[identity] = dst;
+                }
             }
         }
     }
@@ -220,6 +242,10 @@ void ComSubExprElim::pass1(BasicBlock *bb)
             else
             {
                 htable[instString] = dst;
+                std::string identity = getIdentity(cur_inst);
+                if(identity != ""){
+                    htable[identity] = dst;
+                }
             }
         }
     }
@@ -450,8 +476,16 @@ void ComSubExprElimASM::dvnt(MachineBlock *bb)
             // else
             torm.push_back(inst);
         }
-        else
+        else{
             htable[instString] = dst;
+            if(instString.substr(0,3) == "ADD" || instString.substr(0,3) == "MUL"){
+                assert(inst->getUse().size() == 2);
+                std::string identity = instString.substr(0,3) 
+                + "," + inst->getUse()[1]->toStr() 
+                + "," + inst->getUse()[0]->toStr();
+                htable[identity] = dst;
+            }
+        }
     }
 
     for (auto i : torm)
