@@ -39,30 +39,27 @@ void LoopAnalyzer::Analyze(Function* f) {
     for (auto& bb : f->getBlockList())
         loopDepth[bb] = 0;
 
-    dfs(f->getEntry(), 0);
+    Get_REdge(f->getEntry());
     computeLoopDepth();
 }
 
-int LoopAnalyzer::dfs(BasicBlock* bb, int pre_order) {
-    visit.insert(bb);
-    preOrder[bb] = pre_order ++;
-    // fprintf(stderr, "BasicBlock[%d] PreOrder is %d\n", bb->getNo(), preOrder[bb]);
-    int post = 0;
-    for (auto b = bb->succ_begin(); b != bb->succ_end(); b ++) {
-        if (visit.find(*b) == visit.end()) {
-            edgeType[{bb, *b}] = TREE;
-            post += dfs(*b, pre_order + post);
+void LoopAnalyzer::Get_REdge(BasicBlock* root) {
+    std::queue<BasicBlock* > q_edge;
+    q_edge.push(root);
+    visit.insert(root);
+    while (!q_edge.empty()) {
+        auto t = q_edge.front();
+        q_edge.pop();
+        for (auto b = t->succ_begin(); b != t->succ_end(); b ++) {
+            auto Dom = t->getSDoms();
+            if (*b == t || Dom.find(*b) != Dom.end()) {
+                edgeType.insert({t, *b});
+                fprintf(stderr, "Reverse_Edge from %d to %d\n", t->getNo(), (*b)->getNo());
+            }
+            if (visit.find(*b) == visit.end()) 
+                q_edge.push(*b), visit.insert(*b);
         }
-        else if (preOrder[*b] > preOrder[bb])
-            edgeType[{bb, *b}] = FORWARD;
-        else if (PostOrder.find(*b) == PostOrder.end()) 
-            edgeType[{bb, *b}] = BACKWARD;
-        else 
-            edgeType[{bb, *b}] = CROSS;
     }
-    PostOrder[bb] = post;
-    // fprintf(stderr, "BasicBlock[%d] PostOrder is %d\n", bb->getNo(), PostOrder[bb]);
-    return PostOrder[bb] + 1;
 }
 
 std::set<BasicBlock*> LoopAnalyzer::computeNaturalLoop(BasicBlock* cond, BasicBlock* body) {
@@ -75,7 +72,7 @@ std::set<BasicBlock*> LoopAnalyzer::computeNaturalLoop(BasicBlock* cond, BasicBl
     {
         if (cond != nullptr) loop.insert(cond);
         if (body != nullptr) loop.insert(body);
-        q.push(cond);
+        q.push(body);
     }
     while (!q.empty()) {
         auto t = q.front();
@@ -89,24 +86,24 @@ std::set<BasicBlock*> LoopAnalyzer::computeNaturalLoop(BasicBlock* cond, BasicBl
     }
     for (auto l : loop)
         fprintf(stderr, "bb[%d] in loop\n", l->getNo());
+    fprintf(stderr, "compute finish\n");
     return loop;
 }
 
 void LoopAnalyzer::computeLoopDepth() {
     for (auto edge : edgeType) 
-        if (edge.second == BACKWARD)
-        {
-            auto loop = new Loop(computeNaturalLoop(edge.first.first, edge.first.second));
-            auto loopstruct = new LoopStruct(loop);
-            loopstruct->SetBody(edge.first.second);
-            loopstruct->SetCond(edge.first.first);
-            Loops.insert(loopstruct);
-            for (auto& b : loop->GetBasicBlock()) {
-                loopDepth[b] ++;
-                fprintf(stderr, "loop[%d] depth is %d\n", b->getNo(), loopDepth[b]);
-            }
-            fprintf(stderr, "loop End\n");
+    {
+        auto loop = new Loop(computeNaturalLoop(edge.first, edge.second));
+        auto loopstruct = new LoopStruct(loop);
+        loopstruct->SetBody(edge.second);
+        loopstruct->SetCond(edge.first);
+        Loops.insert(loopstruct);
+        for (auto& b : loop->GetBasicBlock()) {
+            loopDepth[b] ++;
+            fprintf(stderr, "loop[%d] depth is %d\n", b->getNo(), loopDepth[b]);
         }
+        fprintf(stderr, "loop End\n");
+    }
 }
 
 bool LoopAnalyzer::isSubset(std::set<BasicBlock*> t_son, std::set<BasicBlock*> t_fat) {

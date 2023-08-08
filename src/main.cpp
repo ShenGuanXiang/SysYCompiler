@@ -119,10 +119,10 @@ int main(int argc, char *argv[])
             cse.pass3(); // 公共子表达式消除
             MemoryOpt memopt(unit);
             memopt.pass(); // 访存优化
-        GlobalCodeMotion gcm(unit);
-        gcm.pass(); // 全局代码移动
-            GVNPRE gvnpre(unit);
-            gvnpre.pass(); // 部分冗余消除&循环不变外提
+            // GlobalCodeMotion gcm(unit);
+            // gcm.pass(); // 全局代码移动
+            // GVNPRE gvnpre(unit);
+            // gvnpre.pass(); // 部分冗余消除&循环不变外提
             // 循环展开
             DeadCodeElim dce(unit);
             // dce.pass(); // 死代码删除
