@@ -255,6 +255,7 @@ void Helper::compute_info(Function *func)
 
     // 计算循环深度
     LoopAnalyzer la;
+    // la.Analyze(func);
     la.FindLoops(func);
     for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
         BasicBlock* bb = *bb_it;
@@ -262,7 +263,7 @@ void Helper::compute_info(Function *func)
     }
     for(auto loop:la.getLoops()){
         for(auto bb:loop->GetLoop()->GetBasicBlock()){
-            loop_depth[bb] = std::max(loop->GetLoop()->GetDepth(), loop_depth[bb]);
+            loop_depth[bb] = std::max(loop->GetLoop()->GetDepth(),loop_depth[bb]);
         }
     }
     

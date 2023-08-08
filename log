@@ -1,0 +1,1697 @@
+ast built
+ir generated
+[GVN]:%t1466->%t1307
+[GVN]:%t1325->%t1307
+[GVN]:%t1527->%t1307
+[GVN]:%t1518->%t1457
+[GVN]:%t1521->%t1460
+[GVN]:%t1529->%t1468
+[GVN]:%t1558->%t1497
+[GVN]:%t1549->%t1488
+[GVN]:%t1552->%t1491
+[GVN]:%t1560->%t1499
+bb1524:
+bb1200:
+bb1302:
+bb381:
+bb1241:bb1524 
+bb1320:
+bb1235:bb1241 bb1320 
+bb404:
+bb1229:bb1235 bb1463 
+bb369:bb381 bb384 
+bb1463:
+bb392:bb388 
+bb384:bb392 
+bb1185:bb1191 bb1221 
+bb407:bb404 
+bb1191:
+bb1221:bb1224 bb1229 bb1302 
+bb1116:bb407 
+bb1107:bb1074 
+bb388:bb1107 
+bb1074:bb1116 bb1132 
+bb1132:bb1140 
+bb1140:bb1185 
+bb1224:bb1200 
+bb[392] in loop
+loop[392] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[404] in loop
+loop[381] depth is 1
+loop[384] depth is 1
+loop[404] depth is 1
+loop End
+bb[407] in loop
+loop[407] depth is 1
+loop End
+bb[1107] in loop
+loop[1107] depth is 1
+loop End
+bb[1140] in loop
+loop[1140] depth is 1
+loop End
+bb[1191] in loop
+loop[1191] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1200] in loop
+loop[381] depth is 2
+loop[384] depth is 2
+loop[388] depth is 1
+loop[392] depth is 2
+loop[404] depth is 2
+loop[407] depth is 2
+loop[1074] depth is 1
+loop[1107] depth is 2
+loop[1116] depth is 1
+loop[1132] depth is 1
+loop[1200] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1140] in loop
+bb[1185] in loop
+bb[1191] in loop
+bb[1200] in loop
+bb[1221] in loop
+bb[1224] in loop
+loop[381] depth is 3
+loop[384] depth is 3
+loop[388] depth is 2
+loop[392] depth is 3
+loop[404] depth is 3
+loop[407] depth is 3
+loop[1074] depth is 2
+loop[1107] depth is 3
+loop[1116] depth is 2
+loop[1132] depth is 2
+loop[1140] depth is 2
+loop[1185] depth is 1
+loop[1191] depth is 2
+loop[1200] depth is 2
+loop[1221] depth is 1
+loop[1224] depth is 1
+loop End
+[gcm]bb1524:depth 0
+[gcm]bb1302:depth 0
+[gcm]bb1241:depth 0
+[gcm]bb1320:depth 0
+[gcm]bb1235:depth 0
+[gcm]bb1224:depth 1
+[gcm]bb1200:depth 2
+[gcm]bb381:depth 3
+[gcm]bb384:depth 3
+[gcm]bb1463:depth 0
+[gcm]bb392:depth 3
+[gcm]bb1185:depth 1
+[gcm]bb388:depth 2
+[gcm]bb1229:depth 0
+[gcm]bb369:depth 0
+[gcm]bb404:depth 3
+[gcm]bb407:depth 3
+[gcm]bb1132:depth 2
+[gcm]bb1074:depth 2
+[gcm]bb1221:depth 1
+[gcm]bb1191:depth 2
+[gcm]bb1107:depth 3
+[gcm]bb1116:depth 2
+[gcm]bb1140:depth 2
+[GCM]: 23 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 8 times
+[GVNPRE]:insert iterate over 2 times,insert 3 expressions, 3 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+bb1302:
+bb1853:
+bb1865:
+bb1200:
+bb1850:
+bb381:
+bb1241:bb1865 
+bb1320:
+bb1235:bb1241 bb1320 
+bb404:
+bb1229:bb1235 
+bb369:bb381 bb384 
+bb392:bb388 bb1850 
+bb384:bb392 
+bb1185:bb1191 bb1221 
+bb407:bb404 bb1853 
+bb1191:
+bb1221:bb1224 bb1229 bb1302 
+bb1116:bb407 
+bb1107:bb1074 
+bb388:bb1107 
+bb1074:bb1116 bb1132 
+bb1132:bb1140 
+bb1140:bb1185 
+bb1224:bb1200 
+bb[1853] in loop
+bb[407] in loop
+loop[1853] depth is 1
+loop[407] depth is 1
+loop End
+bb[1850] in loop
+bb[392] in loop
+loop[1850] depth is 1
+loop[392] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[404] in loop
+loop[381] depth is 1
+loop[384] depth is 1
+loop[404] depth is 1
+loop End
+bb[1107] in loop
+loop[1107] depth is 1
+loop End
+bb[1140] in loop
+loop[1140] depth is 1
+loop End
+bb[1191] in loop
+loop[1191] depth is 1
+loop End
+bb[1853] in loop
+bb[1850] in loop
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1200] in loop
+loop[1853] depth is 2
+loop[1850] depth is 2
+loop[381] depth is 2
+loop[384] depth is 2
+loop[388] depth is 1
+loop[392] depth is 2
+loop[404] depth is 2
+loop[407] depth is 2
+loop[1074] depth is 1
+loop[1107] depth is 2
+loop[1116] depth is 1
+loop[1132] depth is 1
+loop[1200] depth is 1
+loop End
+bb[1853] in loop
+bb[1850] in loop
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1140] in loop
+bb[1185] in loop
+bb[1191] in loop
+bb[1200] in loop
+bb[1221] in loop
+bb[1224] in loop
+loop[1853] depth is 3
+loop[1850] depth is 3
+loop[381] depth is 3
+loop[384] depth is 3
+loop[388] depth is 2
+loop[392] depth is 3
+loop[404] depth is 3
+loop[407] depth is 3
+loop[1074] depth is 2
+loop[1107] depth is 3
+loop[1116] depth is 2
+loop[1132] depth is 2
+loop[1140] depth is 2
+loop[1185] depth is 1
+loop[1191] depth is 2
+loop[1200] depth is 2
+loop[1221] depth is 1
+loop[1224] depth is 1
+loop End
+[gcm]bb1853:depth 3
+[gcm]bb1302:depth 0
+[gcm]bb1241:depth 0
+[gcm]bb1320:depth 0
+[gcm]bb1235:depth 0
+[gcm]bb1224:depth 1
+[gcm]bb1865:depth 0
+[gcm]bb1850:depth 3
+[gcm]bb1200:depth 2
+[gcm]bb381:depth 3
+[gcm]bb384:depth 3
+[gcm]bb392:depth 3
+[gcm]bb1185:depth 1
+[gcm]bb388:depth 2
+[gcm]bb1229:depth 0
+[gcm]bb369:depth 0
+[gcm]bb404:depth 3
+[gcm]bb407:depth 3
+[gcm]bb1132:depth 2
+[gcm]bb1074:depth 2
+[gcm]bb1221:depth 1
+[gcm]bb1191:depth 2
+[gcm]bb1107:depth 3
+[gcm]bb1116:depth 2
+[gcm]bb1140:depth 2
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 8 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+bb1865:
+bb1200:
+bb1302:
+bb381:
+bb1241:bb1865 
+bb1320:
+bb1235:bb1241 bb1320 
+bb404:
+bb1229:bb1235 
+bb369:bb381 bb384 
+bb392:bb388 
+bb384:bb392 
+bb1185:bb1191 bb1221 
+bb407:bb404 
+bb1191:
+bb1221:bb1224 bb1229 bb1302 
+bb1116:bb407 
+bb1107:bb1074 
+bb388:bb1107 
+bb1074:bb1116 bb1132 
+bb1132:bb1140 
+bb1140:bb1185 
+bb1224:bb1200 
+bb[392] in loop
+loop[392] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[404] in loop
+loop[381] depth is 1
+loop[384] depth is 1
+loop[404] depth is 1
+loop End
+bb[407] in loop
+loop[407] depth is 1
+loop End
+bb[1107] in loop
+loop[1107] depth is 1
+loop End
+bb[1140] in loop
+loop[1140] depth is 1
+loop End
+bb[1191] in loop
+loop[1191] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1200] in loop
+loop[381] depth is 2
+loop[384] depth is 2
+loop[388] depth is 1
+loop[392] depth is 2
+loop[404] depth is 2
+loop[407] depth is 2
+loop[1074] depth is 1
+loop[1107] depth is 2
+loop[1116] depth is 1
+loop[1132] depth is 1
+loop[1200] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1140] in loop
+bb[1185] in loop
+bb[1191] in loop
+bb[1200] in loop
+bb[1221] in loop
+bb[1224] in loop
+loop[381] depth is 3
+loop[384] depth is 3
+loop[388] depth is 2
+loop[392] depth is 3
+loop[404] depth is 3
+loop[407] depth is 3
+loop[1074] depth is 2
+loop[1107] depth is 3
+loop[1116] depth is 2
+loop[1132] depth is 2
+loop[1140] depth is 2
+loop[1185] depth is 1
+loop[1191] depth is 2
+loop[1200] depth is 2
+loop[1221] depth is 1
+loop[1224] depth is 1
+loop End
+[gcm]bb1302:depth 0
+[gcm]bb1241:depth 0
+[gcm]bb1320:depth 0
+[gcm]bb1235:depth 0
+[gcm]bb1224:depth 1
+[gcm]bb1865:depth 0
+[gcm]bb1200:depth 2
+[gcm]bb381:depth 3
+[gcm]bb384:depth 3
+[gcm]bb392:depth 3
+[gcm]bb1185:depth 1
+[gcm]bb388:depth 2
+[gcm]bb1229:depth 0
+[gcm]bb369:depth 0
+[gcm]bb404:depth 3
+[gcm]bb407:depth 3
+[gcm]bb1132:depth 2
+[gcm]bb1074:depth 2
+[gcm]bb1221:depth 1
+[gcm]bb1191:depth 2
+[gcm]bb1107:depth 3
+[gcm]bb1116:depth 2
+[gcm]bb1140:depth 2
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 8 times
+[GVNPRE]:insert iterate over 2 times,insert 3 expressions, 3 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+bb1865:
+bb1200:
+bb1302:
+bb2047:
+bb2044:
+bb381:
+bb1241:bb1865 
+bb1320:
+bb1235:bb1241 bb1320 
+bb404:
+bb1229:bb1235 
+bb369:bb381 bb384 
+bb392:bb388 bb2044 
+bb384:bb392 
+bb1185:bb1191 bb1221 
+bb407:bb404 bb2047 
+bb1191:
+bb1221:bb1224 bb1229 bb1302 
+bb1116:bb407 
+bb1107:bb1074 
+bb388:bb1107 
+bb1074:bb1116 bb1132 
+bb1132:bb1140 
+bb1140:bb1185 
+bb1224:bb1200 
+bb[2047] in loop
+bb[407] in loop
+loop[2047] depth is 1
+loop[407] depth is 1
+loop End
+bb[2044] in loop
+bb[392] in loop
+loop[2044] depth is 1
+loop[392] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[404] in loop
+loop[381] depth is 1
+loop[384] depth is 1
+loop[404] depth is 1
+loop End
+bb[1107] in loop
+loop[1107] depth is 1
+loop End
+bb[1140] in loop
+loop[1140] depth is 1
+loop End
+bb[1191] in loop
+loop[1191] depth is 1
+loop End
+bb[2047] in loop
+bb[2044] in loop
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1200] in loop
+loop[2047] depth is 2
+loop[2044] depth is 2
+loop[381] depth is 2
+loop[384] depth is 2
+loop[388] depth is 1
+loop[392] depth is 2
+loop[404] depth is 2
+loop[407] depth is 2
+loop[1074] depth is 1
+loop[1107] depth is 2
+loop[1116] depth is 1
+loop[1132] depth is 1
+loop[1200] depth is 1
+loop End
+bb[2047] in loop
+bb[2044] in loop
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1140] in loop
+bb[1185] in loop
+bb[1191] in loop
+bb[1200] in loop
+bb[1221] in loop
+bb[1224] in loop
+loop[2047] depth is 3
+loop[2044] depth is 3
+loop[381] depth is 3
+loop[384] depth is 3
+loop[388] depth is 2
+loop[392] depth is 3
+loop[404] depth is 3
+loop[407] depth is 3
+loop[1074] depth is 2
+loop[1107] depth is 3
+loop[1116] depth is 2
+loop[1132] depth is 2
+loop[1140] depth is 2
+loop[1185] depth is 1
+loop[1191] depth is 2
+loop[1200] depth is 2
+loop[1221] depth is 1
+loop[1224] depth is 1
+loop End
+[gcm]bb2047:depth 3
+[gcm]bb2044:depth 3
+[gcm]bb1302:depth 0
+[gcm]bb1241:depth 0
+[gcm]bb1320:depth 0
+[gcm]bb1235:depth 0
+[gcm]bb1224:depth 1
+[gcm]bb1865:depth 0
+[gcm]bb1200:depth 2
+[gcm]bb381:depth 3
+[gcm]bb384:depth 3
+[gcm]bb392:depth 3
+[gcm]bb1185:depth 1
+[gcm]bb388:depth 2
+[gcm]bb1229:depth 0
+[gcm]bb369:depth 0
+[gcm]bb404:depth 3
+[gcm]bb407:depth 3
+[gcm]bb1132:depth 2
+[gcm]bb1074:depth 2
+[gcm]bb1221:depth 1
+[gcm]bb1191:depth 2
+[gcm]bb1107:depth 3
+[gcm]bb1116:depth 2
+[gcm]bb1140:depth 2
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 8 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+opt ir generated
+@buffer = dso_local global [32768 x i32] zeroinitializer, align 4
+declare void @putarray(i32, i32*)
+declare void @_sysy_stoptime(i32)
+declare void @_sysy_starttime(i32)
+declare i32 @getint()
+declare void @llvm.memset.p0.i32(i8*, i8, i32, i1)
+define dso_local i32 @main() #0{
+B369:                               	; succs = %B381, %B384
+  %t374 = alloca [5 x i32], align 4
+  %t372 = alloca [5 x i32], align 4
+  %t1047 = alloca [80 x i32], align 4
+  %t2237 = bitcast [5 x i32]* %t372 to i8*
+  call void @llvm.memset.p0.i32(i8* %t2237, i8 0, i32 20, i1 0)
+  %t102 = call i32 @getint()
+  %t103 = call i32 @getint()
+  call void @_sysy_starttime(i32 161)
+  %t375 = getelementptr inbounds [5 x i32], [5 x i32]* %t374, i32 0, i32 0
+  store i32 0, i32* %t375, align 4
+  %t376 = getelementptr inbounds [5 x i32], [5 x i32]* %t374, i32 0, i32 1
+  store i32 0, i32* %t376, align 4
+  %t377 = getelementptr inbounds [5 x i32], [5 x i32]* %t374, i32 0, i32 2
+  store i32 0, i32* %t377, align 4
+  %t378 = getelementptr inbounds [5 x i32], [5 x i32]* %t374, i32 0, i32 3
+  store i32 0, i32* %t378, align 4
+  %t379 = getelementptr inbounds [5 x i32], [5 x i32]* %t374, i32 0, i32 4
+  store i32 0, i32* %t379, align 4
+  %t400 = getelementptr inbounds [32768 x i32], [32768 x i32]* @buffer, i32 0, i32 0
+  %t1068 = getelementptr inbounds i32, i32* %t400, i32 32000
+  %t402 = getelementptr inbounds [5 x i32], [5 x i32]* %t372, i32 0, i32 0
+  %t1119 = getelementptr inbounds i32, i32* %t402, i32 0
+  %t1122 = getelementptr inbounds i32, i32* %t402, i32 1
+  %t1125 = getelementptr inbounds i32, i32* %t402, i32 2
+  %t1128 = getelementptr inbounds i32, i32* %t402, i32 3
+  %t1131 = getelementptr inbounds i32, i32* %t402, i32 4
+  %t105 = icmp sgt i32 %t103, 0
+  br i1 %t105, label %B384, label %B381
+B381:                               	; preds = %B369, %B404
+  call void @_sysy_stoptime(i32 184)
+  call void @putarray(i32 5, i32* %t375)
+  ret i32 0
+B384:                               	; preds = %B369, %B404                               	; succs = %B392
+  %t1803 = phi i32 [ %t103 , %B369 ], [ %t114 , %B404 ]
+  %t1806 = phi i32 [ %t102 , %B369 ], [ %t438 , %B404 ]
+  br label %B392
+B392:                               	; preds = %B2044, %B384                               	; succs = %B2044, %B388
+  %t1808 = phi i32 [ %t109 , %B2044 ], [ 0 , %B384 ]
+  %t1809 = phi i32 [ %t438 , %B2044 ], [ %t1806 , %B384 ]
+  %t429 = mul i32 %t1809, 8192
+  %t430 = add i32 %t1809, %t429
+  %t433 = sdiv i32 %t430, 131072
+  %t434 = add i32 %t430, %t433
+  %t437 = mul i32 %t434, 32
+  %t438 = add i32 %t434, %t437
+  %t108 = srem i32 %t438, 256
+  %t394 = getelementptr inbounds [32768 x i32], [32768 x i32]* @buffer, i32 0, i32 %t1808
+  store i32 %t108, i32* %t394, align 4
+  %t109 = add i32 %t1808, 1
+  %t396 = icmp slt i32 %t109, 32000
+  br i1 %t396, label %B2044, label %B388
+B2044:                               	; preds = %B392                               	; succs = %B392
+  %t2139 = getelementptr inbounds [32768 x i32], [32768 x i32]* @buffer, i32 0, i32 %t109
+  br label %B392
+B388:                               	; preds = %B392                               	; succs = %B1107
+  store i32 128, i32* %t1068, align 4
+  br label %B1107
+B1107:                               	; preds = %B388, %B1107                               	; succs = %B1074, %B1107
+  %t1811 = phi i32 [ 32001 , %B388 ], [ %t1112 , %B1107 ]
+  %t1110 = getelementptr inbounds i32, i32* %t400, i32 %t1811
+  store i32 0, i32* %t1110, align 4
+  %t1112 = add i32 %t1811, 1
+  %t1114 = srem i32 %t1112, 64
+  %t1115 = icmp ne i32 %t1114, 60
+  br i1 %t1115, label %B1107, label %B1074
+B1074:                               	; preds = %B1107                               	; succs = %B1116, %B1132
+  %t1080 = getelementptr inbounds i32, i32* %t400, i32 %t1112
+  store i32 0, i32* %t1080, align 4
+  %t1086 = add i32 %t1112, 1
+  %t1087 = getelementptr inbounds i32, i32* %t400, i32 %t1086
+  store i32 0, i32* %t1087, align 4
+  %t1093 = add i32 %t1112, 2
+  %t1094 = getelementptr inbounds i32, i32* %t400, i32 %t1093
+  store i32 125, i32* %t1094, align 4
+  %t1099 = add i32 %t1112, 3
+  %t1100 = getelementptr inbounds i32, i32* %t400, i32 %t1099
+  store i32 0, i32* %t1100, align 4
+  %t1102 = add i32 %t1112, 4
+  %t2238 = bitcast [80 x i32]* %t1047 to i8*
+  call void @llvm.memset.p0.i32(i8* %t2238, i8 0, i32 320, i1 0)
+  %t1106 = icmp slt i32 0, %t1102
+  br i1 %t1106, label %B1132, label %B1116
+B1116:                               	; preds = %B1074, %B1200                               	; succs = %B407
+  %t1812 = phi i32 [ 1732584193 , %B1074 ], [ %t1203 , %B1200 ]
+  %t1813 = phi i32 [ -271733879 , %B1074 ], [ %t1206 , %B1200 ]
+  %t1814 = phi i32 [ -1732584194 , %B1074 ], [ %t1209 , %B1200 ]
+  %t1815 = phi i32 [ 271733878 , %B1074 ], [ %t1212 , %B1200 ]
+  %t1816 = phi i32 [ -1009589776 , %B1074 ], [ %t1215 , %B1200 ]
+  %t1817 = phi i32 [ %t1817 , %B1074 ], [ %t1846 , %B1200 ]
+  %t1818 = phi i32 [ %t1818 , %B1074 ], [ %t1847 , %B1200 ]
+  store i32 %t1812, i32* %t1119, align 4
+  store i32 %t1813, i32* %t1122, align 4
+  store i32 %t1814, i32* %t1125, align 4
+  store i32 %t1815, i32* %t1128, align 4
+  store i32 %t1816, i32* %t1131, align 4
+  %t114 = sub i32 %t1803, 1
+  br label %B407
+B1132:                               	; preds = %B1074, %B1200                               	; succs = %B1140
+  %t1819 = phi i32 [ 1732584193 , %B1074 ], [ %t1203 , %B1200 ]
+  %t1820 = phi i32 [ -271733879 , %B1074 ], [ %t1206 , %B1200 ]
+  %t1821 = phi i32 [ -1732584194 , %B1074 ], [ %t1209 , %B1200 ]
+  %t1822 = phi i32 [ 271733878 , %B1074 ], [ %t1212 , %B1200 ]
+  %t1823 = phi i32 [ -1009589776 , %B1074 ], [ %t1215 , %B1200 ]
+  %t1824 = phi i32 [ %t1817 , %B1074 ], [ %t1846 , %B1200 ]
+  %t1825 = phi i32 [ %t1818 , %B1074 ], [ %t1847 , %B1200 ]
+  %t1826 = phi i32 [ 0 , %B1074 ], [ %t1217 , %B1200 ]
+  br label %B1140
+B407:                               	; preds = %B2047, %B1116                               	; succs = %B2047, %B404
+  %t1829 = phi i32 [ %t113 , %B2047 ], [ 0 , %B1116 ]
+  %t409 = getelementptr inbounds [5 x i32], [5 x i32]* %t374, i32 0, i32 %t1829
+  %t410 = load i32, i32* %t409, align 4
+  %t412 = getelementptr inbounds [5 x i32], [5 x i32]* %t372, i32 0, i32 %t1829
+  %t413 = load i32, i32* %t412, align 4
+  %t805 = add i32 %t410, %t413
+  %t794 = sub i32 %t410, %t805
+  %t797 = add i32 %t794, %t413
+  %t807 = sub i32 %t797, %t805
+  store i32 %t807, i32* %t409, align 4
+  %t113 = add i32 %t1829, 1
+  %t417 = icmp slt i32 %t113, 5
+  br i1 %t417, label %B2047, label %B404
+B1140:                               	; preds = %B1132, %B1140                               	; succs = %B1140, %B1185
+  %t1827 = phi i32 [ 0 , %B1132 ], [ %t1182 , %B1140 ]
+  %t1144 = mul i32 %t1827, 4
+  %t1145 = add i32 %t1826, %t1144
+  %t1146 = getelementptr inbounds i32, i32* %t400, i32 %t1145
+  %t1147 = load i32, i32* %t1146, align 4
+  %t1148 = mul i32 %t1147, 16777216
+  %t1154 = add i32 %t1145, 1
+  %t1155 = getelementptr inbounds i32, i32* %t400, i32 %t1154
+  %t1156 = load i32, i32* %t1155, align 4
+  %t1157 = mul i32 %t1156, 65536
+  %t1158 = add i32 %t1148, %t1157
+  %t1164 = add i32 %t1145, 2
+  %t1165 = getelementptr inbounds i32, i32* %t400, i32 %t1164
+  %t1166 = load i32, i32* %t1165, align 4
+  %t1167 = mul i32 %t1166, 256
+  %t1168 = add i32 %t1158, %t1167
+  %t1174 = add i32 %t1145, 3
+  %t1175 = getelementptr inbounds i32, i32* %t400, i32 %t1174
+  %t1176 = load i32, i32* %t1175, align 4
+  %t1177 = mul i32 %t1176, 1
+  %t1178 = add i32 %t1168, %t1177
+  %t1180 = getelementptr inbounds [80 x i32], [80 x i32]* %t1047, i32 0, i32 %t1827
+  store i32 %t1178, i32* %t1180, align 4
+  %t1182 = add i32 %t1827, 1
+  %t1184 = icmp slt i32 %t1182, 16
+  br i1 %t1184, label %B1140, label %B1185
+B2047:                               	; preds = %B407                               	; succs = %B407
+  %t2141 = getelementptr inbounds [5 x i32], [5 x i32]* %t372, i32 0, i32 %t113
+  %t2143 = getelementptr inbounds [5 x i32], [5 x i32]* %t374, i32 0, i32 %t113
+  br label %B407
+B404:                               	; preds = %B407                               	; succs = %B381, %B384
+  %t421 = icmp sgt i32 %t114, 0
+  br i1 %t421, label %B384, label %B381
+B1185:                               	; preds = %B1140                               	; succs = %B1191, %B1221
+  %t1187 = icmp slt i32 %t1182, 80
+  br i1 %t1187, label %B1191, label %B1221
+B1191:                               	; preds = %B1185, %B1191                               	; succs = %B1191, %B1221
+  %t1830 = phi i32 [ %t1182 , %B1185 ], [ %t1252 , %B1191 ]
+  %t1193 = sub i32 %t1830, 3
+  %t1194 = getelementptr inbounds [80 x i32], [80 x i32]* %t1047, i32 0, i32 %t1193
+  %t1195 = load i32, i32* %t1194, align 4
+  %t1197 = sub i32 %t1830, 8
+  %t1198 = getelementptr inbounds [80 x i32], [80 x i32]* %t1047, i32 0, i32 %t1197
+  %t1199 = load i32, i32* %t1198, align 4
+  %t1372 = add i32 %t1195, %t1199
+  %t1363 = sub i32 %t1195, %t1372
+  %t1366 = add i32 %t1363, %t1199
+  %t1374 = sub i32 %t1366, %t1372
+  %t1349 = sub i32 %t1830, 14
+  %t1350 = getelementptr inbounds [80 x i32], [80 x i32]* %t1047, i32 0, i32 %t1349
+  %t1351 = load i32, i32* %t1350, align 4
+  %t1406 = add i32 %t1374, %t1351
+  %t1397 = sub i32 %t1374, %t1406
+  %t1400 = add i32 %t1397, %t1351
+  %t1408 = sub i32 %t1400, %t1406
+  %t1382 = sub i32 %t1830, 16
+  %t1383 = getelementptr inbounds [80 x i32], [80 x i32]* %t1047, i32 0, i32 %t1382
+  %t1384 = load i32, i32* %t1383, align 4
+  %t1436 = add i32 %t1408, %t1384
+  %t1427 = sub i32 %t1408, %t1436
+  %t1430 = add i32 %t1427, %t1384
+  %t1438 = sub i32 %t1430, %t1436
+  %t1259 = mul i32 %t1438, 2
+  %t1261 = srem i32 %t1438, 2
+  %t1262 = add i32 %t1259, %t1261
+  %t1249 = getelementptr inbounds [80 x i32], [80 x i32]* %t1047, i32 0, i32 %t1830
+  store i32 %t1262, i32* %t1249, align 4
+  %t1252 = add i32 %t1830, 1
+  %t1254 = icmp slt i32 %t1252, 80
+  br i1 %t1254, label %B1191, label %B1221
+B1221:                               	; preds = %B1185, %B1191, %B1224                               	; succs = %B1229, %B1302
+  %t1838 = phi i32 [ %t1819 , %B1185 ], [ %t1819 , %B1191 ], [ %t1274 , %B1224 ]
+  %t1839 = phi i32 [ %t1820 , %B1185 ], [ %t1820 , %B1191 ], [ %t1838 , %B1224 ]
+  %t1840 = phi i32 [ %t1821 , %B1185 ], [ %t1821 , %B1191 ], [ %t1299 , %B1224 ]
+  %t1841 = phi i32 [ %t1822 , %B1185 ], [ %t1822 , %B1191 ], [ %t1840 , %B1224 ]
+  %t1842 = phi i32 [ %t1823 , %B1185 ], [ %t1823 , %B1191 ], [ %t1841 , %B1224 ]
+  %t1843 = phi i32 [ %t1824 , %B1185 ], [ %t1824 , %B1191 ], [ %t1846 , %B1224 ]
+  %t1844 = phi i32 [ %t1825 , %B1185 ], [ %t1825 , %B1191 ], [ %t1847 , %B1224 ]
+  %t1845 = phi i32 [ 0 , %B1185 ], [ 0 , %B1191 ], [ %t1290 , %B1224 ]
+  %t1307 = add i32 %t1839, %t1840
+  %t1223 = icmp slt i32 %t1845, 20
+  br i1 %t1223, label %B1302, label %B1229
+B1229:                               	; preds = %B1221                               	; succs = %B1224, %B1235
+  %t1457 = sub i32 %t1839, %t1307
+  %t1460 = add i32 %t1457, %t1840
+  %t1468 = sub i32 %t1460, %t1307
+  %t1497 = add i32 %t1468, %t1841
+  %t1488 = sub i32 %t1468, %t1497
+  %t1491 = add i32 %t1488, %t1841
+  %t1499 = sub i32 %t1491, %t1497
+  %t1231 = icmp slt i32 %t1845, 40
+  br i1 %t1231, label %B1224, label %B1235
+B1302:                               	; preds = %B1221                               	; succs = %B1224
+  %t1346 = sub i32 -1, %t1839
+  %t1316 = add i32 %t1346, %t1841
+  %t1611 = add i32 %t1307, %t1316
+  %t1602 = sub i32 %t1307, %t1611
+  %t1605 = add i32 %t1602, %t1316
+  %t1613 = sub i32 %t1605, %t1611
+  %t1636 = add i32 %t1613, %t1611
+  %t1627 = sub i32 %t1613, %t1636
+  %t1630 = add i32 %t1627, %t1611
+  %t1638 = sub i32 %t1630, %t1636
+  br label %B1224
+B1224:                               	; preds = %B1229, %B1241, %B1302, %B1320, %B1865                               	; succs = %B1200, %B1221
+  %t1846 = phi i32 [ %t1499 , %B1229 ], [ %t1499 , %B1241 ], [ %t1638 , %B1302 ], [ %t1793 , %B1320 ], [ %t1843 , %B1865 ]
+  %t1847 = phi i32 [ 1859775361 , %B1229 ], [ -899497722 , %B1241 ], [ 1518500249 , %B1302 ], [ -1894007588 , %B1320 ], [ %t1844 , %B1865 ]
+  %t1281 = mul i32 %t1838, 32
+  %t1283 = srem i32 %t1838, 32
+  %t1284 = add i32 %t1281, %t1283
+  %t1265 = add i32 %t1284, %t1846
+  %t1268 = add i32 %t1265, %t1842
+  %t1270 = add i32 %t1268, %t1847
+  %t1272 = getelementptr inbounds [80 x i32], [80 x i32]* %t1047, i32 0, i32 %t1845
+  %t1273 = load i32, i32* %t1272, align 4
+  %t1274 = add i32 %t1270, %t1273
+  %t1296 = mul i32 %t1839, 1073741824
+  %t1298 = srem i32 %t1839, 1073741824
+  %t1299 = add i32 %t1296, %t1298
+  %t1290 = add i32 %t1845, 1
+  %t1203 = add i32 %t1819, %t1274
+  %t1206 = add i32 %t1820, %t1838
+  %t1209 = add i32 %t1821, %t1299
+  %t1212 = add i32 %t1822, %t1840
+  %t1215 = add i32 %t1823, %t1841
+  %t1217 = add i32 %t1826, 64
+  %t1292 = icmp slt i32 %t1290, 80
+  br i1 %t1292, label %B1221, label %B1200
+B1235:                               	; preds = %B1229                               	; succs = %B1241, %B1320
+  %t1237 = icmp slt i32 %t1845, 60
+  br i1 %t1237, label %B1320, label %B1241
+B1200:                               	; preds = %B1224                               	; succs = %B1116, %B1132
+  %t1220 = icmp slt i32 %t1217, %t1102
+  br i1 %t1220, label %B1132, label %B1116
+B1241:                               	; preds = %B1235                               	; succs = %B1224, %B1865
+  %t1243 = icmp slt i32 %t1845, 80
+  br i1 %t1243, label %B1224, label %B1865
+B1320:                               	; preds = %B1235                               	; succs = %B1224
+  %t1332 = add i32 %t1839, %t1841
+  %t1688 = add i32 %t1307, %t1332
+  %t1679 = sub i32 %t1307, %t1688
+  %t1682 = add i32 %t1679, %t1332
+  %t1690 = sub i32 %t1682, %t1688
+  %t1713 = add i32 %t1690, %t1688
+  %t1704 = sub i32 %t1690, %t1713
+  %t1707 = add i32 %t1704, %t1688
+  %t1715 = sub i32 %t1707, %t1713
+  %t1341 = add i32 %t1840, %t1841
+  %t1766 = add i32 %t1715, %t1341
+  %t1757 = sub i32 %t1715, %t1766
+  %t1760 = add i32 %t1757, %t1341
+  %t1768 = sub i32 %t1760, %t1766
+  %t1791 = add i32 %t1768, %t1766
+  %t1782 = sub i32 %t1768, %t1791
+  %t1785 = add i32 %t1782, %t1766
+  %t1793 = sub i32 %t1785, %t1791
+  br label %B1224
+B1865:                               	; preds = %B1241                               	; succs = %B1224
+  br label %B1224
+}
+opt ir output ok
+bb[2047] in loop
+bb[407] in loop
+loop[2047] depth is 1
+loop[407] depth is 1
+loop End
+bb[2044] in loop
+bb[392] in loop
+loop[2044] depth is 1
+loop[392] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[404] in loop
+loop[381] depth is 1
+loop[384] depth is 1
+loop[404] depth is 1
+loop End
+bb[1107] in loop
+loop[1107] depth is 1
+loop End
+bb[1140] in loop
+loop[1140] depth is 1
+loop End
+bb[1191] in loop
+loop[1191] depth is 1
+loop End
+bb[2047] in loop
+bb[2044] in loop
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1200] in loop
+loop[2047] depth is 2
+loop[2044] depth is 2
+loop[381] depth is 2
+loop[384] depth is 2
+loop[388] depth is 1
+loop[392] depth is 2
+loop[404] depth is 2
+loop[407] depth is 2
+loop[1074] depth is 1
+loop[1107] depth is 2
+loop[1116] depth is 1
+loop[1132] depth is 1
+loop[1200] depth is 1
+loop End
+bb[2047] in loop
+bb[2044] in loop
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1140] in loop
+bb[1185] in loop
+bb[1191] in loop
+bb[1200] in loop
+bb[1221] in loop
+bb[1224] in loop
+loop[2047] depth is 3
+loop[2044] depth is 3
+loop[381] depth is 3
+loop[384] depth is 3
+loop[388] depth is 2
+loop[392] depth is 3
+loop[404] depth is 3
+loop[407] depth is 3
+loop[1074] depth is 2
+loop[1107] depth is 3
+loop[1116] depth is 2
+loop[1132] depth is 2
+loop[1140] depth is 2
+loop[1185] depth is 1
+loop[1191] depth is 2
+loop[1200] depth is 2
+loop[1221] depth is 1
+loop[1224] depth is 1
+loop End
+Function main's Loop Analysis :
+The loopstruct contains basicblock: BasicBlock[1191] 
+isInerloop: 1
+loopdepth: 2
+cond bb is 1191
+body bb is 1191
+The loopstruct contains basicblock: BasicBlock[2047] BasicBlock[2044] BasicBlock[381] BasicBlock[384] BasicBlock[388] BasicBlock[392] BasicBlock[404] BasicBlock[407] BasicBlock[1074] BasicBlock[1107] BasicBlock[1116] BasicBlock[1132] BasicBlock[1200] 
+isInerloop: 0
+loopdepth: 2
+cond bb is 1200
+body bb is 1132
+The loopstruct contains basicblock: BasicBlock[2047] BasicBlock[2044] BasicBlock[381] BasicBlock[384] BasicBlock[388] BasicBlock[392] BasicBlock[404] BasicBlock[407] BasicBlock[1074] BasicBlock[1107] BasicBlock[1116] BasicBlock[1132] BasicBlock[1140] BasicBlock[1185] BasicBlock[1191] BasicBlock[1200] BasicBlock[1221] BasicBlock[1224] 
+isInerloop: 0
+loopdepth: 1
+cond bb is 1224
+body bb is 1221
+The loopstruct contains basicblock: BasicBlock[1140] 
+isInerloop: 1
+loopdepth: 2
+cond bb is 1140
+body bb is 1140
+The loopstruct contains basicblock: BasicBlock[2044] BasicBlock[392] 
+isInerloop: 1
+loopdepth: 3
+cond bb is 2044
+body bb is 392
+The loopstruct contains basicblock: BasicBlock[381] BasicBlock[384] BasicBlock[404] 
+isInerloop: 1
+loopdepth: 3
+cond bb is 404
+body bb is 384
+The loopstruct contains basicblock: BasicBlock[2047] BasicBlock[407] 
+isInerloop: 1
+loopdepth: 3
+cond bb is 2047
+body bb is 407
+The loopstruct contains basicblock: BasicBlock[1107] 
+isInerloop: 1
+loopdepth: 3
+cond bb is 1107
+body bb is 1107
+
+ast built
+ir generated
+[GVN]:%t1466->%t1307
+[GVN]:%t1325->%t1307
+[GVN]:%t1527->%t1307
+[GVN]:%t1518->%t1457
+[GVN]:%t1521->%t1460
+[GVN]:%t1529->%t1468
+[GVN]:%t1558->%t1497
+[GVN]:%t1549->%t1488
+[GVN]:%t1552->%t1491
+[GVN]:%t1560->%t1499
+bb1524:
+bb1200:
+bb1302:
+bb381:
+bb1241:bb1524 
+bb1320:
+bb1235:bb1241 bb1320 
+bb404:
+bb1229:bb1235 bb1463 
+bb369:bb381 bb384 
+bb1463:
+bb392:bb388 
+bb384:bb392 
+bb1185:bb1191 bb1221 
+bb407:bb404 
+bb1191:
+bb1221:bb1224 bb1229 bb1302 
+bb1116:bb407 
+bb1107:bb1074 
+bb388:bb1107 
+bb1074:bb1116 bb1132 
+bb1132:bb1140 
+bb1140:bb1185 
+bb1224:bb1200 
+bb[392] in loop
+loop[392] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[404] in loop
+loop[381] depth is 1
+loop[384] depth is 1
+loop[404] depth is 1
+loop End
+bb[407] in loop
+loop[407] depth is 1
+loop End
+bb[1107] in loop
+loop[1107] depth is 1
+loop End
+bb[1140] in loop
+loop[1140] depth is 1
+loop End
+bb[1191] in loop
+loop[1191] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1200] in loop
+loop[381] depth is 2
+loop[384] depth is 2
+loop[388] depth is 1
+loop[392] depth is 2
+loop[404] depth is 2
+loop[407] depth is 2
+loop[1074] depth is 1
+loop[1107] depth is 2
+loop[1116] depth is 1
+loop[1132] depth is 1
+loop[1200] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1140] in loop
+bb[1185] in loop
+bb[1191] in loop
+bb[1200] in loop
+bb[1221] in loop
+bb[1224] in loop
+loop[381] depth is 3
+loop[384] depth is 3
+loop[388] depth is 2
+loop[392] depth is 3
+loop[404] depth is 3
+loop[407] depth is 3
+loop[1074] depth is 2
+loop[1107] depth is 3
+loop[1116] depth is 2
+loop[1132] depth is 2
+loop[1140] depth is 2
+loop[1185] depth is 1
+loop[1191] depth is 2
+loop[1200] depth is 2
+loop[1221] depth is 1
+loop[1224] depth is 1
+loop End
+[gcm]bb1524:depth 0
+[gcm]bb1302:depth 0
+[gcm]bb1241:depth 0
+[gcm]bb1320:depth 0
+[gcm]bb1235:depth 0
+[gcm]bb1224:depth 1
+[gcm]bb1200:depth 2
+[gcm]bb381:depth 3
+[gcm]bb384:depth 3
+[gcm]bb1463:depth 0
+[gcm]bb392:depth 3
+[gcm]bb1185:depth 1
+[gcm]bb388:depth 2
+[gcm]bb1229:depth 0
+[gcm]bb369:depth 0
+[gcm]bb404:depth 3
+[gcm]bb407:depth 3
+[gcm]bb1132:depth 2
+[gcm]bb1074:depth 2
+[gcm]bb1221:depth 1
+[gcm]bb1191:depth 2
+[gcm]bb1107:depth 3
+[gcm]bb1116:depth 2
+[gcm]bb1140:depth 2
+[GCM]: 23 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 8 times
+[GVNPRE]:insert iterate over 2 times,insert 3 expressions, 3 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+bb1302:
+bb1853:
+bb1865:
+bb1200:
+bb1850:
+bb381:
+bb1241:bb1865 
+bb1320:
+bb1235:bb1241 bb1320 
+bb404:
+bb1229:bb1235 
+bb369:bb381 bb384 
+bb392:bb388 bb1850 
+bb384:bb392 
+bb1185:bb1191 bb1221 
+bb407:bb404 bb1853 
+bb1191:
+bb1221:bb1224 bb1229 bb1302 
+bb1116:bb407 
+bb1107:bb1074 
+bb388:bb1107 
+bb1074:bb1116 bb1132 
+bb1132:bb1140 
+bb1140:bb1185 
+bb1224:bb1200 
+bb[1853] in loop
+bb[407] in loop
+loop[1853] depth is 1
+loop[407] depth is 1
+loop End
+bb[1850] in loop
+bb[392] in loop
+loop[1850] depth is 1
+loop[392] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[404] in loop
+loop[381] depth is 1
+loop[384] depth is 1
+loop[404] depth is 1
+loop End
+bb[1107] in loop
+loop[1107] depth is 1
+loop End
+bb[1140] in loop
+loop[1140] depth is 1
+loop End
+bb[1191] in loop
+loop[1191] depth is 1
+loop End
+bb[1853] in loop
+bb[1850] in loop
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1200] in loop
+loop[1853] depth is 2
+loop[1850] depth is 2
+loop[381] depth is 2
+loop[384] depth is 2
+loop[388] depth is 1
+loop[392] depth is 2
+loop[404] depth is 2
+loop[407] depth is 2
+loop[1074] depth is 1
+loop[1107] depth is 2
+loop[1116] depth is 1
+loop[1132] depth is 1
+loop[1200] depth is 1
+loop End
+bb[1853] in loop
+bb[1850] in loop
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1140] in loop
+bb[1185] in loop
+bb[1191] in loop
+bb[1200] in loop
+bb[1221] in loop
+bb[1224] in loop
+loop[1853] depth is 3
+loop[1850] depth is 3
+loop[381] depth is 3
+loop[384] depth is 3
+loop[388] depth is 2
+loop[392] depth is 3
+loop[404] depth is 3
+loop[407] depth is 3
+loop[1074] depth is 2
+loop[1107] depth is 3
+loop[1116] depth is 2
+loop[1132] depth is 2
+loop[1140] depth is 2
+loop[1185] depth is 1
+loop[1191] depth is 2
+loop[1200] depth is 2
+loop[1221] depth is 1
+loop[1224] depth is 1
+loop End
+[gcm]bb1853:depth 3
+[gcm]bb1302:depth 0
+[gcm]bb1241:depth 0
+[gcm]bb1320:depth 0
+[gcm]bb1235:depth 0
+[gcm]bb1224:depth 1
+[gcm]bb1865:depth 0
+[gcm]bb1850:depth 3
+[gcm]bb1200:depth 2
+[gcm]bb381:depth 3
+[gcm]bb384:depth 3
+[gcm]bb392:depth 3
+[gcm]bb1185:depth 1
+[gcm]bb388:depth 2
+[gcm]bb1229:depth 0
+[gcm]bb369:depth 0
+[gcm]bb404:depth 3
+[gcm]bb407:depth 3
+[gcm]bb1132:depth 2
+[gcm]bb1074:depth 2
+[gcm]bb1221:depth 1
+[gcm]bb1191:depth 2
+[gcm]bb1107:depth 3
+[gcm]bb1116:depth 2
+[gcm]bb1140:depth 2
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 8 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+bb1865:
+bb1200:
+bb1302:
+bb381:
+bb1241:bb1865 
+bb1320:
+bb1235:bb1241 bb1320 
+bb404:
+bb1229:bb1235 
+bb369:bb381 bb384 
+bb392:bb388 
+bb384:bb392 
+bb1185:bb1191 bb1221 
+bb407:bb404 
+bb1191:
+bb1221:bb1224 bb1229 bb1302 
+bb1116:bb407 
+bb1107:bb1074 
+bb388:bb1107 
+bb1074:bb1116 bb1132 
+bb1132:bb1140 
+bb1140:bb1185 
+bb1224:bb1200 
+bb[392] in loop
+loop[392] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[404] in loop
+loop[381] depth is 1
+loop[384] depth is 1
+loop[404] depth is 1
+loop End
+bb[407] in loop
+loop[407] depth is 1
+loop End
+bb[1107] in loop
+loop[1107] depth is 1
+loop End
+bb[1140] in loop
+loop[1140] depth is 1
+loop End
+bb[1191] in loop
+loop[1191] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1200] in loop
+loop[381] depth is 2
+loop[384] depth is 2
+loop[388] depth is 1
+loop[392] depth is 2
+loop[404] depth is 2
+loop[407] depth is 2
+loop[1074] depth is 1
+loop[1107] depth is 2
+loop[1116] depth is 1
+loop[1132] depth is 1
+loop[1200] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1140] in loop
+bb[1185] in loop
+bb[1191] in loop
+bb[1200] in loop
+bb[1221] in loop
+bb[1224] in loop
+loop[381] depth is 3
+loop[384] depth is 3
+loop[388] depth is 2
+loop[392] depth is 3
+loop[404] depth is 3
+loop[407] depth is 3
+loop[1074] depth is 2
+loop[1107] depth is 3
+loop[1116] depth is 2
+loop[1132] depth is 2
+loop[1140] depth is 2
+loop[1185] depth is 1
+loop[1191] depth is 2
+loop[1200] depth is 2
+loop[1221] depth is 1
+loop[1224] depth is 1
+loop End
+[gcm]bb1302:depth 0
+[gcm]bb1241:depth 0
+[gcm]bb1320:depth 0
+[gcm]bb1235:depth 0
+[gcm]bb1224:depth 1
+[gcm]bb1865:depth 0
+[gcm]bb1200:depth 2
+[gcm]bb381:depth 3
+[gcm]bb384:depth 3
+[gcm]bb392:depth 3
+[gcm]bb1185:depth 1
+[gcm]bb388:depth 2
+[gcm]bb1229:depth 0
+[gcm]bb369:depth 0
+[gcm]bb404:depth 3
+[gcm]bb407:depth 3
+[gcm]bb1132:depth 2
+[gcm]bb1074:depth 2
+[gcm]bb1221:depth 1
+[gcm]bb1191:depth 2
+[gcm]bb1107:depth 3
+[gcm]bb1116:depth 2
+[gcm]bb1140:depth 2
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 8 times
+[GVNPRE]:insert iterate over 2 times,insert 3 expressions, 3 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+bb1865:
+bb1200:
+bb1302:
+bb2047:
+bb2044:
+bb381:
+bb1241:bb1865 
+bb1320:
+bb1235:bb1241 bb1320 
+bb404:
+bb1229:bb1235 
+bb369:bb381 bb384 
+bb392:bb388 bb2044 
+bb384:bb392 
+bb1185:bb1191 bb1221 
+bb407:bb404 bb2047 
+bb1191:
+bb1221:bb1224 bb1229 bb1302 
+bb1116:bb407 
+bb1107:bb1074 
+bb388:bb1107 
+bb1074:bb1116 bb1132 
+bb1132:bb1140 
+bb1140:bb1185 
+bb1224:bb1200 
+bb[2047] in loop
+bb[407] in loop
+loop[2047] depth is 1
+loop[407] depth is 1
+loop End
+bb[2044] in loop
+bb[392] in loop
+loop[2044] depth is 1
+loop[392] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[404] in loop
+loop[381] depth is 1
+loop[384] depth is 1
+loop[404] depth is 1
+loop End
+bb[1107] in loop
+loop[1107] depth is 1
+loop End
+bb[1140] in loop
+loop[1140] depth is 1
+loop End
+bb[1191] in loop
+loop[1191] depth is 1
+loop End
+bb[2047] in loop
+bb[2044] in loop
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1200] in loop
+loop[2047] depth is 2
+loop[2044] depth is 2
+loop[381] depth is 2
+loop[384] depth is 2
+loop[388] depth is 1
+loop[392] depth is 2
+loop[404] depth is 2
+loop[407] depth is 2
+loop[1074] depth is 1
+loop[1107] depth is 2
+loop[1116] depth is 1
+loop[1132] depth is 1
+loop[1200] depth is 1
+loop End
+bb[2047] in loop
+bb[2044] in loop
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1140] in loop
+bb[1185] in loop
+bb[1191] in loop
+bb[1200] in loop
+bb[1221] in loop
+bb[1224] in loop
+loop[2047] depth is 3
+loop[2044] depth is 3
+loop[381] depth is 3
+loop[384] depth is 3
+loop[388] depth is 2
+loop[392] depth is 3
+loop[404] depth is 3
+loop[407] depth is 3
+loop[1074] depth is 2
+loop[1107] depth is 3
+loop[1116] depth is 2
+loop[1132] depth is 2
+loop[1140] depth is 2
+loop[1185] depth is 1
+loop[1191] depth is 2
+loop[1200] depth is 2
+loop[1221] depth is 1
+loop[1224] depth is 1
+loop End
+[gcm]bb2047:depth 3
+[gcm]bb2044:depth 3
+[gcm]bb1302:depth 0
+[gcm]bb1241:depth 0
+[gcm]bb1320:depth 0
+[gcm]bb1235:depth 0
+[gcm]bb1224:depth 1
+[gcm]bb1865:depth 0
+[gcm]bb1200:depth 2
+[gcm]bb381:depth 3
+[gcm]bb384:depth 3
+[gcm]bb392:depth 3
+[gcm]bb1185:depth 1
+[gcm]bb388:depth 2
+[gcm]bb1229:depth 0
+[gcm]bb369:depth 0
+[gcm]bb404:depth 3
+[gcm]bb407:depth 3
+[gcm]bb1132:depth 2
+[gcm]bb1074:depth 2
+[gcm]bb1221:depth 1
+[gcm]bb1191:depth 2
+[gcm]bb1107:depth 3
+[gcm]bb1116:depth 2
+[gcm]bb1140:depth 2
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 8 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+opt ir generated
+bb[2047] in loop
+bb[407] in loop
+loop[2047] depth is 1
+loop[407] depth is 1
+loop End
+bb[2044] in loop
+bb[392] in loop
+loop[2044] depth is 1
+loop[392] depth is 1
+loop End
+bb[381] in loop
+bb[384] in loop
+bb[404] in loop
+loop[381] depth is 1
+loop[384] depth is 1
+loop[404] depth is 1
+loop End
+bb[1107] in loop
+loop[1107] depth is 1
+loop End
+bb[1140] in loop
+loop[1140] depth is 1
+loop End
+bb[1191] in loop
+loop[1191] depth is 1
+loop End
+bb[2047] in loop
+bb[2044] in loop
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1200] in loop
+loop[2047] depth is 2
+loop[2044] depth is 2
+loop[381] depth is 2
+loop[384] depth is 2
+loop[388] depth is 1
+loop[392] depth is 2
+loop[404] depth is 2
+loop[407] depth is 2
+loop[1074] depth is 1
+loop[1107] depth is 2
+loop[1116] depth is 1
+loop[1132] depth is 1
+loop[1200] depth is 1
+loop End
+bb[2047] in loop
+bb[2044] in loop
+bb[381] in loop
+bb[384] in loop
+bb[388] in loop
+bb[392] in loop
+bb[404] in loop
+bb[407] in loop
+bb[1074] in loop
+bb[1107] in loop
+bb[1116] in loop
+bb[1132] in loop
+bb[1140] in loop
+bb[1185] in loop
+bb[1191] in loop
+bb[1200] in loop
+bb[1221] in loop
+bb[1224] in loop
+loop[2047] depth is 3
+loop[2044] depth is 3
+loop[381] depth is 3
+loop[384] depth is 3
+loop[388] depth is 2
+loop[392] depth is 3
+loop[404] depth is 3
+loop[407] depth is 3
+loop[1074] depth is 2
+loop[1107] depth is 3
+loop[1116] depth is 2
+loop[1132] depth is 2
+loop[1140] depth is 2
+loop[1185] depth is 1
+loop[1191] depth is 2
+loop[1200] depth is 2
+loop[1221] depth is 1
+loop[1224] depth is 1
+loop End
+Function main's Loop Analysis :
+The loopstruct contains basicblock: BasicBlock[2047] BasicBlock[2044] BasicBlock[381] BasicBlock[384] BasicBlock[388] BasicBlock[392] BasicBlock[404] BasicBlock[407] BasicBlock[1074] BasicBlock[1107] BasicBlock[1116] BasicBlock[1132] BasicBlock[1140] BasicBlock[1185] BasicBlock[1191] BasicBlock[1200] BasicBlock[1221] BasicBlock[1224] 
+isInerloop: 0
+loopdepth: 1
+cond bb is 1224
+body bb is 1221
+The loopstruct contains basicblock: BasicBlock[1191] 
+isInerloop: 1
+loopdepth: 2
+cond bb is 1191
+body bb is 1191
+The loopstruct contains basicblock: BasicBlock[2047] BasicBlock[2044] BasicBlock[381] BasicBlock[384] BasicBlock[388] BasicBlock[392] BasicBlock[404] BasicBlock[407] BasicBlock[1074] BasicBlock[1107] BasicBlock[1116] BasicBlock[1132] BasicBlock[1200] 
+isInerloop: 0
+loopdepth: 2
+cond bb is 1200
+body bb is 1132
+The loopstruct contains basicblock: BasicBlock[1140] 
+isInerloop: 1
+loopdepth: 2
+cond bb is 1140
+body bb is 1140
+The loopstruct contains basicblock: BasicBlock[2044] BasicBlock[392] 
+isInerloop: 1
+loopdepth: 3
+cond bb is 2044
+body bb is 392
+The loopstruct contains basicblock: BasicBlock[381] BasicBlock[384] BasicBlock[404] 
+isInerloop: 1
+loopdepth: 3
+cond bb is 404
+body bb is 384
+The loopstruct contains basicblock: BasicBlock[2047] BasicBlock[407] 
+isInerloop: 1
+loopdepth: 3
+cond bb is 2047
+body bb is 407
+The loopstruct contains basicblock: BasicBlock[1107] 
+isInerloop: 1
+loopdepth: 3
+cond bb is 1107
+body bb is 1107
+
+asm generated
+asm output ok
+Instruction does not dominate all uses!
+  %t1817 = phi i32 [ %t1817, %B1074 ], [ %t1846, %B1200 ]
+  %t1817 = phi i32 [ %t1817, %B1074 ], [ %t1846, %B1200 ]
+Instruction does not dominate all uses!
+  %t1818 = phi i32 [ %t1818, %B1074 ], [ %t1847, %B1200 ]
+  %t1818 = phi i32 [ %t1818, %B1074 ], [ %t1847, %B1200 ]
+Instruction does not dominate all uses!
+  %t1817 = phi i32 [ %t1817, %B1074 ], [ %t1846, %B1200 ]
+  %t1824 = phi i32 [ %t1817, %B1074 ], [ %t1846, %B1200 ]
+Instruction does not dominate all uses!
+  %t1818 = phi i32 [ %t1818, %B1074 ], [ %t1847, %B1200 ]
+  %t1825 = phi i32 [ %t1818, %B1074 ], [ %t1847, %B1200 ]
+opt: debug.ll: error: input module is broken!
+make: *** [Makefile:55: run] Error 1
