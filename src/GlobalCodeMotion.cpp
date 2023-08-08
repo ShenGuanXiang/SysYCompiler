@@ -109,7 +109,7 @@ void GlobalCodeMotion::pass()
 
 void GlobalCodeMotion::pass(Function *func)
 {
-    // gvn(func);
+    gvn(func);
 
     h.compute_info(func);
 
