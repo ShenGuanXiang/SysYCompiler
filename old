@@ -1,0 +1,131 @@
+@count = dso_local global i32 0, align 4
+@sum = dso_local global i32 0, align 4
+@a = dso_local global i32 0, align 4
+declare void @putint(i32)
+define dso_local i32 @getA() #0{
+B63:
+  %t64 = load i32, i32* @count, align 4
+  %t0 = add i32 %t64, 1
+  store i32 %t0, i32* @count, align 4
+  %t65 = load i32, i32* @count, align 4
+  ret i32 %t65
+}
+define dso_local void @f1(i32 %a) #0{
+B66:
+  %t68 = load i32, i32* @sum, align 4
+  %t1 = add i32 %t68, %a
+  store i32 %t1, i32* @sum, align 4
+  %t2 = call i32 @getA()
+  %t70 = load i32, i32* @sum, align 4
+  %t3 = add i32 %t70, %t2
+  store i32 %t3, i32* @sum, align 4
+  %t4 = call i32 @getA()
+  %t75 = load i32, i32* @sum, align 4
+  %t5 = add i32 %t75, %t4
+  store i32 %t5, i32* @sum, align 4
+  %t77 = load i32, i32* @sum, align 4
+  %t6 = add i32 %t77, %t2
+  store i32 %t6, i32* @sum, align 4
+  %t79 = load i32, i32* @sum, align 4
+  %t7 = add i32 %t79, %t2
+  store i32 %t7, i32* @sum, align 4
+  ret void
+}
+define dso_local void @f2() #0{
+B81:
+  %t82 = load i32, i32* @sum, align 4
+  %t83 = load i32, i32* @a, align 4
+  %t8 = add i32 %t82, %t83
+  store i32 %t8, i32* @sum, align 4
+  %t9 = call i32 @getA()
+  %t85 = load i32, i32* @sum, align 4
+  %t86 = load i32, i32* @a, align 4
+  %t10 = add i32 %t85, %t86
+  store i32 %t10, i32* @sum, align 4
+  ret void
+}
+define dso_local void @f3() #0{
+B87:
+  %t11 = call i32 @getA()
+  %t89 = load i32, i32* @sum, align 4
+  %t12 = add i32 %t89, %t11
+  store i32 %t12, i32* @sum, align 4
+  %t13 = call i32 @getA()
+  %t91 = load i32, i32* @sum, align 4
+  %t14 = add i32 %t91, %t13
+  store i32 %t14, i32* @sum, align 4
+  %t15 = call i32 @getA()
+  %t94 = load i32, i32* @sum, align 4
+  %t16 = add i32 %t94, %t13
+  store i32 %t16, i32* @sum, align 4
+  ret void
+}
+define dso_local i32 @main() #0{
+B96:                               	; succs = %B118
+  %t17 = call i32 @getA()
+  store i32 %t17, i32* @a, align 4
+  %t97 = load i32, i32* @sum, align 4
+  %t98 = load i32, i32* @a, align 4
+  %t18 = add i32 %t97, %t98
+  store i32 %t18, i32* @sum, align 4
+  %t19 = call i32 @getA()
+  call void @f1(i32 %t19)
+  call void @f2()
+  call void @f3()
+  call void @f1(i32 %t19)
+  call void @f2()
+  call void @f3()
+  %t26 = call i32 @getA()
+  call void @f1(i32 %t19)
+  call void @f2()
+  call void @f3()
+  %t30 = call i32 @getA()
+  %t31 = call i32 @getA()
+  call void @f1(i32 %t31)
+  call void @f2()
+  call void @f3()
+  %t35 = call i32 @getA()
+  call void @f1(i32 %t35)
+  call void @f2()
+  call void @f3()
+  %t39 = call i32 @getA()
+  call void @f1(i32 %t39)
+  call void @f2()
+  call void @f3()
+  call void @f1(i32 %t19)
+  call void @f2()
+  call void @f3()
+  br label %B118
+B118:                               	; preds = %B96, %B133                               	; succs = %B112, %B122
+  %t148 = phi i32 [ %t19 , %B96 ], [ %t150 , %B133 ]
+  %t149 = phi i32 [ 0 , %B96 ], [ %t56 , %B133 ]
+  %t46 = icmp slt i32 %t149, 3
+  br i1 %t46, label %B122, label %B112
+B112:                               	; preds = %B118, %B138
+  %t147 = load i32, i32* @sum, align 4
+  call void @putint(i32 %t147)
+  ret i32 0
+B122:                               	; preds = %B118, %B138                               	; succs = %B133, %B138
+  %t150 = phi i32 [ %t148 , %B118 ], [ %t60 , %B138 ]
+  %t151 = phi i32 [ %t149 , %B118 ], [ %t61 , %B138 ]
+  call void @f1(i32 %t150)
+  call void @f2()
+  call void @f3()
+  %t51 = icmp eq i32 %t151, 1
+  br i1 %t51, label %B133, label %B138
+B133:                               	; preds = %B122                               	; succs = %B118
+  %t52 = call i32 @getA()
+  call void @f1(i32 %t52)
+  call void @f2()
+  call void @f3()
+  %t56 = add i32 %t151, 1
+  br label %B118
+B138:                               	; preds = %B122                               	; succs = %B112, %B122
+  call void @f1(i32 %t150)
+  call void @f2()
+  call void @f3()
+  %t60 = call i32 @getA()
+  %t61 = add i32 %t151, 1
+  %t141 = icmp slt i32 %t61, 3
+  br i1 %t141, label %B122, label %B112
+}

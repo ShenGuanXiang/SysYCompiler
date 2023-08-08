@@ -421,6 +421,13 @@ FuncCallInstruction::FuncCallInstruction(Operand *dst, std::vector<Operand *> pa
                 return;
         this->getParent()->getParent()->getParent()->insertDecl(func_se);
     }
+    else if (funcse->getName() == "mulmod")
+    {
+        for (auto decl : this->getParent()->getParent()->getParent()->getDeclList())
+            if (decl->getType()->isFunc() && decl->getName() == "mulmod")
+                return;
+        this->getParent()->getParent()->getParent()->insertDecl(func_se);
+    }
 }
 
 void FuncCallInstruction::output() const

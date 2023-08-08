@@ -105,10 +105,6 @@ int main(int argc, char *argv[])
 
     if (optimize)
     {
-        // Mem2Reg m2r(unit);
-        // m2r.pass();
-        // GlobalCodeMotion gcm(unit);
-        // gcm.pass(); // 全局代码移动
         for (int i = 0; i < 4; i++)
         {
             AutoInliner autoinliner(unit);
@@ -120,17 +116,19 @@ int main(int argc, char *argv[])
             SparseCondConstProp sccp(unit);
             sccp.pass(); // 常量传播
             ComSubExprElim cse(unit);
-            // cse.pass3(); // 公共子表达式消除
+            cse.pass3(); // 公共子表达式消除
             MemoryOpt memopt(unit);
             memopt.pass(); // 访存优化
+        GlobalCodeMotion gcm(unit);
+        gcm.pass(); // 全局代码移动
             GVNPRE gvnpre(unit);
             gvnpre.pass(); // 部分冗余消除&循环不变外提
             // 循环展开
             DeadCodeElim dce(unit);
             // dce.pass(); // 死代码删除
-            LoopSimplify ls(unit);
-            ls.pass();
         }
+        LoopSimplify ls(unit);
+        ls.pass();
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
