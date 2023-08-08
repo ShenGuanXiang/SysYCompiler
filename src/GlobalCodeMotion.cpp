@@ -262,12 +262,12 @@ void Helper::compute_info(Function *func)
     }
     for(auto loop:la.getLoops()){
         for(auto bb:loop->GetLoop()->GetBasicBlock()){
-            loop_depth[bb] = loop->GetLoop()->GetDepth();
+            loop_depth[bb] = std::max(loop->GetLoop()->GetDepth(), loop_depth[bb]);
         }
     }
     
     for(auto p : loop_depth){
-        fprintf(stderr,"bb%d:depth %d\n",p.first->getNo(),p.second);
+        fprintf(stderr,"[gcm]bb%d:depth %d\n",p.first->getNo(),p.second);
     }
 
     // 计算插入点

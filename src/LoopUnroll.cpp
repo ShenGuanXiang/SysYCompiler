@@ -46,7 +46,7 @@ void LoopAnalyzer::Analyze(Function* f) {
 int LoopAnalyzer::dfs(BasicBlock* bb, int pre_order) {
     visit.insert(bb);
     preOrder[bb] = pre_order ++;
-    fprintf(stderr, "BasicBlock[%d] PreOrder is %d\n", bb->getNo(), preOrder[bb]);
+    // fprintf(stderr, "BasicBlock[%d] PreOrder is %d\n", bb->getNo(), preOrder[bb]);
     int post = 0;
     for (auto b = bb->succ_begin(); b != bb->succ_end(); b ++) {
         if (visit.find(*b) == visit.end()) {
@@ -61,7 +61,7 @@ int LoopAnalyzer::dfs(BasicBlock* bb, int pre_order) {
             edgeType[{bb, *b}] = CROSS;
     }
     PostOrder[bb] = post;
-    fprintf(stderr, "BasicBlock[%d] PostOrder is %d\n", bb->getNo(), PostOrder[bb]);
+    // fprintf(stderr, "BasicBlock[%d] PostOrder is %d\n", bb->getNo(), PostOrder[bb]);
     return PostOrder[bb] + 1;
 }
 
@@ -122,9 +122,9 @@ void LoopAnalyzer::FindLoops(Function* f) {
     for (auto l : getLoops())
     {
         l->GetLoop()->SetDepth(0x3fffffff);
-        for (auto bb : l->GetLoop()->GetBasicBlock())
-            fprintf(stderr, "bb[%d]'s depth is %d\n", bb->getNo(),
-            getLoopDepth(bb));
+        // for (auto bb : l->GetLoop()->GetBasicBlock())
+        //     fprintf(stderr, "bb[%d]'s depth is %d\n", bb->getNo(),
+        //     getLoopDepth(bb));
     }
 
     for (auto l : getLoops())
