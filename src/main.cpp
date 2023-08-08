@@ -126,15 +126,15 @@ int main(int argc, char *argv[])
             unit->output();
             fprintf(stderr, "opt ir output ok\n");
         }
+        LoopAnalyzer La;
+        for (auto f : unit->getFuncList())
+        {
+            La.FindLoops(f);
+            La.PrintInfo(f);
+        }
         ElimPHI ep(unit);
         ep.pass();
     }
-    // LoopAnalyzer La;
-    // for (auto f : unit->getFuncList())
-    // {
-    //     La.FindLoops(f);
-    //     La.PrintInfo(f);
-    // }
     if (dump_asm)
     {
         unit->genMachineCode(mUnit);

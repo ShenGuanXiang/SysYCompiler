@@ -69,12 +69,12 @@ std::set<BasicBlock*> LoopAnalyzer::computeNaturalLoop(BasicBlock* cond, BasicBl
     std::set<BasicBlock*> loop;
     std::queue<BasicBlock*> q;
 
-    if (cond == body) 
+    if (cond == body && cond != nullptr) 
         loop.insert(cond);
     else 
     {
-        loop.insert(cond);
-        loop.insert(body);
+        if (cond != nullptr) loop.insert(cond);
+        if (body != nullptr) loop.insert(body);
         q.push(cond);
     }
     while (!q.empty()) {
@@ -87,6 +87,8 @@ std::set<BasicBlock*> LoopAnalyzer::computeNaturalLoop(BasicBlock* cond, BasicBl
                 loop.insert(*b);
             }
     }
+    for (auto l : loop)
+        fprintf(stderr, "bb[%d] in loop\n", l->getNo());
     return loop;
 }
 
@@ -99,8 +101,11 @@ void LoopAnalyzer::computeLoopDepth() {
             loopstruct->SetBody(edge.first.second);
             loopstruct->SetCond(edge.first.first);
             Loops.insert(loopstruct);
-            for (auto& b : loop->GetBasicBlock())
+            for (auto& b : loop->GetBasicBlock()) {
                 loopDepth[b] ++;
+                fprintf(stderr, "loop[%d] depth is %d\n", b->getNo(), loopDepth[b]);
+            }
+            fprintf(stderr, "loop End\n");
         }
 }
 
@@ -114,6 +119,13 @@ bool LoopAnalyzer::isSubset(std::set<BasicBlock*> t_son, std::set<BasicBlock*> t
 
 void LoopAnalyzer::FindLoops(Function* f) {
     Analyze(f);
+    for (auto l : getLoops())
+    {
+        l->GetLoop()->SetDepth(0x3fffffff);
+        for (auto bb : l->GetLoop()->GetBasicBlock())
+            fprintf(stderr, "bb[%d]'s depth is %d\n", bb->getNo(),
+            getLoopDepth(bb));
+    }
 
     for (auto l : getLoops())
     {
@@ -151,7 +163,56 @@ void LoopUnroll::pass() {
 }
 
 std::vector<LoopStruct*> LoopUnroll::FindCandidateLoop() {
-    
+    // std::vector<LoopStruct*> Worklist;
+    // for (auto f : unit->getFuncList()) {
+    //     for(auto loop : analyzer.FindLoops(f)){
+
+    //         // find cond and body
+    //         BasicBlock* cond = nullptr, *body = nullptr;
+    //         for(auto bb : loop->getbbs()){
+    //             for(auto instr = bb->begin(); instr != bb->end()->getNext(); instr = instr->getNext()){
+    //                 if(instr->isCmp()){
+    //                     cond = bb;
+    //                     break;
+    //                 }
+    //             }
+    //             if(cond) break;
+    //         }
+
+    //         for(auto bb : loop->getbbs()){
+    //             if(bb != cond){
+    //                 body = bb;
+    //             }
+    //         }
+
+    //         LoopStruct* CandidateLoop = new LoopStruct(loop);
+    //         CandidateLoop->SetCond(cond);
+    //         CandidateLoop->SetBody(body);
+    //         Worklist.push_back(CandidateLoop);
+    //     }
+    // }
+
+    // for(auto CandidateLoop : Worklist){
+    //     bool HasCallInBody = false;
+    //     for(auto bodyinstr = CandidateLoop->getBody()->begin(); bodyinstr != CandidateLoop->getBody()->end()->getNext(); bodyinstr = bodyinstr->getNext()){
+    //         if(bodyinstr->isCall()){
+    //             HasCallInBody = true;
+    //             break;
+    //         }
+    //     }
+    //     if(HasCallInBody){
+    //         Exception("Candidate loop shall have no call in body");
+    //         continue;
+    //     }
+
+    //     bool CheckFlag = false;
+    //     for(auto bb = CandidateLoop->getCond()->succ_begin(); bb != CandidateLoop->getCond()->succ_end(); bb++){
+    //         CheckFlag = CheckFlag || (*bb == CandidateLoop->getBody());
+    //     }
+    //     if(!CheckFlag){
+    //         continue;
+    //     }
+    // }
 }
 
 void LoopUnroll::Unroll(LoopStruct *)
