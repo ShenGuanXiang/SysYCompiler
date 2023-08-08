@@ -268,7 +268,7 @@ void Helper::compute_info(Function *func)
     }
     
     for(auto p : loop_depth){
-        fprintf(stderr,"bb%d:depth %d\n",p.first->getNo(),p.second);
+        fprintf(stderr,"[gcm]bb%d:depth %d\n",p.first->getNo(),p.second);
     }
 
     // 计算插入点
