@@ -1,0 +1,683 @@
+	.arch armv8-a
+	.arch_extension crc
+	.arm
+	.text
+	.global my_pow
+	.type my_pow , %function
+my_pow:
+	push {r0, r2, fp, lr}
+	vpush {s4, s5, s6, s7, s8}
+	mov fp, sp
+.L153:                               	@ succs = .L156, .L159
+	@ dummy 	defs:{ s0 r1 fp }
+	mov r0, r1
+	vmov.f32 s4, s0
+	neg r2, r0
+	cmp r0, #0
+	blt .L159
+	b .L156
+.L156:                               	@ preds = .L153                               	@ succs = .L1613, .L1611
+	cmp r0, #0
+	bne .L1613
+	b .L1611
+.L1613:                               	@ preds = .L156                               	@ succs = .L167
+	vldr.32 s5, =1065353216
+	mov r1, r0
+	vmov.f32 s7, s4
+	b .L167
+.L1611:                               	@ preds = .L156
+	vldr.32 s5, =1065353216
+	vmov.f32 s0, s5
+	@ dummy 	uses:{ s0 }
+	vpop {s4, s5, s6, s7, s8}
+	pop {r0, r2, fp, lr}
+	bx lr
+
+.L167:                               	@ preds = .L1614, .L1613                               	@ succs = .L1615, .L171
+	mov r0, #2
+	sdiv r2, r1, r0
+	mul r0, r2, r0
+	sub r0, r1, r0
+	cmp r0, #0
+	bne .L171
+	b .L1615
+.L1615:                               	@ preds = .L167                               	@ succs = .L168
+	vmov.f32 s4, s5
+	b .L168
+.L171:                               	@ preds = .L167                               	@ succs = .L168
+	vmul.f32 s6, s5, s7
+	vmov.f32 s4, s6
+	b .L168
+.L168:                               	@ preds = .L1615, .L171                               	@ succs = .L1614, .L1612
+	vmul.f32 s6, s7, s7
+	mov r2, #2
+	sdiv r0, r1, r2
+	cmp r0, #0
+	bne .L1614
+	b .L1612
+.L1614:                               	@ preds = .L168                               	@ succs = .L167
+	vmov.f32 s5, s4
+	mov r1, r0
+	vmov.f32 s7, s6
+	b .L167
+.L1612:                               	@ preds = .L168
+	vmov.f32 s8, s4
+	vmov.f32 s0, s8
+	@ dummy 	uses:{ s0 }
+	vpop {s4, s5, s6, s7, s8}
+	pop {r0, r2, fp, lr}
+	bx lr
+
+.L159:                               	@ preds = .L153
+	mov r1, r2
+	vmov.f32 s0, s4
+	bl my_pow	@ defs:{ lr r12 s0 r1 }	uses:{ r1 s0 fp }
+	vmov.f32 s5, s0
+	vmov.f32 s7, #1065353216
+	vdiv.f32 s5, s7, s5
+	vmov.f32 s0, s5
+	@ dummy 	uses:{ s0 }
+	vpop {s4, s5, s6, s7, s8}
+	pop {r0, r2, fp, lr}
+	bx lr
+
+	.global my_sqrt
+	.type my_sqrt , %function
+my_sqrt:
+	push {r0, r1, fp, r12, lr}
+	vpush {s4, s5, s6, s7, s8, s9}
+	mov fp, sp
+.L181:                               	@ succs = .L1616, .L186
+	@ dummy 	defs:{ s0 fp }
+	vmov.f32 s4, s0
+	ldr r12, =1120403456
+	vmov.f32 s7, r12
+	vdiv.f32 s6, s4, s7
+	vmov.f32 s7, #1090519040
+	vdiv.f32 s7, s4, s7
+	vmov.f32 s8, #1056964608
+	vadd.f32 s7, s7, s8
+	vmov.f32 s8, #1073741824
+	vmul.f32 s8, s8, s4
+	vmov.f32 s9, #1082130432
+	vadd.f32 s9, s4, s9
+	vdiv.f32 s8, s8, s9
+	vadd.f32 s5, s7, s8
+	ldr r12, =1120403456
+	vmov.f32 s7, r12
+	vcmp.f32 s4, s7
+	vmrs APSR_nzcv, FPSCR
+	bgt .L186
+	b .L1616
+.L1616:                               	@ preds = .L181                               	@ succs = .L197
+	mov r0, #10
+	vmov.f32 s6, s5
+	b .L197
+.L197:                               	@ preds = .L1617, .L1616                               	@ succs = .L1617, .L194
+	vdiv.f32 s7, s4, s6
+	vadd.f32 s7, s6, s7
+	vmov.f32 s8, #1073741824
+	vdiv.f32 s5, s7, s8
+	sub r1, r0, #1
+	cmp r1, #0
+	bne .L1617
+	b .L194
+.L1617:                               	@ preds = .L197                               	@ succs = .L197
+	mov r0, r1
+	vmov.f32 s6, s5
+	b .L197
+.L194:                               	@ preds = .L197
+	vmov.f32 s0, s5
+	@ dummy 	uses:{ s0 }
+	vpop {s4, s5, s6, s7, s8, s9}
+	pop {r0, r1, fp, r12, lr}
+	bx lr
+
+.L186:                               	@ preds = .L181
+	vmov.f32 s0, s6
+	bl my_sqrt	@ defs:{ lr r12 s0 }	uses:{ s0 fp }
+	vmov.f32 s7, s0
+	vmov.f32 s8, #1092616192
+	vmul.f32 s7, s8, s7
+	vmov.f32 s0, s7
+	@ dummy 	uses:{ s0 }
+	vpop {s4, s5, s6, s7, s8, s9}
+	pop {r0, r1, fp, r12, lr}
+	bx lr
+
+	.global asr5
+	.type asr5 , %function
+asr5:
+	push {r0, r1, fp, lr}
+	vpush {s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18, s19}
+	vpush {s20, s21, s22}
+	mov fp, sp
+.L239:                               	@ succs = .L1619, .L453
+	@ dummy 	defs:{ s0 s1 s2 s3 fp }
+	ldr r0, [fp, #92]
+	vmov.f32 s12, s3
+	vmov.f32 s8, s2
+	vmov.f32 s4, s1
+	vmov.f32 s5, s0
+	vsub.f32 s20, s4, s5
+	vmov.f32 s21, #1073741824
+	vdiv.f32 s20, s20, s21
+	vadd.f32 s9, s5, s20
+	vsub.f32 s19, s9, s5
+	vmov.f32 s20, #1073741824
+	vdiv.f32 s20, s19, s20
+	vadd.f32 s20, s5, s20
+	vmov.f32 s21, #1073741824
+	vdiv.f32 s6, s8, s21
+	vmov.f32 s21, #1097859072
+	vmul.f32 s13, s21, s8
+	vmov.f32 s8, #1065353216
+	vdiv.f32 s8, s8, s5
+	vmov.f32 s21, #1065353216
+	vdiv.f32 s21, s21, s20
+	vmov.f32 s22, #1082130432
+	vmul.f32 s21, s22, s21
+	vadd.f32 s8, s8, s21
+	vmov.f32 s21, #1065353216
+	vdiv.f32 s21, s21, s9
+	vadd.f32 s8, s8, s21
+	vmul.f32 s8, s8, s19
+	vmov.f32 s22, #1086324736
+	vdiv.f32 s7, s8, s22
+	vmul.f32 s8, s5, s5
+	vmov.f32 s22, #1065353216
+	vsub.f32 s17, s22, s8
+	vmul.f32 s20, s20, s20
+	vmov.f32 s8, #1065353216
+	vsub.f32 s18, s8, s20
+	vmul.f32 s20, s9, s9
+	vmov.f32 s8, #1065353216
+	vsub.f32 s11, s8, s20
+	vsub.f32 s14, s4, s9
+	vmov.f32 s20, #1073741824
+	vdiv.f32 s20, s14, s20
+	vadd.f32 s20, s9, s20
+	vmov.f32 s8, #1065353216
+	vdiv.f32 s8, s8, s20
+	vmov.f32 s22, #1082130432
+	vmul.f32 s8, s22, s8
+	vadd.f32 s21, s21, s8
+	vmov.f32 s8, #1065353216
+	vdiv.f32 s8, s8, s4
+	vadd.f32 s21, s21, s8
+	vmul.f32 s21, s21, s14
+	vmov.f32 s8, #1086324736
+	vdiv.f32 s10, s21, s8
+	vmul.f32 s20, s20, s20
+	vmov.f32 s21, #1065353216
+	vsub.f32 s16, s21, s20
+	vmul.f32 s20, s4, s4
+	vmov.f32 s21, #1065353216
+	vsub.f32 s15, s21, s20
+	cmp r0, #1
+	beq .L1619
+	b .L453
+.L1619:                               	@ preds = .L239                               	@ succs = .L439
+	vmov.f32 s8, s7
+	b .L439
+.L453:                               	@ preds = .L239                               	@ succs = .L1620, .L491
+	cmp r0, #2
+	beq .L491
+	b .L1620
+.L439:                               	@ preds = .L1619, .L1620, .L491                               	@ succs = .L1621, .L543
+	cmp r0, #1
+	beq .L1621
+	b .L543
+.L1620:                               	@ preds = .L453                               	@ succs = .L439
+	vldr.32 s8, =0
+	b .L439
+.L491:                               	@ preds = .L453                               	@ succs = .L439
+	vmov.f32 s0, s17
+	bl my_sqrt	@ defs:{ lr r12 s0 }	uses:{ s0 fp }
+	vmov.f32 s20, s0
+	vmov.f32 s21, #1065353216
+	vdiv.f32 s20, s21, s20
+	vmov.f32 s0, s18
+	bl my_sqrt	@ defs:{ lr r12 s0 }	uses:{ s0 fp }
+	vmov.f32 s21, s0
+	vmov.f32 s22, #1065353216
+	vdiv.f32 s21, s22, s21
+	vmov.f32 s22, #1082130432
+	vmul.f32 s21, s22, s21
+	vadd.f32 s20, s20, s21
+	vmov.f32 s0, s11
+	bl my_sqrt	@ defs:{ lr r12 s0 }	uses:{ s0 fp }
+	vmov.f32 s21, s0
+	vmov.f32 s22, #1065353216
+	vdiv.f32 s21, s22, s21
+	vadd.f32 s20, s20, s21
+	vmul.f32 s20, s20, s19
+	vmov.f32 s21, #1086324736
+	vdiv.f32 s20, s20, s21
+	vmov.f32 s8, s20
+	b .L439
+.L1621:                               	@ preds = .L439                               	@ succs = .L529
+	vmov.f32 s7, s10
+	b .L529
+.L543:                               	@ preds = .L439                               	@ succs = .L1622, .L581
+	cmp r0, #2
+	beq .L581
+	b .L1622
+.L529:                               	@ preds = .L1621, .L1622, .L581                               	@ succs = .L382, .L1618
+	vadd.f32 s10, s8, s7
+	vsub.f32 s11, s10, s12
+	mov r1, #0
+	vmov.f32 s14, r1
+	vcmp.f32 s11, s14
+	vmrs APSR_nzcv, FPSCR
+	bgt .L1618
+	b .L382
+.L1622:                               	@ preds = .L543                               	@ succs = .L529
+	vldr.32 s7, =0
+	b .L529
+.L581:                               	@ preds = .L543                               	@ succs = .L529
+	vmov.f32 s0, s11
+	bl my_sqrt	@ defs:{ lr r12 s0 }	uses:{ s0 fp }
+	vmov.f32 s17, s0
+	vmov.f32 s18, #1065353216
+	vdiv.f32 s17, s18, s17
+	vmov.f32 s0, s16
+	bl my_sqrt	@ defs:{ lr r12 s0 }	uses:{ s0 fp }
+	vmov.f32 s18, s0
+	vmov.f32 s19, #1065353216
+	vdiv.f32 s18, s19, s18
+	vmov.f32 s19, #1082130432
+	vmul.f32 s18, s19, s18
+	vadd.f32 s17, s17, s18
+	vmov.f32 s0, s15
+	bl my_sqrt	@ defs:{ lr r12 s0 }	uses:{ s0 fp }
+	vmov.f32 s18, s0
+	vmov.f32 s19, #1065353216
+	vdiv.f32 s18, s19, s18
+	vadd.f32 s17, s17, s18
+	vmul.f32 s17, s17, s14
+	vmov.f32 s18, #1086324736
+	vdiv.f32 s17, s17, s18
+	vmov.f32 s7, s17
+	b .L529
+.L382:                               	@ preds = .L529                               	@ succs = .L377
+	vneg.f32 s14, s11
+	vmov.f32 s12, s14
+	b .L377
+.L1618:                               	@ preds = .L529                               	@ succs = .L377
+	vmov.f32 s12, s11
+	b .L377
+.L377:                               	@ preds = .L382, .L1618                               	@ succs = .L257, .L263
+	vcmp.f32 s12, s13
+	vmrs APSR_nzcv, FPSCR
+	ble .L263
+	b .L257
+.L263:                               	@ preds = .L377
+	vmov.f32 s12, #1097859072
+	vdiv.f32 s12, s11, s12
+	vadd.f32 s12, s10, s12
+	vmov.f32 s0, s12
+	@ dummy 	uses:{ s0 }
+	vpop {s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18, s19}
+	vpop {s20, s21, s22}
+	pop {r0, r1, fp, lr}
+	bx lr
+
+.L257:                               	@ preds = .L377
+	push {r0}
+	vmov.f32 s3, s8
+	vmov.f32 s2, s6
+	vmov.f32 s1, s9
+	vmov.f32 s0, s5
+	bl asr5	@ defs:{ lr r12 s0 s1 s2 s3 }	uses:{ s3 s2 s1 s0 fp }
+	add sp, sp, #4
+	vmov.f32 s10, s0
+	push {r0}
+	vmov.f32 s3, s7
+	vmov.f32 s2, s6
+	vmov.f32 s1, s4
+	vmov.f32 s0, s9
+	bl asr5	@ defs:{ lr r12 s0 s1 s2 s3 }	uses:{ s3 s2 s1 s0 fp }
+	add sp, sp, #4
+	vmov.f32 s11, s0
+	vadd.f32 s10, s10, s11
+	vmov.f32 s0, s10
+	@ dummy 	uses:{ s0 }
+	vpop {s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18, s19}
+	vpop {s20, s21, s22}
+	pop {r0, r1, fp, lr}
+	bx lr
+
+	.global eee
+	.type eee , %function
+eee:
+	push {fp, r12, lr}
+	vpush {s4, s5, s6, s7, s8, s9}
+	mov fp, sp
+.L291:                               	@ succs = .L293, .L296
+	@ dummy 	defs:{ s0 fp }
+	vmov.f32 s4, s0
+	vmov.f32 s7, #1065353216
+	vadd.f32 s7, s4, s7
+	vmul.f32 s8, s4, s4
+	vmov.f32 s9, #1073741824
+	vdiv.f32 s8, s8, s9
+	vadd.f32 s5, s7, s8
+	vmov.f32 s7, #1073741824
+	vdiv.f32 s6, s4, s7
+	ldr r1, =981668463
+	vmov.f32 s7, r1
+	vcmp.f32 s4, s7
+	vmrs APSR_nzcv, FPSCR
+	bgt .L296
+	b .L293
+.L296:                               	@ preds = .L291
+	vmov.f32 s0, s6
+	bl eee	@ defs:{ lr r12 s0 r1 }	uses:{ s0 fp }
+	vmov.f32 s7, s0
+	vmul.f32 s7, s7, s7
+	vmov.f32 s0, s7
+	@ dummy 	uses:{ s0 }
+	vpop {s4, s5, s6, s7, s8, s9}
+	pop {fp, r12, lr}
+	bx lr
+
+.L293:                               	@ preds = .L291
+	mov r1, #3
+	vmov.f32 s0, s4
+	bl my_pow	@ defs:{ lr r12 s0 r1 }	uses:{ r1 s0 fp }
+	vmov.f32 s6, s0
+	vmov.f32 s7, #1086324736
+	vdiv.f32 s6, s6, s7
+	vadd.f32 s6, s5, s6
+	mov r1, #4
+	vmov.f32 s0, s4
+	bl my_pow	@ defs:{ lr r12 s0 r1 }	uses:{ r1 s0 fp }
+	vmov.f32 s7, s0
+	vmov.f32 s8, #1103101952
+	vdiv.f32 s7, s7, s8
+	vadd.f32 s6, s6, s7
+	mov r1, #5
+	vmov.f32 s0, s4
+	bl my_pow	@ defs:{ lr r12 s0 r1 }	uses:{ r1 s0 fp }
+	vmov.f32 s7, s0
+	ldr r12, =1123024896
+	vmov.f32 s8, r12
+	vdiv.f32 s7, s7, s8
+	vadd.f32 s6, s6, s7
+	vmov.f32 s0, s6
+	@ dummy 	uses:{ s0 }
+	vpop {s4, s5, s6, s7, s8, s9}
+	pop {fp, r12, lr}
+	bx lr
+
+.LTORG
+	.global my_exp
+	.type my_exp , %function
+my_exp:
+	push {r0, r2, fp, lr}
+	vpush {s4, s5, s6, s7}
+	mov fp, sp
+.L307:                               	@ succs = .L309, .L312
+	@ dummy 	defs:{ s0 fp }
+	vmov.f32 s6, s0
+	vcvt.s32.f32 s7, s6
+	vmov.f32 r0, s7
+	vmov.f32 s7, r0
+	vcvt.f32.s32 s7, s7
+	vsub.f32 s4, s6, s7
+	vneg.f32 s5, s6
+	mov r1, #0
+	vmov.f32 s7, r1
+	vcmp.f32 s6, s7
+	vmrs APSR_nzcv, FPSCR
+	blt .L312
+	b .L309
+.L312:                               	@ preds = .L307
+	vmov.f32 s0, s5
+	bl my_exp	@ defs:{ lr r12 s0 r1 }	uses:{ s0 fp }
+	vmov.f32 s6, s0
+	vmov.f32 s7, #1065353216
+	vdiv.f32 s6, s7, s6
+	vmov.f32 s0, s6
+	@ dummy 	uses:{ s0 }
+	vpop {s4, s5, s6, s7}
+	pop {r0, r2, fp, lr}
+	bx lr
+
+.L309:                               	@ preds = .L307
+	mov r1, r0
+	ldr r2, =1076754516
+	vmov.f32 s0, r2
+	bl my_pow	@ defs:{ lr r12 s0 r1 }	uses:{ r1 s0 fp }
+	vmov.f32 s5, s0
+	vmov.f32 s0, s4
+	bl eee	@ defs:{ lr r12 s0 r1 }	uses:{ s0 fp }
+	vmov.f32 s6, s0
+	vmul.f32 s5, s5, s6
+	vmov.f32 s0, s5
+	@ dummy 	uses:{ s0 }
+	vpop {s4, s5, s6, s7}
+	pop {r0, r2, fp, lr}
+	bx lr
+
+	.global main
+	.type main , %function
+main:
+	push {r4, r5, r6, fp, r12, lr}
+	vpush {s4, s5, s6, s7, s8, s9, s10}
+	mov fp, sp
+	sub sp, sp, #4
+.L337:                               	@ succs = .L340, .L1625
+	@ dummy 	defs:{ fp }
+	bl getint	@ defs:{ lr r12 r0 r1 r2 r3 }	uses:{ fp }
+	mov r4, r0
+	cmp r4, #0
+	bne .L1625
+	b .L340
+.L1625:                               	@ preds = .L337                               	@ succs = .L343
+	mov r5, r4
+	b .L343
+.L343:                               	@ preds = .L1625, .L1626                               	@ succs = .L392, .L1629
+	bl getfloat	@ defs:{ lr r12 s0 r0 r1 r2 r3 }	uses:{ fp }
+	vmov.f32 s6, s0
+	bl getfloat	@ defs:{ lr r12 s0 r0 r1 r2 r3 }	uses:{ fp }
+	vmov.f32 s5, s0
+	mov r12, #0
+	vmov.f32 s7, r12
+	vcmp.f32 s6, s7
+	vmrs APSR_nzcv, FPSCR
+	bgt .L1629
+	b .L392
+.L392:                               	@ preds = .L343                               	@ succs = .L387
+	vneg.f32 s4, s6
+	vmov.f32 s7, s4
+	b .L387
+.L1629:                               	@ preds = .L343                               	@ succs = .L387
+	vmov.f32 s7, s6
+	b .L387
+.L387:                               	@ preds = .L392, .L1629                               	@ succs = .L355, .L1175
+	vmov.f32 s0, s7
+	bl putfloat	@ defs:{ lr r12 s0 r0 r1 r2 r3 }	uses:{ s0 fp }
+	mov r0, #32
+	bl putch	@ defs:{ lr r12 r0 r1 r2 r3 }	uses:{ r0 fp }
+	mov r1, #2
+	vmov.f32 s0, s6
+	bl my_pow	@ defs:{ lr r12 s0 r1 }	uses:{ r1 s0 fp }
+	vmov.f32 s8, s0
+	vmov.f32 s0, s8
+	bl putfloat	@ defs:{ lr r12 s0 r0 r1 r2 r3 }	uses:{ s0 fp }
+	mov r0, #32
+	bl putch	@ defs:{ lr r12 r0 r1 r2 r3 }	uses:{ r0 fp }
+	vmov.f32 s0, s6
+	bl my_sqrt	@ defs:{ lr r12 s0 }	uses:{ s0 fp }
+	vmov.f32 s8, s0
+	vmov.f32 s0, s8
+	bl putfloat	@ defs:{ lr r12 s0 r0 r1 r2 r3 }	uses:{ s0 fp }
+	mov r0, #32
+	bl putch	@ defs:{ lr r12 r0 r1 r2 r3 }	uses:{ r0 fp }
+	vmov.f32 s0, s6
+	bl my_exp	@ defs:{ lr r12 s0 r1 }	uses:{ s0 fp }
+	vmov.f32 s8, s0
+	vmov.f32 s0, s8
+	bl putfloat	@ defs:{ lr r12 s0 r0 r1 r2 r3 }	uses:{ s0 fp }
+	mov r0, #32
+	bl putch	@ defs:{ lr r12 r0 r1 r2 r3 }	uses:{ r0 fp }
+	vmov.f32 s8, #1065353216
+	vsub.f32 s8, s6, s8
+	vmov.f32 s9, #1073741824
+	vdiv.f32 s9, s8, s9
+	vmov.f32 s10, #1065353216
+	vadd.f32 s9, s9, s10
+	vmov.f32 s10, #1065353216
+	vdiv.f32 s9, s10, s9
+	vmov.f32 s10, #1082130432
+	vmul.f32 s9, s10, s9
+	vmov.f32 s10, #1065353216
+	vadd.f32 s9, s9, s10
+	vmov.f32 s10, #1065353216
+	vdiv.f32 s10, s10, s6
+	vadd.f32 s9, s9, s10
+	vmul.f32 s8, s9, s8
+	vmov.f32 s9, #1086324736
+	vdiv.f32 s4, s8, s9
+	mov r12, #0
+	vmov.f32 s8, r12
+	vcmp.f32 s6, s8
+	vmrs APSR_nzcv, FPSCR
+	bgt .L1175
+	b .L355
+.L355:                               	@ preds = .L387                               	@ succs = .L350
+	mov r0, #45
+	bl putch	@ defs:{ lr r12 r0 r1 r2 r3 }	uses:{ r0 fp }
+	b .L350
+.L1175:                               	@ preds = .L387                               	@ succs = .L350
+	mov r12, #1
+	push {r12}
+	vmov.f32 s3, s4
+	ldr r12, =841731191
+	vmov.f32 s2, r12
+	vmov.f32 s1, s6
+	mov r12, #1065353216
+	vmov.f32 s0, r12
+	bl asr5	@ defs:{ lr r12 s0 s1 s2 s3 }	uses:{ s3 s2 s1 s0 fp }
+	add sp, sp, #4
+	vmov.f32 s7, s0
+	vmov.f32 s0, s7
+	bl putfloat	@ defs:{ lr r12 s0 r0 r1 r2 r3 }	uses:{ s0 fp }
+	b .L350
+.L350:                               	@ preds = .L355, .L1175                               	@ succs = .L359, .L365
+	mov r0, #32
+	bl putch	@ defs:{ lr r12 r0 r1 r2 r3 }	uses:{ r0 fp }
+	mov r12, #0
+	vmov.f32 s7, r12
+	vcmp.f32 s6, s7
+	vmrs APSR_nzcv, FPSCR
+	bgt .L359
+	b .L365
+.L359:                               	@ preds = .L350                               	@ succs = .L365, .L1290
+	mov r12, #0
+	vmov.f32 s7, r12
+	vcmp.f32 s5, s7
+	vmrs APSR_nzcv, FPSCR
+	bgt .L1290
+	b .L365
+.L365:                               	@ preds = .L350, .L359                               	@ succs = .L356
+	mov r0, #45
+	bl putch	@ defs:{ lr r12 r0 r1 r2 r3 }	uses:{ r0 fp }
+	b .L356
+.L1290:                               	@ preds = .L359                               	@ succs = .L356
+	vmov.f32 s7, #1065353216
+	vsub.f32 s7, s5, s7
+	vmov.f32 s8, #1073741824
+	vdiv.f32 s8, s7, s8
+	vmov.f32 s9, #1065353216
+	vadd.f32 s8, s8, s9
+	vmov.f32 s9, #1065353216
+	vdiv.f32 s8, s9, s8
+	vmov.f32 s9, #1082130432
+	vmul.f32 s8, s9, s8
+	vmov.f32 s9, #1065353216
+	vadd.f32 s8, s8, s9
+	vmov.f32 s9, #1065353216
+	vdiv.f32 s9, s9, s5
+	vadd.f32 s8, s8, s9
+	vmul.f32 s7, s8, s7
+	vmov.f32 s8, #1086324736
+	vdiv.f32 s7, s7, s8
+	mov r4, #1
+	push {r4}
+	vmov.f32 s3, s7
+	ldr r4, =841731191
+	vmov.f32 s2, r4
+	vmov.f32 s1, s5
+	mov r4, #1065353216
+	vmov.f32 s0, r4
+	bl asr5	@ defs:{ lr r12 s0 s1 s2 s3 }	uses:{ s3 s2 s1 s0 fp }
+	add sp, sp, #4
+	vmov.f32 s7, s0
+	mov r4, #1
+	push {r4}
+	vmov.f32 s3, s4
+	ldr r4, =841731191
+	vmov.f32 s2, r4
+	vmov.f32 s1, s6
+	mov r4, #1065353216
+	vmov.f32 s0, r4
+	bl asr5	@ defs:{ lr r12 s0 s1 s2 s3 }	uses:{ s3 s2 s1 s0 fp }
+	add sp, sp, #4
+	vmov.f32 s8, s0
+	vdiv.f32 s7, s7, s8
+	vmov.f32 s0, s7
+	bl putfloat	@ defs:{ lr r12 s0 r0 r1 r2 r3 }	uses:{ s0 fp }
+	b .L356
+.L356:                               	@ preds = .L365, .L1290                               	@ succs = .L372, .L1522
+	mov r0, #32
+	bl putch	@ defs:{ lr r12 r0 r1 r2 r3 }	uses:{ r0 fp }
+	sub r4, r5, #1
+	mov r3, #0
+	vmov.f32 s7, r3
+	vcmp.f32 s6, s7
+	vmrs APSR_nzcv, FPSCR
+	bgt .L1522
+	b .L372
+.L372:                               	@ preds = .L356                               	@ succs = .L366
+	mov r0, #45
+	bl putch	@ defs:{ lr r12 r0 r1 r2 r3 }	uses:{ r0 fp }
+	b .L366
+.L1522:                               	@ preds = .L356                               	@ succs = .L366
+	mov r6, #1
+	push {r6}
+	vmov.f32 s3, s4
+	ldr r6, =841731191
+	vmov.f32 s2, r6
+	vmov.f32 s1, s6
+	mov r6, #1065353216
+	vmov.f32 s0, r6
+	bl asr5	@ defs:{ lr r12 s0 s1 s2 s3 }	uses:{ s3 s2 s1 s0 fp }
+	add sp, sp, #4
+	vmov.f32 s7, s0
+	vmul.f32 s7, s5, s7
+	vmov.f32 s0, s7
+	bl my_exp	@ defs:{ lr r12 s0 r1 }	uses:{ s0 fp }
+	vmov.f32 s7, s0
+	vmov.f32 s0, s7
+	bl putfloat	@ defs:{ lr r12 s0 r0 r1 r2 r3 }	uses:{ s0 fp }
+	b .L366
+.L366:                               	@ preds = .L372, .L1522                               	@ succs = .L340, .L1626
+	mov r0, #10
+	bl putch	@ defs:{ lr r12 r0 r1 r2 r3 }	uses:{ r0 fp }
+	cmp r4, #0
+	bne .L1626
+	b .L340
+.L1626:                               	@ preds = .L366                               	@ succs = .L343
+	mov r5, r4
+	b .L343
+.L340:                               	@ preds = .L337, .L366
+	mov r0, #0
+	@ dummy 	uses:{ r0 }
+	add sp, sp, #4
+	vpop {s4, s5, s6, s7, s8, s9, s10}
+	pop {r4, r5, r6, fp, r12, lr}
+	bx lr
+
