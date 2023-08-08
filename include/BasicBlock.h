@@ -16,8 +16,6 @@ private:
     Instruction *head;
     Function *parent;
     int no;
-    std::set<Operand *> live_in;
-    std::set<Operand *> live_out;
     std::set<BasicBlock *> SDoms;
     BasicBlock *IDom = nullptr;
     std::set<BasicBlock *> DomFrontiers;
@@ -31,14 +29,13 @@ private:
 public:
     BasicBlock(Function *);
     ~BasicBlock();
-    std::set<Operand *> &getLiveIn() { return live_in; };
-    std::set<Operand *> &getLiveOut() { return live_out; };
     std::set<BasicBlock *> &getSDoms() { return SDoms; };
     BasicBlock *&getIDom() { return IDom; };
     std::set<BasicBlock *> &getDomFrontiers() { return DomFrontiers; };
     void insertFront(Instruction *);
     void insertBack(Instruction *);
     void insertBefore(Instruction *dst, Instruction *src);
+    void insertAfter(Instruction *dst, Instruction *src);
     void remove(Instruction *);
     bool empty() const { return head->getNext() == head; }
     void output() const;

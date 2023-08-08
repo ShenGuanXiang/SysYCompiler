@@ -189,11 +189,10 @@ void Function::ComputeRDom()
 // 计算反向立即支配者
 void Function::ComputeRiDom()
 {
-    std::set<BasicBlock *> temp_RIDoms;
     auto exits = getExits();
     for (auto bb : getBlockList())
     {
-        temp_RIDoms = bb->getRSDoms();
+        std::set<BasicBlock *> temp_RIDoms(bb->getRSDoms());
         for (auto rsdom : bb->getRSDoms())
         {
             std::set<BasicBlock *> diff_set;
@@ -226,7 +225,7 @@ void Function::ComputeRDF()
     {
         auto a = q.front();
         q.pop();
-        std::vector<BasicBlock *> preds(a->pred_begin(), a->pred_end());
+        std::set<BasicBlock *> preds(a->pred_begin(), a->pred_end());
         for (auto b : preds)
         {
             auto x = a;
@@ -506,7 +505,7 @@ void MachineDeadCodeElim::pass(MachineFunction *f, bool iter)
             {
                 // auto next = t->getParent()->getNext(t);
                 // if (next && next->isCondMov())
-                    continue;
+                continue;
             }
             if (t != nullptr)
             {

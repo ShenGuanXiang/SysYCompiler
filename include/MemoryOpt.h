@@ -5,6 +5,9 @@
 
 // 访存优化
 
+std::pair<SymbolEntry *, int> analyzeGep(Instruction *inst);
+
+
 class MemoryOpt
 {
 private:

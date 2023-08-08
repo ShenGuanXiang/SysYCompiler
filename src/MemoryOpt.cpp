@@ -3,8 +3,7 @@
 #include <list>
 #include <stack>
 
-// TODO：如果写操作不会对之后的读操作产生影响，则删除写操作
-// TODO：最近一次load出来的结果，加入map
+// TODO：反向做一遍，删除没用的Store
 
 struct Info
 {
@@ -110,7 +109,7 @@ static Info meet(Info a, Info b)
 }
 
 // return: {se, offset}
-static std::pair<SymbolEntry *, int> analyzeGep(Instruction *inst)
+std::pair<SymbolEntry *, int> analyzeGep(Instruction *inst)
 {
     assert(inst->isGep());
     SymbolEntry *se = inst->getUses()[0]->getEntry();
@@ -330,7 +329,7 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                     }
                     else if (se->isVariable() && dynamic_cast<IdentifierSymbolEntry *>(se)->isParam())
                     {
-                        auto param_op = dynamic_cast<FuncCallInstruction *>(inst)->getUses()[dynamic_cast<IdentifierSymbolEntry *>(se)->getParamNo()];
+                        auto param_op = inst->getUses()[dynamic_cast<IdentifierSymbolEntry *>(se)->getParamNo()];
                         if (param_op->getDef() == nullptr)
                         {
                             assert(param_op->getEntry()->isVariable());
@@ -684,6 +683,134 @@ void MemoryOpt::pass()
 
     SimplifyCFG sc(unit);
     sc.pass();
+
+    // 删除只存值但不使用的store
+    // TODO：考虑store和使用的顺序、考虑数组偏移，删更多store
+    std::set<SymbolEntry *> used_arr_se;
+    std::set<SymbolEntry *> used_scalar_se;
+    bool success = true;
+    for (auto func : unit->getFuncList())
+    {
+        auto all_bbs = func->getBlockList();
+        for (auto bb : all_bbs)
+        {
+            for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
+            {
+                switch (inst->getInstType())
+                {
+                case Instruction::LOAD:
+                {
+                    auto src_addr = inst->getUses()[0];
+                    assert(src_addr->getEntry()->isVariable() || src_addr->getDef());
+                    if (src_addr->getEntry()->isVariable() || src_addr->getDef()->isAlloca())
+                    {
+                        used_scalar_se.insert(src_addr->getEntry());
+                    }
+                    else if (src_addr->getDef()->isGep())
+                    {
+                        auto [se, offset] = analyzeGep(src_addr->getDef());
+                        if (se == nullptr)
+                        {
+                            success = false;
+                        }
+                        else
+                        {
+                            used_arr_se.insert(se);
+                        }
+                    }
+                    else
+                    {
+                        success = false;
+                    }
+                    break;
+                }
+                case Instruction::CALL:
+                {
+                    for (auto param_op : inst->getUses())
+                    {
+                        if (param_op->getEntry()->getType()->isPTR())
+                        {
+                            if (param_op->getDef() == nullptr)
+                            {
+                                assert(param_op->getEntry()->isVariable());
+                                used_arr_se.insert(param_op->getEntry());
+                            }
+                            else
+                            {
+                                assert(param_op->getDef()->isAlloca() || param_op->getDef()->isGep() || param_op->getDef()->isPHI() || param_op->getDef()->isLoad());
+                                if (param_op->getDef()->isAlloca())
+                                    used_arr_se.insert(param_op->getEntry());
+                                else if (param_op->getDef()->isGep())
+                                {
+                                    auto [se, offset] = analyzeGep(param_op->getDef());
+                                    if (se == nullptr)
+                                    {
+                                        success = false;
+                                    }
+                                    else
+                                    {
+                                        used_arr_se.insert(se);
+                                    }
+                                }
+                                else
+                                {
+                                    success = false;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+
+                default:
+                    break;
+                }
+            }
+        }
+    }
+    if (success)
+    {
+        std::set<Instruction *> freeStore;
+        for (auto func : unit->getFuncList())
+        {
+            for (auto bb : func->getBlockList())
+            {
+                for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
+                {
+                    switch (inst->getInstType())
+                    {
+                    case Instruction::STORE:
+                    {
+                        auto dst_addr = inst->getUses()[0];
+                        assert(dst_addr->getEntry()->isVariable() || dst_addr->getDef());
+                        if (dst_addr->getEntry()->isVariable() || dst_addr->getDef()->isAlloca())
+                        {
+                            if (!used_scalar_se.count(dst_addr->getEntry()))
+                            {
+                                freeStore.insert(inst);
+                            }
+                        }
+                        else if (dst_addr->getDef()->isGep())
+                        {
+                            auto [se, offset] = analyzeGep(dst_addr->getDef());
+                            if (se != nullptr && !used_arr_se.count(se))
+                            {
+                                freeStore.insert(inst);
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                    }
+                }
+            }
+        }
+        for (auto inst : freeStore)
+        {
+            delete inst;
+        }
+    }
 }
 
 void MemoryOpt::pass(Function *func)
@@ -764,7 +891,8 @@ void MemoryOpt::pass(Function *func)
 
             if (!success)
             {
-                for (auto bb : func->getBlockList())
+                auto all_bbs = func->getBlockList();
+                for (auto bb : all_bbs)
                 {
                     transfer(Info(), bb, false);
                 }
@@ -802,4 +930,8 @@ void MemoryOpt::pass(Function *func)
 
     for (auto bb : func->getBlockList())
         transfer(bb_in[bb], bb, true);
+
+    bb_in.clear();
+    bb_out.clear();
+    func_out.clear();
 }

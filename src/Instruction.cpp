@@ -69,6 +69,18 @@ Instruction *Instruction::getPrev()
     return prev;
 }
 
+Instruction *Instruction::replaceWith(Instruction *new_inst)
+{
+    new_inst->setPrev(this->getPrev());
+    new_inst->setNext(this->getNext());
+    new_inst->setParent(this->getParent());
+    this->getPrev()->setNext(new_inst);
+    this->getNext()->setPrev(new_inst);
+    this->setPrev(nullptr);
+    this->setNext(nullptr);
+    return new_inst;
+}
+
 AllocaInstruction::AllocaInstruction(Operand *dst, SymbolEntry *se, BasicBlock *insert_bb) : Instruction(ALLOCA, insert_bb)
 {
     assert(dst->getType()->isPTR());

@@ -68,6 +68,9 @@ void Mem2Reg::pass()
         Rename(*func);
     }
     mem2reg = true;
+    allocaPromotable.clear();
+    InstNumbers.clear();
+    freeInsts.clear();
 }
 
 void Mem2Reg::global2Local()
@@ -240,10 +243,9 @@ void Function::ComputeDom()
         }
     }
     // immediate dominator ：严格支配 bb，且不严格支配任何严格支配 bb 的节点的节点
-    std::set<BasicBlock *> temp_IDoms;
     for (auto bb : getBlockList())
     {
-        temp_IDoms = bb->getSDoms();
+        std::set<BasicBlock *> temp_IDoms(bb->getSDoms());
         for (auto sdom : bb->getSDoms())
         {
             std::set<BasicBlock *> diff_set;
@@ -314,7 +316,7 @@ static bool isAllocaPromotable(AllocaInstruction *alloca)
 {
     if (allocaPromotable.count(alloca))
         return allocaPromotable[alloca];
-    if (dynamic_cast<PointerType *>(alloca->getDef()->getEntry()->getType())->isARRAY())
+    if (dynamic_cast<PointerType *>(alloca->getDef()->getType())->getValType()->isARRAY())
     {
         allocaPromotable[alloca] = false;
         return false; // TODO ：数组拟采用sroa、向量化优化
@@ -554,7 +556,6 @@ void Mem2Reg::InsertPhi(Function *func)
         if (!isAllocaPromotable(alloca))
             continue;
         assert(alloca->getDef()->getType()->isPTR());
-
         // 计算哪里的基本块定义(store)和使用(load)了alloc变量
         Info.AnalyzeAddr(alloca->getDef());
 

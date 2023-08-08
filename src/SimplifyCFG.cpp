@@ -54,8 +54,8 @@ void SimplifyCFG::pass(Function *func)
     while (!q.empty())
     {
         auto bb = q.front();
-        std::vector<BasicBlock *> preds(bb->pred_begin(), bb->pred_end());
-        std::vector<BasicBlock *> succs(bb->succ_begin(), bb->succ_end());
+        std::set<BasicBlock *> preds(bb->pred_begin(), bb->pred_end());
+        std::set<BasicBlock *> succs(bb->succ_begin(), bb->succ_end());
         // 消除空的基本块，比如某些end_bb
         if (bb->empty() && bb != func->getEntry())
         {
@@ -100,17 +100,17 @@ void SimplifyCFG::pass(Function *func)
             assert(bb->getNumOfSucc() == 1);
             if (bb == func->getEntry())
             {
-                if (succs[0]->getNumOfPred() == 1)
+                if ((*succs.begin())->getNumOfPred() == 1)
                 {
-                    succs[0]->removePred(bb);
-                    func->setEntry(succs[0]);
+                    (*succs.begin())->removePred(bb);
+                    func->setEntry((*succs.begin()));
                     func->remove(bb);
                     freeBBs.insert(bb);
                 }
                 goto NextIter;
             }
             bool eliminable = true;
-            for (auto i = succs[0]->begin(); i != succs[0]->end() && i->isPHI(); i = i->getNext())
+            for (auto i = (*succs.begin())->begin(); i != (*succs.begin())->end() && i->isPHI(); i = i->getNext())
             {
                 auto srcs = ((PhiInstruction *)i)->getSrcs();
                 for (auto pred : preds)
@@ -119,7 +119,7 @@ void SimplifyCFG::pass(Function *func)
             }
             if (eliminable)
             {
-                succs[0]->removePred(bb);
+                (*succs.begin())->removePred(bb);
                 for (auto pred : preds)
                 {
                     pred->removeSucc(bb);
@@ -128,9 +128,9 @@ void SimplifyCFG::pass(Function *func)
                     {
                         CondBrInstruction *branch = (CondBrInstruction *)(lastInst);
                         if (branch->getTrueBranch() == bb)
-                            branch->setTrueBranch(succs[0]);
+                            branch->setTrueBranch((*succs.begin()));
                         else
-                            branch->setFalseBranch(succs[0]);
+                            branch->setFalseBranch((*succs.begin()));
                         if (branch->getTrueBranch() == branch->getFalseBranch())
                         {
                             pred->remove(lastInst);
@@ -143,13 +143,13 @@ void SimplifyCFG::pass(Function *func)
                         assert(lastInst->isUncond());
                         pred->remove(lastInst);
                         freeInsts.insert(lastInst);
-                        new UncondBrInstruction(succs[0], pred);
+                        new UncondBrInstruction((*succs.begin()), pred);
                     }
-                    pred->addSucc(succs[0]);
-                    succs[0]->addPred(pred);
+                    pred->addSucc((*succs.begin()));
+                    (*succs.begin())->addPred(pred);
                 }
                 // 更新PHI
-                for (auto i = succs[0]->begin(); i != succs[0]->end() && i->isPHI(); i = i->getNext())
+                for (auto i = (*succs.begin())->begin(); i != (*succs.begin())->end() && i->isPHI(); i = i->getNext())
                 {
                     auto &srcs = ((PhiInstruction *)i)->getSrcs();
                     assert(srcs.count(bb));
@@ -158,7 +158,7 @@ void SimplifyCFG::pass(Function *func)
                     ((PhiInstruction *)i)->removeEdge(bb);
                 }
                 if (bb == func->getEntry())
-                    func->setEntry(succs[0]);
+                    func->setEntry((*succs.begin()));
                 func->remove(bb);
                 freeBBs.insert(bb);
             }
@@ -288,7 +288,7 @@ void SimplifyCFG::pass(Function *func)
                     new RetInstruction(bb->begin()->getUses().empty() ? nullptr : bb->begin()->getUses()[0], pred);
                     if (pred->begin()->getNext() == pred->end())
                     {
-                        std::vector<BasicBlock *> pred_preds(pred->pred_begin(), pred->pred_end());
+                        std::set<BasicBlock *> pred_preds(pred->pred_begin(), pred->pred_end());
                         for (auto pred_pred : pred_preds)
                         {
                             pred_pred->removeSucc(pred);

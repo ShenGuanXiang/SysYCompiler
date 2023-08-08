@@ -12,11 +12,11 @@ void ElimPHI::pass()
         func->SimplifyPHI();
 
         std::map<BasicBlock *, std::vector<Instruction *>> pcopy;
-        auto blocks = std::vector<BasicBlock *>(func->begin(), func->end());
         // Critical Edge Splitting Algorithm for making non-conventional SSA form conventional
-        for (auto bb : blocks)
+        auto all_bbs = func->getBlockList();
+        for (auto bb : all_bbs)
         {
-            auto preds = std::vector<BasicBlock *>(bb->pred_begin(), bb->pred_end());
+            auto preds = std::set<BasicBlock *>(bb->pred_begin(), bb->pred_end());
             std::vector<Instruction *> to_remove;
             for (auto pred : preds)
             {

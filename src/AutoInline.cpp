@@ -168,12 +168,13 @@ void AutoInliner::pass(Instruction *instr)
         std::map<BasicBlock *, std::vector<BasicBlock *>> temp;
         temp[instr_bb] = {exit_bb};
         auto in1 = succ->begin();
-        if (in1->isPHI())
+        while (in1 != succ->end() && in1->isPHI())
         {
             auto phi = (PhiInstruction *)in1;
             auto useop = phi->getSrcs()[instr_bb];
             phi->removeEdge(instr_bb);
             phi->addEdge(exit_bb, useop);
+            in1 = in1->getNext();
         }
     }
 
@@ -186,7 +187,21 @@ void AutoInliner::pass(Instruction *instr)
 
     std::map<Instruction *, Instruction *> phis;
 
-    for (auto block : func->getBlockList())
+    auto fparams = func->getParamsOp();
+    for (auto fparam : fparams)
+    {
+        ope2ope[fparam] = params[((IdentifierSymbolEntry *)(fparam->getEntry()))->getParamNo()];
+    }
+    for (auto id_se : unit->getDeclList())
+    {
+        if (id_se->getType()->isARRAY() || id_se->getType()->isInt() || id_se->getType()->isFloat())
+        {
+            ope2ope[id_se->getAddr()] = id_se->getAddr();
+        }
+    }
+
+    auto all_bbs = func->getBlockList();
+    for (auto block : all_bbs)
     {
         auto newBlock = new BasicBlock(Func);
         if (block == func->getEntry())
@@ -251,37 +266,12 @@ void AutoInliner::pass(Instruction *instr)
                     for (auto use : uses)
                     {
                         Operand *src;
-                        if (use->getEntry()->isVariable())
-                        {
-                            if (((IdentifierSymbolEntry *)use->getEntry())->isParam())
-                            {
-                                int no = ((IdentifierSymbolEntry *)use->getEntry())->getParamNo();
-                                src = params[no];
-                            }
-                            else if (((IdentifierSymbolEntry *)use->getEntry())->isGlobal())
-                            {
-                                src = use;
-                            }
-                            else
-                            {
-                                if (ope2ope.find(use) != ope2ope.end())
-                                    src = ope2ope[use];
-                                else
-                                {
-                                    src = copyOperand(use);
-                                    ope2ope[use] = src;
-                                }
-                            }
-                        }
+                        if (ope2ope.find(use) != ope2ope.end())
+                            src = ope2ope[use];
                         else
                         {
-                            if (ope2ope.find(use) != ope2ope.end())
-                                src = ope2ope[use];
-                            else
-                            {
-                                src = copyOperand(use);
-                                ope2ope[use] = src;
-                            }
+                            src = copyOperand(use);
+                            ope2ope[use] = src;
                         }
                         new_in->replaceUsesWith(use, src);
                     }

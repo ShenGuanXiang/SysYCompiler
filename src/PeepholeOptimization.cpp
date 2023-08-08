@@ -877,6 +877,41 @@ void PeepholeOptimization::op3()
                         freeInsts.push_back(third_inst);
                     }
                 }
+
+                else if (curr_inst->isMovShift() && third_inst->isLoad())
+                {
+                    // lsl r3, r2, #2
+                    // add r12, r5, r2, lsl #2
+                    // ldr r3, [r5, r3]
+                    // --->
+                    // ldr r3, [r5, r2, lsl #2]
+                    if (*curr_inst->getDef()[0] == *curr_inst->getUse()[0] || *curr_inst->getDef()[0] == *curr_inst->getUse()[1])
+                        continue;
+
+                    if (third_inst->getUse().size() == 2 &&
+                        *curr_inst->getDef()[0] == *third_inst->getUse()[1] && curr_inst->getUse()[1]->isImm() && second_inst->getDef().size() == 1 &&
+                        !(*second_inst->getDef()[0] == *curr_inst->getDef()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[0]) && !(*second_inst->getDef()[0] == *curr_inst->getUse()[1]))
+                    {
+                        if (third_inst->getUse()[0]->getValType()->isFloat())
+                            continue;
+                        MachineInstruction *new_inst;
+                        switch (curr_inst->getOpType())
+                        {
+                        case MovMInstruction::MOVASR:
+                            new_inst = new LoadMInstruction(block, new MachineOperand(*third_inst->getDef()[0]), new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), LoadMInstruction::LOADASR, new MachineOperand(*curr_inst->getUse()[1]));
+                            break;
+                        case MovMInstruction::MOVLSR:
+                            new_inst = new LoadMInstruction(block, new MachineOperand(*third_inst->getDef()[0]), new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), LoadMInstruction::LOADLSR, new MachineOperand(*curr_inst->getUse()[1]));
+                            break;
+                        case MovMInstruction::MOVLSL:
+                            new_inst = new LoadMInstruction(block, new MachineOperand(*third_inst->getDef()[0]), new MachineOperand(*third_inst->getUse()[0]), new MachineOperand(*curr_inst->getUse()[0]), LoadMInstruction::LOADLSL, new MachineOperand(*curr_inst->getUse()[1]));
+                            break;
+                        }
+                        block->insertBefore(third_inst, new_inst);
+                        block->removeInst(third_inst);
+                        freeInsts.push_back(third_inst);
+                    }
+                }
             }
         }
     }

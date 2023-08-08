@@ -848,6 +848,7 @@ void GVNPRE::elminate(Function *func)
 
 void GVNPRE::pass()
 {
+    trans_cache.clear();
     for (auto func_it = unit->begin(); func_it != unit->end(); func_it++)
     {
         gvnpre(*func_it);
