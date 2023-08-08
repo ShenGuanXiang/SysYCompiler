@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 
     if (optimize)
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 1; i++)
         {
             AutoInliner autoinliner(unit);
             autoinliner.pass(); // 函数自动内联
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
             // dce.pass(); // 死代码删除
         }
         LoopSimplify ls(unit);
-        ls.pass();
+        // ls.pass();
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
