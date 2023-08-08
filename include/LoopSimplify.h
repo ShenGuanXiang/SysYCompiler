@@ -10,10 +10,10 @@ struct Induction{
 struct SimpleLoop{
     BasicBlock* body;
     Operand* exit_var;
+    std::set<Operand*> def_in_loop;
     std::unordered_map<Operand*,Induction>inductions;
     bool dfs(Instruction* i,std::stack<Operand*>& path);
     void findInduction();
-    Operand* gen_loop_time();
 public:
     SimpleLoop(BasicBlock* bb,Operand* dst) : body(bb),exit_var(dst) {}
     void simplify();

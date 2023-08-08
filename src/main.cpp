@@ -105,6 +105,10 @@ int main(int argc, char *argv[])
 
     if (optimize)
     {
+        // Mem2Reg m2r(unit);
+        // m2r.pass();
+        // GlobalCodeMotion gcm(unit);
+        // gcm.pass(); // 全局代码移动
         for (int i = 0; i < 4; i++)
         {
             AutoInliner autoinliner(unit);
@@ -116,18 +120,16 @@ int main(int argc, char *argv[])
             SparseCondConstProp sccp(unit);
             sccp.pass(); // 常量传播
             ComSubExprElim cse(unit);
-            cse.pass3(); // 公共子表达式消除
+            // cse.pass3(); // 公共子表达式消除
             MemoryOpt memopt(unit);
             memopt.pass(); // 访存优化
-            GlobalCodeMotion gcm(unit);
-            gcm.pass(); // 全局代码移动
             GVNPRE gvnpre(unit);
             gvnpre.pass(); // 部分冗余消除&循环不变外提
             // 循环展开
             DeadCodeElim dce(unit);
-            dce.pass(); // 死代码删除
-            // LoopSimplify ls(unit);
-            // ls.pass();
+            // dce.pass(); // 死代码删除
+            LoopSimplify ls(unit);
+            ls.pass();
         }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
@@ -147,38 +149,38 @@ int main(int argc, char *argv[])
     if (dump_asm)
     {
         unit->genMachineCode(mUnit);
-        // if (optimize)
-        // {
-        //     // TODO: 汇编代码优化
-        //     MachineDeadCodeElim mdce(mUnit);
+        if (optimize)
+        {
+            // TODO: 汇编代码优化
+            MachineDeadCodeElim mdce(mUnit);
 
-        //     ComSubExprElimASM cseasm(mUnit);
-        //     cseasm.pass(); // 后端cse
+            ComSubExprElimASM cseasm(mUnit);
+            cseasm.pass(); // 后端cse
 
-        //     StrengthReduction sr(mUnit);
-        //     sr.pass(); // 强度削弱
+            StrengthReduction sr(mUnit);
+            sr.pass(); // 强度削弱
 
-        //     cseasm.pass();
+            cseasm.pass();
 
-        //     PeepholeOptimization ph(mUnit);
-        //     ph.pass(); // 窥孔优化
+            PeepholeOptimization ph(mUnit);
+            ph.pass(); // 窥孔优化
 
-        //     mdce.pass(true); // 死代码消除
-        //     // 指令调度
-        // }
+            mdce.pass(true); // 死代码消除
+            // 指令调度
+        }
         LinearScan linearScan(mUnit);
         linearScan.pass();
-        // if (optimize)
-        // {
-        //     // TODO: 汇编代码优化
-        //     ComSubExprElimASM cseasm(mUnit);
-        //     cseasm.pass(); // 公共子表达式删除
-        //     PeepholeOptimization ph(mUnit);
-        //     ph.pass(); // 窥孔优化
-        //     // 控制流优化
-        //     MachineDeadCodeElim mdce(mUnit);
-        //     mdce.pass(true); // 死代码消除
-        // }
+        if (optimize)
+        {
+            // TODO: 汇编代码优化
+            ComSubExprElimASM cseasm(mUnit);
+            cseasm.pass(); // 公共子表达式删除
+            PeepholeOptimization ph(mUnit);
+            ph.pass(); // 窥孔优化
+            // 控制流优化
+            MachineDeadCodeElim mdce(mUnit);
+            mdce.pass(true); // 死代码消除
+        }
         fprintf(stderr, "asm generated\n");
         mUnit->output();
         fprintf(stderr, "asm output ok\n");
