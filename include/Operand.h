@@ -19,11 +19,7 @@ private:
     std::set<Instruction *> defs; // The instruction where this operand is defined.
     SymbolEntry *se;              // The symbol entry of this operand.
 public:
-    Operand(SymbolEntry *se) : se(se)
-    {
-        defs = std::set<Instruction *>();
-        uses = std::set<Instruction *>();
-    };
+    Operand(SymbolEntry *se);
     std::set<Instruction *> Defs() { return defs; };
     void setDef(Instruction *inst) { defs = std::set<Instruction *>{inst}; };
     void addDef(Instruction *inst) { defs.insert(inst); }; // 特例是消除PHI产生的add ..., ..., 0，会有多个Def
@@ -46,6 +42,7 @@ public:
     };
     std::set<Instruction *> getUses() { return uses; };
     SymbolEntry *getEntry() { return se; };
+    ~Operand(){};
 };
 
 #endif

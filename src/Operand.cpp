@@ -7,6 +7,14 @@ extern FILE *yyout;
 extern std::string Double2HexStr(double val);
 extern std::string DeclArray(ArrayType *type, std::vector<double> initializer);
 
+static std::vector<Operand *> newOperands;
+
+Operand::Operand(SymbolEntry *se) : se(se)
+{
+    defs = std::set<Instruction *>();
+    uses = std::set<Instruction *>();
+};
+
 std::string Operand::toStr() const
 {
 
@@ -121,5 +129,14 @@ void IdentifierSymbolEntry::decl_code()
             fprintf(yyout, "@%s = dso_local global %s %s, align 4\n", name.c_str(), type->toStr().c_str(), Double2HexStr((double(float(value)))).c_str());
             fprintf(stderr, "@%s = dso_local global %s %s, align 4\n", name.c_str(), type->toStr().c_str(), Double2HexStr((double(float(value)))).c_str());
         }
+    }
+}
+
+void clearOperands()
+{
+    for (auto &op : newOperands)
+    {
+        delete op;
+        op = nullptr;
     }
 }

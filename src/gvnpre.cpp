@@ -26,6 +26,7 @@ static void printset(Exprset set)
             logf("%s\t", e.tostr().c_str());
         logf("\n");
     }
+
 #endif
 }
 
@@ -254,7 +255,7 @@ void GVNPRE::clean(Exprset &set)
     // logf("before cleaning:\n");
     // printset(set);
     std::vector<Expr> toplist = set.topological_sort();
-    const std::set<ValueNr> &valset = set.getValnrs();
+    auto& valset = set.getValnrs();
     for (const Expr &e : toplist)
     {
         assert(lookup(e));
@@ -265,11 +266,11 @@ void GVNPRE::clean(Exprset &set)
             if (!valset.count(lookup(item)))
             {
                 set.erase(e);
+                set.getValnrs().erase(lookup(e));
             }
         }
     }
     // logf("after cleaning:\n");
-    // printset(set);
     // TODO : could the dag be separated into several parts?
 }
 
@@ -456,6 +457,7 @@ void GVNPRE::gvnpre(Function *func)
     //     logf("\n");
     // }
     elminate(func);
+    fprintf(stderr, "[GVNPRE]:done.\n");
 }
 
 void GVNPRE::buildSets(Function *func)
@@ -587,7 +589,7 @@ void GVNPRE::buildAntic(Function *func)
             std::set_difference(expr_gen[bb].getExprs().begin(), expr_gen[bb].getExprs().end(), tmp_gen[bb].getExprs().begin(), tmp_gen[bb].getExprs().end(), std::inserter(antic_in[bb].getExprs(), antic_in[bb].end()));
             for (const auto &e : antic_in[bb])
             {
-                antic_in[bb].getValnrs().insert(lookup(e));
+                antic_in[bb].getValnrs()[lookup(e)].insert(e);
             }
             // logf("antic_in[bb%d]:\n", bb->getNo());
             // printset(antic_in[bb]);
@@ -600,8 +602,6 @@ void GVNPRE::buildAntic(Function *func)
                     antic_in[bb].vinsert(e);
             }
 
-            // logf("antic_in[bb%d]:\n", bb->getNo());
-            // printset(antic_in[bb]);
 
             clean(antic_in[bb]);
             // logf("after clean:\nantic_in[bb%d]:\n", bb->getNo());
@@ -615,14 +615,17 @@ void GVNPRE::buildAntic(Function *func)
                     q.push(*succ_it);
         }
     }
-    // logf("build antic iterate over %d times\n",iter);
+    fprintf(stderr,"[GVNPRE]:build antic iterate over %d times\n",iter);
 }
 
 void GVNPRE::insert(Function *func)
 {
     bool new_stuff = true;
+    int iter = 0;
+    int expr_cnt = 0, phi_cnt = 0;
     while (new_stuff)
     {
+        iter++;
         new_stuff = false;
         logf("new iteration\n");
 
@@ -697,6 +700,7 @@ void GVNPRE::insert(Function *func)
                             for (auto item : avail)
                                 logf("bb%d: %s\n", item.first->getNo(), item.second.tostr().c_str());
 
+
                             // bool new_expr = false;
                             bool insert_phi = false;
                             for (auto pred_it = bb->pred_begin(); pred_it != bb->pred_end(); pred_it++)
@@ -739,6 +743,7 @@ void GVNPRE::insert(Function *func)
                                             break;
                                         }
                                     }
+                            expr_cnt++;
 
                                     // avail_out[pred].insert(t);
                                     avail_out[pred].vrplc(t);
@@ -755,6 +760,7 @@ void GVNPRE::insert(Function *func)
                             // not mentioned as well in thesis
                             if (insert_phi)
                             {
+                                phi_cnt++;
                                 Operand *t = gen_fresh_tmep(e);
                                 htable[t] = lookup(e);
                                 logf("insert phi %s, val is %s\n", t->toStr().c_str(), lookup(e)->toStr().c_str());
@@ -803,6 +809,7 @@ void GVNPRE::insert(Function *func)
         //     new_sets[bb].clear();
         // }
     }
+    fprintf(stderr,"[GVNPRE]:insert iterate over %d times,insert %d expressions, %d phis\n",iter,expr_cnt,phi_cnt);
 }
 
 void GVNPRE::elminate(Function *func)
@@ -825,11 +832,9 @@ void GVNPRE::elminate(Function *func)
             if (inst->isBinary() || inst->isGep())
             {
                 Operand *dst = inst->getDef();
-                logf("dst:%s\n", dst->toStr().c_str());
                 Operand *leader = avail_out[bb].find_leader(lookup(dst));
                 if (leader != dst)
                 {
-                    logf("dst:%s\n", dst->toStr().c_str());
                     logf("value of %s is %s, leader is %s\n", dst->toStr().c_str(), lookup(dst)->toStr().c_str(), leader->toStr().c_str());
                     inst->replaceAllUsesWith(leader);
                     torm.push_back(inst);
@@ -837,6 +842,7 @@ void GVNPRE::elminate(Function *func)
             }
         }
     }
+    fprintf(stderr,"[GVNPRE]:eliminate %d instructions\n",torm.size());
     for (auto i : torm)
     {
         // i->output();

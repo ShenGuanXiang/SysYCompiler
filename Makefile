@@ -47,7 +47,7 @@ $(OBJ_PATH)/%.o:$(SRC_PATH)/%.cpp
 	@clang++ $(CFLAGS) -c -o $@ $<
 
 $(BINARY):$(OBJ)
-	@clang++ -O2 -g -o $@ $^
+	@clang++ -O2  -g -o $@ $^
 
 app:$(LEXER) $(PARSER) $(BINARY)
 

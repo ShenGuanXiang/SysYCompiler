@@ -91,6 +91,24 @@ std::string ComSubExprElim::getOpString(Instruction *inst)
     return instString;
 }
 
+std::string ComSubExprElim::getIdentity(Instruction *inst)
+{ 
+    std::string instString = "";
+    if(inst->isBinary()){
+        BinaryInstruction* bin = dynamic_cast<BinaryInstruction*>(inst);
+        if(bin->getOpcode() == BinaryInstruction::ADD)
+            instString += "ADD";
+        else if(bin->getOpcode() == BinaryInstruction::MUL)
+            instString += "MUL";
+        if(instString!=""){
+            assert(bin->getUses().size() == 2);
+            instString += "," + bin->getUses()[1]->toStr();
+            instString += "," + bin->getUses()[0]->toStr();
+        }
+    }
+    return instString;
+}
+
 void ComSubExprElim::dumpTable()
 {
     printf("------\n");
@@ -152,6 +170,10 @@ void ComSubExprElim::dvnt(BasicBlock *bb)
             else
             {
                 htable[instString] = dst;
+                std::string identity = getIdentity(cur_inst);
+                if(identity != ""){
+                    htable[identity] = dst;
+                }
             }
         }
     }
@@ -176,6 +198,61 @@ void ComSubExprElim::pass3()
         auto entry = (*it_func)->getEntry();
         computeDomTree(*it_func);
         dvnt(entry);
+    }
+}
+
+void ComSubExprElim::pass1(BasicBlock *bb)
+{
+    std::vector<Instruction *> torm; // instruction to remove
+    for (auto cur_inst = bb->begin(); cur_inst != bb->end(); cur_inst = cur_inst->getNext())
+    {
+        std::string instString;
+        instString += getOpString(cur_inst);
+        if (instString == "")
+            continue;
+        Operand *dst = cur_inst->getDef();
+        if (instString == "MEANINGLESS_PHI")
+        {
+            auto args = dynamic_cast<PhiInstruction *>(cur_inst)->getSrcs();
+            htable[dst->toStr()] = args.begin()->second;
+            torm.push_back(cur_inst);
+            cur_inst->replaceAllUsesWith(args.begin()->second);
+        }
+        else if (instString.substr(0, 3) == "PHI" &&
+                 htable.count(instString) &&
+                 htable[instString]->getDef()->getParent() == bb)
+        {
+            // redundant
+            htable[dst->toStr()] = htable[instString];
+            torm.push_back(cur_inst);
+            cur_inst->replaceAllUsesWith(htable[instString]);
+        }
+        else
+        {
+            if (htable.count(instString))
+            {
+                if(instString.substr(0,3) == "PHI")
+                    continue; //we cannot elminate phi here
+                auto src = htable[instString];
+                torm.push_back(cur_inst);
+                htable[dst->toStr()] = src;
+                cur_inst->replaceAllUsesWith(src);
+                fprintf(stderr, "[GVN]:%s->%s\n",dst->toStr().c_str(),src->toStr().c_str());
+            }
+            else
+            {
+                htable[instString] = dst;
+                std::string identity = getIdentity(cur_inst);
+                if(identity != ""){
+                    htable[identity] = dst;
+                }
+            }
+        }
+    }
+    for (auto i : torm)
+    {
+        bb->remove(i);
+        delete i;
     }
 }
 
@@ -399,8 +476,16 @@ void ComSubExprElimASM::dvnt(MachineBlock *bb)
             // else
             torm.push_back(inst);
         }
-        else
+        else{
             htable[instString] = dst;
+            if(instString.substr(0,3) == "ADD" || instString.substr(0,3) == "MUL"){
+                assert(inst->getUse().size() == 2);
+                std::string identity = instString.substr(0,3) 
+                + "," + inst->getUse()[1]->toStr() 
+                + "," + inst->getUse()[0]->toStr();
+                htable[identity] = dst;
+            }
+        }
     }
 
     for (auto i : torm)

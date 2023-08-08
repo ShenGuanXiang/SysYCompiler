@@ -17,12 +17,15 @@
 #include "PeepholeOptimization.h"
 #include "gvnpre.h"
 #include "LoopUnroll.h"
+#include "MemoryOpt.h"
+#include "GlobalCodeMotion.h"
 
 Ast ast;
 Unit *unit = new Unit();
 MachineUnit *mUnit = new MachineUnit();
 extern FILE *yyin;
 extern FILE *yyout;
+extern void clearOperands();
 extern void clearSymbolEntries();
 extern void clearTypes();
 extern void clearMachineOperands();
@@ -108,14 +111,17 @@ int main(int argc, char *argv[])
             Mem2Reg m2r(unit);
             m2r.pass();
             // TODO:其它中间代码优化
-            // GVNPRE gvnpre(unit);
-            // gvnpre.pass(); // 部分冗余消除&循环不变外提
             // 代数化简
             SparseCondConstProp sccp(unit);
             sccp.pass(); // 常量传播
             ComSubExprElim cse(unit);
             cse.pass3(); // 公共子表达式消除
-            // 访存优化
+            MemoryOpt memopt(unit);
+            memopt.pass(); // 访存优化
+            GlobalCodeMotion gcm(unit);
+            gcm.pass(); // 全局代码移动
+            GVNPRE gvnpre(unit);
+            gvnpre.pass(); // 部分冗余消除&循环不变外提
             // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
@@ -176,6 +182,7 @@ int main(int argc, char *argv[])
     }
     delete mUnit;
     delete unit;
+    clearOperands();
     clearSymbolEntries();
     clearTypes();
     clearMachineOperands();

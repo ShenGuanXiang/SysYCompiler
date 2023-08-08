@@ -150,10 +150,12 @@ void Function::genMachineCode(AsmBuilder *builder)
         {
             auto id_se = dynamic_cast<IdentifierSymbolEntry *>(param);
             Type *type = param->getType()->isPTR() ? TypeSystem::intType : param->getType();
-            if (id_se->getParamOpe() == nullptr || id_se->getParamOpe()->usersNum() == 0)
+            if (id_se->getParamOpe()->usersNum() == 0)
                 continue;
             else if (!id_se->paramMem2RegAble() && id_se->getParamNo() < 4)
             {
+                auto ope = id_se->getParamOpe();
+                fprintf(stderr,"%s\n",ope->getEntry()->toStr().c_str());
                 assert(id_se->getLabel() != -1);
                 auto inst = new MovMInstruction(bb2mbb[entry], param->getType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, new MachineOperand(MachineOperand::VREG, id_se->getLabel(), type), new MachineOperand(MachineOperand::REG, id_se->getParamNo(), type));
                 bb2mbb[entry]->insertBefore(*(bb2mbb[entry]->getInsts().begin()), inst);

@@ -25,6 +25,7 @@ public:
     bool isCall() const { return instType == CALL; };
     bool isGep() const { return instType == GEP; };
     bool isBinary() const { return instType == BINARY; };
+    bool isCmp() const { return instType == CMP; };
     void setParent(BasicBlock *);
     void setNext(Instruction *);
     void setPrev(Instruction *);
@@ -79,6 +80,9 @@ public:
         def->setDef(this);
     };
 
+    // MemOpt
+    virtual bool constEval() { return false; };
+
 protected:
     unsigned instType;
     unsigned opcode;
@@ -98,9 +102,6 @@ public:
     DummyInstruction() : Instruction(-1, nullptr){};
     void output() const {};
     void genMachineCode(AsmBuilder *){};
-
-    // Autoinline
-    Instruction *copy() { return nullptr; };
 };
 
 class AllocaInstruction : public Instruction
@@ -157,6 +158,8 @@ public:
 
     // Autoinline
     Instruction *copy() { return new BinaryInstruction(*this); };
+    // MemOpt
+    bool constEval();
 };
 
 class CmpInstruction : public Instruction
@@ -177,6 +180,8 @@ public:
 
     // Autoinline
     Instruction *copy() { return new CmpInstruction(*this); };
+    // MemOpt
+    bool constEval();
 };
 
 // unconditional branch
@@ -210,6 +215,8 @@ public:
 
     // Autoinline
     Instruction *copy() { return new CondBrInstruction(*this); };
+    // MemOpt
+    bool constEval();
 
 protected:
     BasicBlock *true_branch;
@@ -233,6 +240,8 @@ public:
 
     // Autoinline
     Instruction *copy() { return new ZextInstruction(*this); };
+    // MemOpt
+    bool constEval();
 };
 
 class IntFloatCastInstruction : public Instruction
@@ -249,6 +258,8 @@ public:
 
     // Autoinline
     Instruction *copy() { return new IntFloatCastInstruction(*this); };
+    // MemOpt
+    bool constEval();
 };
 
 class FuncCallInstruction : public Instruction
@@ -288,6 +299,8 @@ public:
 
     // Autoinline
     Instruction *copy() { return new PhiInstruction(*this); };
+    // MemOpt
+    bool constEval();
 };
 
 class GepInstruction : public Instruction

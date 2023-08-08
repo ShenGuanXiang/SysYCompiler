@@ -28,6 +28,7 @@ private:
     BasicBlock *RiDom = nullptr;
     std::set<BasicBlock *> RDF;
 
+
 public:
     BasicBlock(Function *);
     ~BasicBlock();
@@ -39,6 +40,7 @@ public:
     void insertFront(Instruction *);
     void insertBack(Instruction *);
     void insertBefore(Instruction *dst, Instruction *src);
+    void insertAfter(Instruction *dst, Instruction *src);
     void remove(Instruction *);
     bool empty() const { return head->getNext() == head; }
     void output() const;
@@ -69,6 +71,7 @@ public:
     std::set<BasicBlock *> &getRDF();
     void CleanSucc();
     int getNumofInstr();
+
 };
 
 #endif

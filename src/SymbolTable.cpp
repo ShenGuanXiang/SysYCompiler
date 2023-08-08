@@ -143,6 +143,7 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
     func_se = nullptr;
     label = -1;
     paramOpe = nullptr;
+    f = nullptr;
 }
 
 void IdentifierSymbolEntry::addOccupiedReg(int reg_no, Type *type)
