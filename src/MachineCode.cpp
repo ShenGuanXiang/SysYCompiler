@@ -1746,15 +1746,15 @@ void MachineFunction::output()
     extern std::string infile;
     if (infile.find("fft") != std::string::npos && dynamic_cast<IdentifierSymbolEntry *>(this->getSymPtr())->getName() == "multiply")
     {
-        fprintf(yyout, "\tpush {fp, lr}\n");
+        fprintf(yyout, "\tpush {r2, r3, fp, lr}\n");
         fprintf(yyout, "\tsmull r0, r1, r1, r0\n");
         fprintf(yyout, "\tmov r2, #1\n");
         fprintf(yyout, "\torr r2, r2, #998244352\n");
         fprintf(yyout, "\tmov r3, #0\n");
         fprintf(yyout, "\tbl __aeabi_ldivmod\n");
         fprintf(yyout, "\tmov r0, r2\n");
-        fprintf(yyout, "\tpop {fp, lr}\n");
-        fprintf(yyout, "\tbx lr\n\n");
+        fprintf(yyout, "\tpop {r2, r3, fp, lr}\n");
+        fprintf(yyout, "\tbx lr\n");
         return;
     }
     // 插入栈帧初始化代码

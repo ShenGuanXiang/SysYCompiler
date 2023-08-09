@@ -74,6 +74,25 @@ void IdentifierSymbolEntry::decl_code()
             fprintf(yyout, "declare void @llvm.memset.p0.i32(i8*, i8, i32, i1)\n");
             fprintf(stderr, "declare void @llvm.memset.p0.i32(i8*, i8, i32, i1)\n");
         }
+        else if (name == "_mulmod")
+        {
+            fprintf(yyout, "define dso_local i32 @_mulmod(i32 %%b, i32 %%a, i32 %%mod) #0{\n");
+            fprintf(yyout, "B_13: %*c; succs = %%B_14, %%B_18\n", 32, '\t');
+            fprintf(yyout, "  %%t_0 = icmp slt i32 0, %%b\n");
+            fprintf(yyout, "  br i1 %%t_0, label %%B_18, label %%B_14\n");
+            fprintf(yyout, "B_14: %*c; preds = %%B_13, %%B_18\n", 32, '\t');
+            fprintf(yyout, "  %%t_37 = phi i32 [ 0 , %%B_13 ], [ %%t_2 , %%B_18 ]\n");
+            fprintf(yyout, "  ret i32 %%t_37\n");
+            fprintf(yyout, "B_18: %*c; preds = %%B_13, %%B_18%*c; succs = %%B_14, %%B_18\n", 32, '\t', 32, '\t');
+            fprintf(yyout, "  %%t_35 = phi i32 [ 0 , %%B_13 ], [ %%t_3 , %%B_18 ]\n");
+            fprintf(yyout, "  %%t_36 = phi i32 [ 0 , %%B_13 ], [ %%t_2 , %%B_18 ]\n");
+            fprintf(yyout, "  %%t_1 = add i32 %%t_36, %%a\n");
+            fprintf(yyout, "  %%t_2 = srem i32 %%t_1, %%mod\n");
+            fprintf(yyout, "  %%t_3 = add i32 %%t_35, 1\n");
+            fprintf(yyout, "  %%t_23 = icmp slt i32 %%t_3, %%b\n");
+            fprintf(yyout, "  br i1 %%t_23, label %%B_18, label %%B_14\n");
+            fprintf(yyout, "}\n");
+        }
         else
         {
             fprintf(yyout, "declare %s @%s(",
