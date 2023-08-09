@@ -22,6 +22,7 @@
 #include "PureFunc.h"
 #include "GlobalCodeMotion.h"
 #include "LoopSimplify.h"
+#include "Straighten.h"
 
 Ast ast;
 Unit *unit = new Unit();
@@ -194,6 +195,9 @@ int main(int argc, char *argv[])
             MachineDeadCodeElim mdce(mUnit);
             mdce.pass(true); // 死代码消除
         }
+        Straighten st(mUnit);
+        st.pass();
+        st.pass2();
         fprintf(stderr, "asm generated\n");
         mUnit->output();
         fprintf(stderr, "asm output ok\n");
