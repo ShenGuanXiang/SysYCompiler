@@ -79,7 +79,7 @@ std::vector<std::string> lib_funcs{
     "memset",
     "_sysy_starttime",
     "_sysy_stoptime",
-};
+    "_mulmod"};
 
 bool IdentifierSymbolEntry::isLibFunc()
 {
@@ -122,7 +122,7 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
     this->is8BytesAligned = type->isFunc() && isLibFunc() && name != "getint" && name != "putint" && name != "getch" && name != "putch" && name != "getarray" && name != "putarray";
     if (type->isFunc() && isLibFunc())
     {
-        if (name == "getint" || name == "putint" || name == "getch" || name == "putch" || name == "getarray" || name == "putarray" || name == "putfarray" || name == "memset" || name == "_sysy_starttime" || name == "_sysy_stoptime")
+        if (name == "getint" || name == "putint" || name == "getch" || name == "putch" || name == "getarray" || name == "putarray" || name == "putfarray" || name == "memset" || name == "_sysy_starttime" || name == "_sysy_stoptime" || name == "_mulmod")
         {
             occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
