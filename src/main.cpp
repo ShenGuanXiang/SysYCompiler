@@ -126,8 +126,8 @@ int main(int argc, char *argv[])
             sccp.pass(); // 常量传播
             MemoryOpt memopt(unit);
             memopt.pass(); // 访存优化
-            // GlobalCodeMotion gcm(unit);
-            // gcm.pass(); // 全局代码移动
+            GlobalCodeMotion gcm(unit);
+            gcm.pass(); // 全局代码移动
             GVNPRE gvnpre(unit);
             gvnpre.pass(); // 部分冗余消除&循环不变外提
             // 循环展开
@@ -173,12 +173,16 @@ int main(int argc, char *argv[])
             mdce.pass(true); // 死代码消除
             // 指令调度
         }
-        LinearScan linearScan(mUnit);
-        linearScan.pass();
-
-        // RegisterAllocation registerAllocation(mUnit);
-        // registerAllocation.pass();
-
+        // if (optimize)
+        // {
+        //     RegisterAllocation registerAllocation(mUnit);
+        //     registerAllocation.pass();
+        // }
+        // else
+        {
+            LinearScan linearScan(mUnit);
+            linearScan.pass();
+        }
         if (optimize)
         {
             // TODO: 汇编代码优化
