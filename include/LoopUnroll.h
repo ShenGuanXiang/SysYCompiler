@@ -41,10 +41,9 @@ public:
 class LoopAnalyzer {
     // initialize the loop info
 private:
-    enum{NONE, BACKWARD, FORWARD, TREE, CROSS};
-    std::map<std::pair<BasicBlock*, BasicBlock*>, unsigned> edgeType;
-    std::map<BasicBlock*, int> preOrder;
-    std::map<BasicBlock*, int> PostOrder;
+    std::set<std::pair<BasicBlock*, BasicBlock*>> edgeType;
+    // std::map<BasicBlock*, int> preOrder;
+    // std::map<BasicBlock*, int> PostOrder;
     std::map<BasicBlock*, int> loopDepth;
     std::set<BasicBlock*> visit;
     
@@ -56,7 +55,7 @@ private:
 public:
     void Analyze(Function *);
     void FindLoops(Function *);
-    int dfs(BasicBlock* bb, int pre_order);
+    void Get_REdge(BasicBlock* bb);
     int getLoopDepth(BasicBlock* bb) { return loopDepth[bb]; };
     std::set<LoopStruct*>& getLoops() { return this->Loops; };
     void PrintInfo(Function* f);

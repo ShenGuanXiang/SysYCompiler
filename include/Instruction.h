@@ -269,7 +269,7 @@ private:
     IdentifierSymbolEntry *func_se;
 
 public:
-    FuncCallInstruction(Operand *dst, std::vector<Operand *> params, IdentifierSymbolEntry *funcse, BasicBlock *insert_bb);
+    FuncCallInstruction(Operand *dst, std::vector<Operand *> params, IdentifierSymbolEntry *funcse, BasicBlock *insert_bb=nullptr);
     void output() const;
     IdentifierSymbolEntry *getFuncSe() { return func_se; };
     void genMachineCode(AsmBuilder *);

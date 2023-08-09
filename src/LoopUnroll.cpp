@@ -39,43 +39,40 @@ void LoopAnalyzer::Analyze(Function* f) {
     for (auto& bb : f->getBlockList())
         loopDepth[bb] = 0;
 
-    dfs(f->getEntry(), 0);
+    Get_REdge(f->getEntry());
     computeLoopDepth();
 }
 
-int LoopAnalyzer::dfs(BasicBlock* bb, int pre_order) {
-    visit.insert(bb);
-    preOrder[bb] = pre_order ++;
-    fprintf(stderr, "BasicBlock[%d] PreOrder is %d\n", bb->getNo(), preOrder[bb]);
-    int post = 0;
-    for (auto b = bb->succ_begin(); b != bb->succ_end(); b ++) {
-        if (visit.find(*b) == visit.end()) {
-            edgeType[{bb, *b}] = TREE;
-            post += dfs(*b, pre_order + post);
+void LoopAnalyzer::Get_REdge(BasicBlock* root) {
+    std::queue<BasicBlock* > q_edge;
+    q_edge.push(root);
+    visit.insert(root);
+    while (!q_edge.empty()) {
+        auto t = q_edge.front();
+        q_edge.pop();
+        for (auto b = t->succ_begin(); b != t->succ_end(); b ++) {
+            auto Dom = t->getSDoms();
+            if (*b == t || Dom.find(*b) != Dom.end()) {
+                edgeType.insert({t, *b});
+                fprintf(stderr, "Reverse_Edge from %d to %d\n", t->getNo(), (*b)->getNo());
+            }
+            if (visit.find(*b) == visit.end()) 
+                q_edge.push(*b), visit.insert(*b);
         }
-        else if (preOrder[*b] > preOrder[bb])
-            edgeType[{bb, *b}] = FORWARD;
-        else if (PostOrder.find(*b) == PostOrder.end()) 
-            edgeType[{bb, *b}] = BACKWARD;
-        else 
-            edgeType[{bb, *b}] = CROSS;
     }
-    PostOrder[bb] = post;
-    fprintf(stderr, "BasicBlock[%d] PostOrder is %d\n", bb->getNo(), PostOrder[bb]);
-    return PostOrder[bb] + 1;
 }
 
 std::set<BasicBlock*> LoopAnalyzer::computeNaturalLoop(BasicBlock* cond, BasicBlock* body) {
     std::set<BasicBlock*> loop;
     std::queue<BasicBlock*> q;
 
-    if (cond == body) 
+    if (cond == body && cond != nullptr) 
         loop.insert(cond);
     else 
     {
-        loop.insert(cond);
-        loop.insert(body);
-        q.push(cond);
+        if (cond != nullptr) loop.insert(cond);
+        if (body != nullptr) loop.insert(body);
+        q.push(body);
     }
     while (!q.empty()) {
         auto t = q.front();
@@ -87,21 +84,26 @@ std::set<BasicBlock*> LoopAnalyzer::computeNaturalLoop(BasicBlock* cond, BasicBl
                 loop.insert(*b);
             }
     }
+    for (auto l : loop)
+        fprintf(stderr, "bb[%d] in loop\n", l->getNo());
+    fprintf(stderr, "compute finish\n");
     return loop;
 }
 
 void LoopAnalyzer::computeLoopDepth() {
     for (auto edge : edgeType) 
-        if (edge.second == BACKWARD)
-        {
-            auto loop = new Loop(computeNaturalLoop(edge.first.first, edge.first.second));
-            auto loopstruct = new LoopStruct(loop);
-            loopstruct->SetBody(edge.first.second);
-            loopstruct->SetCond(edge.first.first);
-            Loops.insert(loopstruct);
-            for (auto& b : loop->GetBasicBlock())
-                loopDepth[b] ++;
+    {
+        auto loop = new Loop(computeNaturalLoop(edge.first, edge.second));
+        auto loopstruct = new LoopStruct(loop);
+        loopstruct->SetBody(edge.second);
+        loopstruct->SetCond(edge.first);
+        Loops.insert(loopstruct);
+        for (auto& b : loop->GetBasicBlock()) {
+            loopDepth[b] ++;
+            fprintf(stderr, "loop[%d] depth is %d\n", b->getNo(), loopDepth[b]);
         }
+        fprintf(stderr, "loop End\n");
+    }
 }
 
 bool LoopAnalyzer::isSubset(std::set<BasicBlock*> t_son, std::set<BasicBlock*> t_fat) {
@@ -114,6 +116,13 @@ bool LoopAnalyzer::isSubset(std::set<BasicBlock*> t_son, std::set<BasicBlock*> t
 
 void LoopAnalyzer::FindLoops(Function* f) {
     Analyze(f);
+    for (auto l : getLoops())
+    {
+        l->GetLoop()->SetDepth(0x3fffffff);
+        // for (auto bb : l->GetLoop()->GetBasicBlock())
+        //     fprintf(stderr, "bb[%d]'s depth is %d\n", bb->getNo(),
+        //     getLoopDepth(bb));
+    }
 
     for (auto l : getLoops())
     {
@@ -151,7 +160,56 @@ void LoopUnroll::pass() {
 }
 
 std::vector<LoopStruct*> LoopUnroll::FindCandidateLoop() {
-    
+    // std::vector<LoopStruct*> Worklist;
+    // for (auto f : unit->getFuncList()) {
+    //     for(auto loop : analyzer.FindLoops(f)){
+
+    //         // find cond and body
+    //         BasicBlock* cond = nullptr, *body = nullptr;
+    //         for(auto bb : loop->getbbs()){
+    //             for(auto instr = bb->begin(); instr != bb->end()->getNext(); instr = instr->getNext()){
+    //                 if(instr->isCmp()){
+    //                     cond = bb;
+    //                     break;
+    //                 }
+    //             }
+    //             if(cond) break;
+    //         }
+
+    //         for(auto bb : loop->getbbs()){
+    //             if(bb != cond){
+    //                 body = bb;
+    //             }
+    //         }
+
+    //         LoopStruct* CandidateLoop = new LoopStruct(loop);
+    //         CandidateLoop->SetCond(cond);
+    //         CandidateLoop->SetBody(body);
+    //         Worklist.push_back(CandidateLoop);
+    //     }
+    // }
+
+    // for(auto CandidateLoop : Worklist){
+    //     bool HasCallInBody = false;
+    //     for(auto bodyinstr = CandidateLoop->getBody()->begin(); bodyinstr != CandidateLoop->getBody()->end()->getNext(); bodyinstr = bodyinstr->getNext()){
+    //         if(bodyinstr->isCall()){
+    //             HasCallInBody = true;
+    //             break;
+    //         }
+    //     }
+    //     if(HasCallInBody){
+    //         Exception("Candidate loop shall have no call in body");
+    //         continue;
+    //     }
+
+    //     bool CheckFlag = false;
+    //     for(auto bb = CandidateLoop->getCond()->succ_begin(); bb != CandidateLoop->getCond()->succ_end(); bb++){
+    //         CheckFlag = CheckFlag || (*bb == CandidateLoop->getBody());
+    //     }
+    //     if(!CheckFlag){
+    //         continue;
+    //     }
+    // }
 }
 
 void LoopUnroll::Unroll(LoopStruct *)

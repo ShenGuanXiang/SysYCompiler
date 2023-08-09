@@ -26,6 +26,7 @@ private:
     BasicBlock *RiDom = nullptr;
     std::set<BasicBlock *> RDF;
 
+
 public:
     BasicBlock(Function *);
     ~BasicBlock();
@@ -66,6 +67,7 @@ public:
     std::set<BasicBlock *> &getRDF();
     void CleanSucc();
     int getNumofInstr();
+
 };
 
 #endif

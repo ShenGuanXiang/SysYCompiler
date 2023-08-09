@@ -15,9 +15,12 @@ parser.h
 debug*
 *.log
 performance
+median2.in
+median2.out
 
 makefile
 Main.cpp
 oldignore
 token
 note
+olg

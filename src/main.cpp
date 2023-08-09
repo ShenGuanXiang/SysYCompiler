@@ -19,6 +19,8 @@
 #include "MemoryOpt.h"
 #include "AlgSimplify.h"
 #include "PureFunc.h"
+#include "GlobalCodeMotion.h"
+#include "LoopSimplify.h"
 
 Ast ast;
 Unit *unit = new Unit();
@@ -123,12 +125,22 @@ int main(int argc, char *argv[])
             sccp.pass(); // 常量传播
             MemoryOpt memopt(unit);
             memopt.pass(); // 访存优化
+            // GlobalCodeMotion gcm(unit);
+            // gcm.pass(); // 全局代码移动
             GVNPRE gvnpre(unit);
             gvnpre.pass(); // 部分冗余消除&循环不变外提
             // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
         }
+        // LoopSimplify ls(unit);
+        // ls.pass();
+        // LoopAnalyzer La;
+        // for (auto f : unit->getFuncList())
+        // {
+        //     La.FindLoops(f);
+        //     La.PrintInfo(f);
+        // }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
