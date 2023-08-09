@@ -50,11 +50,11 @@ public:
     MachineOperand(std::string label);
     bool operator==(const MachineOperand &) const;
     bool operator<(const MachineOperand &) const;
-    bool isImm() { return this->type == IMM; };
-    bool isReg() { return this->type == REG; };
-    bool isVReg() { return this->type == VREG; };
-    bool isLabel() { return this->type == LABEL; };
-    double getVal() { return this->val; };
+    bool isImm() const { return this->type == IMM; };
+    bool isReg() const { return this->type == REG; };
+    bool isVReg() const { return this->type == VREG; };
+    bool isLabel() const { return this->type == LABEL; };
+    double getVal() const { return this->val; };
     void setVal(double val) { this->val = val; }; // 目前仅用于函数参数（第四个以后）更新栈内偏移
     int getReg() { return this->reg_no; };
     void setReg(int regno)
