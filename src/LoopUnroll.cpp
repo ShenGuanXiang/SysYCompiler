@@ -149,6 +149,154 @@ void LoopAnalyzer::PrintInfo(Function* f) {
     fprintf(stderr, "\n");
 }
 
+static MachineOperand *copyOperand(MachineOperand *ope)
+{
+    return new MachineOperand(*ope);
+}
+
+void MLoop::PrintInfo() {
+    for (auto b : bb)
+        fprintf(stderr, "BasicBlock[%d] ", b->getNo());
+    
+    fprintf(stderr, "\nisInerloop: %d\n", InnerLoop);
+    fprintf(stderr, "loopdepth: %d\n", loop_depth);
+}
+
+MLoop::MLoop(std::set<MachineBlock*> origin_bb) {
+    bb.clear();
+    for (auto b : origin_bb)
+        bb.insert(b);
+}
+
+void MLoopStruct::PrintInfo() {
+    fprintf(stderr, "The loopstruct contains basicblock: ");
+    origin_loop->PrintInfo();
+
+    fprintf(stderr, "cond bb is %d\n", loopstruct.first->getNo());
+    fprintf(stderr, "body bb is %d\n", loopstruct.second->getNo());
+}
+
+void MLoopAnalyzer::Analyze(MachineFunction* f) {
+    edgeType.clear();
+    loopDepth.clear();
+    visit.clear();
+    Loops.clear();
+
+    for (auto& bb : f->getBlocks())
+        loopDepth[bb] = 0;
+
+    Get_REdge(f->getEntry());
+    computeLoopDepth();
+}
+
+void MLoopAnalyzer::Get_REdge(MachineBlock* root) {
+    std::queue<MachineBlock* > q_edge;
+    q_edge.push(root);
+    visit.insert(root);
+    while (!q_edge.empty()) {
+        auto t = q_edge.front();
+        q_edge.pop();
+        auto vec = t->getSuccs();
+        for (auto b : vec) {
+            auto Dom = t->getSDoms();
+            if (b == t || Dom.find(b) != Dom.end()) {
+                edgeType.insert({t, b});
+                fprintf(stderr, "Reverse_Edge from %d to %d\n", t->getNo(), b->getNo());
+            }
+            if (visit.find(b) == visit.end()) 
+                q_edge.push(b), visit.insert(b);
+        }
+    }
+}
+
+std::set<MachineBlock*> MLoopAnalyzer::computeNaturalLoop(MachineBlock* cond, MachineBlock* body) {
+    std::set<MachineBlock*> loop;
+    std::queue<MachineBlock*> q;
+
+    if (cond == body && cond != nullptr) 
+        loop.insert(cond);
+    else 
+    {
+        if (cond != nullptr) loop.insert(cond);
+        if (body != nullptr) loop.insert(body);
+        q.push(body);
+    }
+    while (!q.empty()) {
+        auto t = q.front();
+        q.pop();
+        auto vec = t->getSuccs();
+        for (auto b : vec)
+            if (loop.find(b) == loop.end())
+            {
+                q.push(b);
+                loop.insert(b);
+            }
+    }
+    for (auto l : loop)
+        fprintf(stderr, "bb[%d] in loop\n", l->getNo());
+    fprintf(stderr, "compute finish\n");
+    return loop;
+}
+
+void MLoopAnalyzer::computeLoopDepth() {
+    for (auto edge : edgeType) 
+    {
+        auto loop = new MLoop(computeNaturalLoop(edge.first, edge.second));
+        auto loopstruct = new MLoopStruct(loop);
+        loopstruct->SetBody(edge.second);
+        loopstruct->SetCond(edge.first);
+        Loops.insert(loopstruct);
+        for (auto& b : loop->GetBasicBlock()) {
+            loopDepth[b] ++;
+            fprintf(stderr, "loop[%d] depth is %d\n", b->getNo(), loopDepth[b]);
+        }
+        fprintf(stderr, "loop End\n");
+    }
+}
+
+bool MLoopAnalyzer::isSubset(std::set<MachineBlock*> t_son, std::set<MachineBlock*> t_fat) {
+    for (auto s : t_son)
+        if (t_fat.find(s) == t_fat.end())
+            return false;
+    
+    return t_son.size() != t_fat.size();
+}
+
+void MLoopAnalyzer::FindLoops(MachineFunction* f) {
+    Analyze(f);
+    for (auto l : getLoops())
+    {
+        l->GetLoop()->SetDepth(0x3fffffff);
+        // for (auto bb : l->GetLoop()->GetBasicBlock())
+        //     fprintf(stderr, "bb[%d]'s depth is %d\n", bb->getNo(),
+        //     getLoopDepth(bb));
+    }
+
+    for (auto l : getLoops())
+    {
+        l->GetLoop()->SetDepth(0x3fffffff);
+        for (auto bb : l->GetLoop()->GetBasicBlock())
+            l->GetLoop()->SetDepth(std::min(getLoopDepth(bb), l->GetLoop()->GetDepth()));
+    }
+
+    for (auto l : getLoops())
+        l->GetLoop()->SetInnerLoop();
+
+    for (auto l1 : getLoops())
+        for (auto l2 : getLoops())
+            if (isSubset(l1->GetLoop()->GetBasicBlock(), l2->GetLoop()->GetBasicBlock()))
+                l2->GetLoop()->ClearInnerLoop();
+}
+
+void MLoopAnalyzer::PrintInfo(MachineFunction* f) {
+    std::string FunctionName = ((IdentifierSymbolEntry*)f->getSymPtr())->getName();
+    fprintf(stderr, "Function %s's Loop Analysis :\n", FunctionName.c_str());
+    for (auto l : Loops)
+        l->PrintInfo();
+    
+    fprintf(stderr, "\n");
+}
+
 void LoopUnroll::pass() {
     for (auto f : unit->getFuncList()) {
         analyzer.FindLoops(f);
