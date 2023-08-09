@@ -478,13 +478,14 @@ void ComSubExprElimASM::dvnt(MachineBlock *bb)
         }
         else{
             htable[instString] = dst;
-            if(instString.substr(0,3) == "ADD" || instString.substr(0,3) == "MUL"){
-                assert(inst->getUse().size() == 2);
-                std::string identity = instString.substr(0,3) 
-                + "," + inst->getUse()[1]->toStr() 
-                + "," + inst->getUse()[0]->toStr();
-                htable[identity] = dst;
-            }
+            // if(instString.substr(0,3) == "ADD" || instString.substr(0,3) == "MUL"){
+            //     fprintf(stderr,"[GVN]:%s->%s\n",instString.c_str(),dst->toStr().c_str());
+            //     assert(inst->getUse().size() == 2);
+            //     std::string identity = instString.substr(0,3) 
+            //     + "," + inst->getUse()[1]->toStr() 
+            //     + "," + inst->getUse()[0]->toStr();
+            //     htable[identity] = dst;
+            // }
         }
     }
 

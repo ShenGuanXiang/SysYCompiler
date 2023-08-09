@@ -160,7 +160,7 @@ void SimpleLoop::simplify()
     while(dummy->getNext()!=dummy){
         Instruction* inst = dummy->getNext();
         body->remove(inst);
-        delete inst;
+        // delete inst;
     }
     for(auto succ_it=body->succ_begin();succ_it!=body->succ_end();succ_it++){
         auto succ = *succ_it;
