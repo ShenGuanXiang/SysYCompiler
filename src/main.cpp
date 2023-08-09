@@ -173,12 +173,16 @@ int main(int argc, char *argv[])
             mdce.pass(true); // 死代码消除
             // 指令调度
         }
-        LinearScan linearScan(mUnit);
-        linearScan.pass();
-
-        // RegisterAllocation registerAllocation(mUnit);
-        // registerAllocation.pass();
-        
+        // if (optimize)
+        // {
+        //     RegisterAllocation registerAllocation(mUnit);
+        //     registerAllocation.pass();
+        // }
+        // else
+        {
+            LinearScan linearScan(mUnit);
+            linearScan.pass();
+        }
         if (optimize)
         {
             // TODO: 汇编代码优化

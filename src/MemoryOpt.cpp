@@ -785,7 +785,9 @@ void MemoryOpt::pass()
                         assert(dst_addr->getEntry()->isVariable() || dst_addr->getDef());
                         if (dst_addr->getEntry()->isVariable() || dst_addr->getDef()->isAlloca())
                         {
-                            if (!used_scalar_se.count(dst_addr->getEntry()))
+                            if (dst_addr->getEntry()->isVariable() && dynamic_cast<IdentifierSymbolEntry *>(dst_addr->getEntry())->isParam())
+                                ;
+                            else if (!used_scalar_se.count(dst_addr->getEntry()))
                             {
                                 freeStore.insert(inst);
                             }
@@ -793,7 +795,9 @@ void MemoryOpt::pass()
                         else if (dst_addr->getDef()->isGep())
                         {
                             auto [se, offset] = analyzeGep(dst_addr->getDef());
-                            if (se != nullptr && !used_arr_se.count(se))
+                            if (se != nullptr && se->isVariable() && dynamic_cast<IdentifierSymbolEntry *>(se)->isParam())
+                                ;
+                            else if (se != nullptr && !used_arr_se.count(se))
                             {
                                 freeStore.insert(inst);
                             }

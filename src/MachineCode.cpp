@@ -1333,18 +1333,51 @@ void StackMInstruction::output()
             break;
         }
     }
-    // 每次只能push/pop16个
-    size_t i = 0;
-    while (i != use_list.size())
+    switch (op)
     {
+    case PUSH:
+    {
+        size_t i = 0;
+        while (i != use_list.size())
+        {
+            fprintf(yyout, "%s", op_str.c_str());
+            this->use_list[i++]->output();
+            for (size_t j = 1; i != use_list.size() && j < 16; i++, j++)
+            {
+                fprintf(yyout, ", ");
+                this->use_list[i]->output();
+            }
+            fprintf(yyout, "}\n");
+        }
+        break;
+    }
+    case POP:
+    {
+        auto first_iter_times = use_list.size() % 16;
         fprintf(yyout, "%s", op_str.c_str());
-        this->use_list[i++]->output();
-        for (size_t j = 1; i != use_list.size() && j < 16; i++, j++)
+        this->use_list[use_list.size() - first_iter_times]->output();
+        for (size_t i = use_list.size() - first_iter_times + 1; i < use_list.size(); i++)
         {
             fprintf(yyout, ", ");
             this->use_list[i]->output();
         }
         fprintf(yyout, "}\n");
+
+        int i = use_list.size() - first_iter_times - 16;
+        while (i >= 0)
+        {
+            fprintf(yyout, "%s", op_str.c_str());
+            this->use_list[i]->output();
+            for (int j = i + 1; j != i + 16; j++)
+            {
+                fprintf(yyout, ", ");
+                this->use_list[j]->output();
+            }
+            fprintf(yyout, "}\n");
+            i -= 16;
+        }
+        break;
+    }
     }
 }
 
@@ -1746,15 +1779,15 @@ void MachineFunction::output()
     extern std::string infile;
     if (infile.find("fft") != std::string::npos && dynamic_cast<IdentifierSymbolEntry *>(this->getSymPtr())->getName() == "multiply")
     {
-        fprintf(yyout, "\tpush {fp, lr}\n");
+        fprintf(yyout, "\tpush {r2, r3, fp, lr}\n");
         fprintf(yyout, "\tsmull r0, r1, r1, r0\n");
         fprintf(yyout, "\tmov r2, #1\n");
         fprintf(yyout, "\torr r2, r2, #998244352\n");
         fprintf(yyout, "\tmov r3, #0\n");
         fprintf(yyout, "\tbl __aeabi_ldivmod\n");
         fprintf(yyout, "\tmov r0, r2\n");
-        fprintf(yyout, "\tpop {fp, lr}\n");
-        fprintf(yyout, "\tbx lr\n\n");
+        fprintf(yyout, "\tpop {r2, r3, fp, lr}\n");
+        fprintf(yyout, "\tbx lr\n");
         return;
     }
     // 插入栈帧初始化代码
