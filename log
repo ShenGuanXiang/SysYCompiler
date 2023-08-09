@@ -1,349 +1,2351 @@
+implicit type conversion: i32 -> i1
+implicit type conversion: i32 -> i1
+implicit type conversion: i32 -> i1
+implicit type conversion: float -> i32
+implicit type conversion: i32 -> float
+implicit type conversion: i32 -> i1
 ast built
 ir generated
-bb100029:
-bb100021:
-bb100025:bb100032 
-bb100032:bb100029 
-bb100017:bb100021 bb100025 
-Reverse_Edge from 100032 to 100032
-Reverse_Edge from 100029 to 100025
-bb[100025] in loop
-bb[100029] in loop
-bb[100032] in loop
+bb171:
+bb168:
+bb164:
+bb159:
+bb167:bb168 bb171 
+bb163:bb164 bb167 
+bb153:bb159 bb163 
+Reverse_Edge from 168 to 167
+bb[167] in loop
+bb[168] in loop
+bb[171] in loop
 compute finish
-loop[100025] depth is 1
-loop[100029] depth is 1
-loop[100032] depth is 1
+loop[167] depth is 1
+loop[168] depth is 1
+loop[171] depth is 1
 loop End
-bb[100032] in loop
+[gcm]bb171:depth 1
+[gcm]bb167:depth 1
+[gcm]bb163:depth 0
+[gcm]bb168:depth 1
+[gcm]bb164:depth 0
+[gcm]bb159:depth 0
+[gcm]bb153:depth 0
+[gcm]%t5:159->159
+[gcm]%t9:171->167
+[gcm]%t7:167->167
+[gcm]%t11:168->167
+[gcm]%t10:168->167
+bb194:
+bb186:
+bb183:bb197 
+bb197:bb194 
+bb181:bb183 bb186 
+Reverse_Edge from 197 to 197
+bb[197] in loop
 compute finish
-loop[100032] depth is 2
+loop[197] depth is 1
 loop End
-[gcm]bb100029:depth 1
-[gcm]bb100032:depth 2
-[gcm]bb100025:depth 1
-[gcm]bb100021:depth 0
-[gcm]bb100017:depth 0
-[GCM]: 0 instructions moved, 0 of them are LOAD
+[gcm]bb197:depth 1
+[gcm]bb194:depth 0
+[gcm]bb186:depth 0
+[gcm]bb183:depth 0
+[gcm]bb181:depth 0
+[gcm]%t15:186->186
+[gcm]%t26:197->197
+[gcm]%t25:197->197
+[gcm]%t24:197->197
+[gcm]%t23:197->197
+bb454:
+bb257:
+bb491:
+bb263:
+bb437:
+bb485:bb508 
+bb508:
+bb431:bb454 
+bb239:bb425 bb431 bb437 
+bb479:bb386 bb389 
+bb389:
+bb425:bb479 bb485 bb491 
+bb386:bb257 bb263 
+[gcm]bb485:depth 0
+[gcm]bb479:depth 0
+[gcm]bb454:depth 0
+[gcm]bb508:depth 0
+[gcm]bb431:depth 0
+[gcm]bb425:depth 0
+[gcm]bb389:depth 0
+[gcm]bb386:depth 0
+[gcm]bb437:depth 0
+[gcm]bb263:depth 0
+[gcm]bb491:depth 0
+[gcm]bb257:depth 0
+[gcm]bb239:depth 0
+[gcm]%t473:454->454
+[gcm]%t472:454->454
+[gcm]%t470:454->454
+[gcm]%t462:454->454
+[gcm]%t458:454->454
+[gcm]%t460:454->454
+[gcm]%t468:454->454
+[gcm]%t74:257->257
+[gcm]%t478:454->454
+[gcm]%t69:263->479
+[gcm]%t68:263->479
+[gcm]%t390:389->479
+[gcm]%t61:479->479
+[gcm]%t60:479->479
+[gcm]%t527:508->508
+[gcm]%t526:508->508
+[gcm]%t524:508->508
+[gcm]%t516:508->508
+[gcm]%t512:508->508
+[gcm]%t514:508->508
+[gcm]%t522:508->508
+[gcm]%t532:508->508
+bb296:
+bb293:
+bb291:bb293 bb296 
+[gcm]bb296:depth 0
+[gcm]bb293:depth 0
+[gcm]bb291:depth 0
+[gcm]%t80:296->296
+[gcm]%t93:293->293
+[gcm]%t90:293->293
+[gcm]%t87:293->293
+[gcm]%t86:293->293
+[gcm]%t89:293->293
+[gcm]%t92:293->293
+bb312:
+bb309:
+bb307:bb309 bb312 
+[gcm]bb312:depth 0
+[gcm]bb309:depth 0
+[gcm]bb307:depth 0
+[gcm]%t97:312->312
+[gcm]%t103:309->309
+bb337:bb340 bb343 
+bb392:bb350 bb355 bb836 
+bb356:bb366 bb372 bb1028 
+bb359:bb898 
+bb355:
+bb372:
+bb343:bb392 bb395 
+bb340:
+bb1028:
+bb350:bb356 bb359 bb365 
+bb395:
+bb836:
+bb898:
+bb365:
+bb366:
+Reverse_Edge from 366 to 343
+bb[395] in loop
+bb[392] in loop
+bb[343] in loop
+bb[350] in loop
+bb[355] in loop
+bb[356] in loop
+bb[359] in loop
+bb[365] in loop
+bb[366] in loop
+bb[372] in loop
+bb[836] in loop
+bb[898] in loop
+bb[1028] in loop
+compute finish
+loop[395] depth is 1
+loop[392] depth is 1
+loop[343] depth is 1
+loop[350] depth is 1
+loop[355] depth is 1
+loop[356] depth is 1
+loop[359] depth is 1
+loop[365] depth is 1
+loop[366] depth is 1
+loop[372] depth is 1
+loop[836] depth is 1
+loop[898] depth is 1
+loop[1028] depth is 1
+loop End
+[gcm]bb337:depth 0
+[gcm]bb340:depth 0
+[gcm]bb343:depth 1
+[gcm]bb355:depth 1
+[gcm]bb356:depth 1
+[gcm]bb359:depth 1
+[gcm]bb372:depth 1
+[gcm]bb898:depth 1
+[gcm]bb365:depth 1
+[gcm]bb366:depth 1
+[gcm]bb392:depth 1
+[gcm]bb1028:depth 1
+[gcm]bb350:depth 1
+[gcm]bb395:depth 1
+[gcm]bb836:depth 1
+[gcm]%t396:395->343
+[gcm]%t985:898->343
+[gcm]%t984:898->343
+[gcm]%t982:898->343
+[gcm]%t987:898->343
+[gcm]%t860:836->343
+[gcm]%t859:836->343
+[gcm]%t857:836->343
+[gcm]%t852:836->343
+[gcm]%t850:836->343
+[gcm]%t855:836->343
+[gcm]%t839:836->343
+[gcm]%t838:836->343
+[gcm]%t837:836->343
+[gcm]%t862:836->343
+[gcm]%t977:898->343
+[gcm]%t975:898->343
+[gcm]%t980:898->343
+[gcm]%t964:898->343
+[gcm]%t963:898->343
+[gcm]%t962:898->343
+[gcm]%t1052:1028->343
+[gcm]%t1051:1028->343
+[gcm]%t1049:1028->343
+[gcm]%t1044:1028->343
+[gcm]%t1042:1028->343
+[gcm]%t1047:1028->343
+[gcm]%t1031:1028->343
+[gcm]%t1030:1028->343
+[gcm]%t1029:1028->343
+[gcm]%t1054:1028->343
+[gcm]%t922:898->343
+[gcm]%t921:898->343
+[gcm]%t919:898->343
+[gcm]%t914:898->343
+[gcm]%t912:898->343
+[gcm]%t917:898->343
+[gcm]%t901:898->343
+[gcm]%t900:898->343
+[gcm]%t899:898->343
+[gcm]%t924:898->343
+[gcm]%t1019:1028->1028
+[gcm]%t144:366->343
+[gcm]%t952:898->898
+[GCM]: 50 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 4 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
 [GVNPRE]:build antic iterate over 3 times
 [GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
 [GVNPRE]:eliminate 0 instructions
 [GVNPRE]:done.
-find induction:
-induction:%t6
-base:0
-step:1
-step_op:0
-mod:null
-induction:%t5
-base:0
-step:%t100052
-step_op:0
-mod:null
-rewrite:
-body:100032
-ctrl_val:%t6
-bound:60
-step:1
-base:0
-exit_var:%t5
-base:0
-step:%t100052
-bb100025:
-bb100021:
-bb100017:bb100021 bb100025 
-Reverse_Edge from 100025 to 100025
-bb[100025] in loop
-compute finish
-loop[100025] depth is 1
-loop End
-[gcm]bb100025:depth 1
-[gcm]bb100021:depth 0
-[gcm]bb100017:depth 0
-[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 5 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 3 instructions
+[GVNPRE]:done.
 [GVNPRE]:build antic iterate over 2 times
 [GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
 [GVNPRE]:eliminate 0 instructions
 [GVNPRE]:done.
-find induction:
-induction:%t10
-base:0
-step:1
-step_op:0
-mod:null
-induction:%t9
-base:0
-step:%t100052
-step_op:0
-mod:134209537
-rewrite:
-body:100025
-ctrl_val:%t10
-bound:%t0
-step:1
-base:0
-exit_var:%t9
-base:0
-step:%t10
-bb100025:
-bb100021:
-bb100017:bb100021 bb100025 
-Reverse_Edge from 100025 to 100025
-bb[100025] in loop
-compute finish
-loop[100025] depth is 1
-loop End
-[gcm]bb100025:depth 1
-[gcm]bb100021:depth 0
-[gcm]bb100017:depth 0
-[GCM]: 0 instructions moved, 0 of them are LOAD
 [GVNPRE]:build antic iterate over 2 times
 [GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
 [GVNPRE]:eliminate 0 instructions
 [GVNPRE]:done.
-find induction:
-induction:%t10
-base:0
-step:1
-step_op:0
-mod:null
-induction:%t9
-base:0
-step:%t100052
-step_op:0
-mod:134209537
-rewrite:
-body:100025
-ctrl_val:%t10
-bound:%t0
-step:1
-base:0
-exit_var:%t9
-base:0
-step:%t10
-bb100025:
-bb100021:
-bb100017:bb100021 bb100025 
-Reverse_Edge from 100025 to 100025
-bb[100025] in loop
-compute finish
-loop[100025] depth is 1
-loop End
-[gcm]bb100025:depth 1
-[gcm]bb100021:depth 0
-[gcm]bb100017:depth 0
-[GCM]: 0 instructions moved, 0 of them are LOAD
-[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:build antic iterate over 12 times
 [GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
 [GVNPRE]:eliminate 0 instructions
 [GVNPRE]:done.
 find induction:
-induction:%t10
-base:0
+induction:%t26
+base:10
 step:1
-step_op:0
+step_op:1
 mod:null
-induction:%t9
-base:0
-step:%t100052
+induction:%t25
+base:%t21
+step:%t23
 step_op:0
-mod:134209537
-rewrite:
-body:100025
-ctrl_val:%t10
-bound:%t0
+mod:0x4000000000000000
+bb171:
+bb168:
+bb164:
+bb159:
+bb167:bb168 bb171 
+bb163:bb164 bb167 
+bb153:bb159 bb163 
+Reverse_Edge from 168 to 167
+bb[167] in loop
+bb[168] in loop
+bb[171] in loop
+compute finish
+loop[167] depth is 1
+loop[168] depth is 1
+loop[171] depth is 1
+loop End
+[gcm]bb171:depth 1
+[gcm]bb167:depth 1
+[gcm]bb163:depth 0
+[gcm]bb168:depth 1
+[gcm]bb164:depth 0
+[gcm]bb159:depth 0
+[gcm]bb153:depth 0
+[gcm]%t5:159->159
+[gcm]%t9:171->167
+[gcm]%t7:167->167
+[gcm]%t11:168->167
+[gcm]%t10:168->167
+bb194:
+bb186:
+bb197:bb194 
+bb181:bb186 bb197 
+Reverse_Edge from 197 to 197
+bb[197] in loop
+compute finish
+loop[197] depth is 1
+loop End
+[gcm]bb197:depth 1
+[gcm]bb194:depth 0
+[gcm]bb186:depth 0
+[gcm]bb181:depth 0
+[gcm]%t15:186->186
+[gcm]%t26:197->197
+[gcm]%t25:197->197
+[gcm]%t24:197->197
+[gcm]%t23:197->197
+bb263:
+bb257:
+bb454:
+bb485:bb508 
+bb508:
+bb431:bb454 
+bb239:bb425 bb431 
+bb479:bb386 bb389 
+bb389:
+bb425:bb479 bb485 
+bb386:bb257 bb263 
+[gcm]bb485:depth 0
+[gcm]bb479:depth 0
+[gcm]bb454:depth 0
+[gcm]bb508:depth 0
+[gcm]bb431:depth 0
+[gcm]bb425:depth 0
+[gcm]bb389:depth 0
+[gcm]bb386:depth 0
+[gcm]bb263:depth 0
+[gcm]bb257:depth 0
+[gcm]bb239:depth 0
+[gcm]%t473:454->454
+[gcm]%t472:454->454
+[gcm]%t470:454->454
+[gcm]%t462:454->454
+[gcm]%t458:454->454
+[gcm]%t460:454->454
+[gcm]%t468:454->454
+[gcm]%t74:257->257
+[gcm]%t478:454->454
+[gcm]%t69:263->479
+[gcm]%t68:263->479
+[gcm]%t390:389->479
+[gcm]%t61:479->479
+[gcm]%t60:479->479
+[gcm]%t527:508->508
+[gcm]%t526:508->508
+[gcm]%t524:508->508
+[gcm]%t516:508->508
+[gcm]%t512:508->508
+[gcm]%t514:508->508
+[gcm]%t522:508->508
+[gcm]%t532:508->508
+bb296:
+bb293:
+bb291:bb293 bb296 
+[gcm]bb296:depth 0
+[gcm]bb293:depth 0
+[gcm]bb291:depth 0
+[gcm]%t80:296->296
+[gcm]%t93:293->293
+[gcm]%t90:293->293
+[gcm]%t87:293->293
+[gcm]%t86:293->293
+[gcm]%t89:293->293
+[gcm]%t92:293->293
+bb312:
+bb309:
+bb307:bb309 bb312 
+[gcm]bb312:depth 0
+[gcm]bb309:depth 0
+[gcm]bb307:depth 0
+[gcm]%t97:312->312
+[gcm]%t103:309->309
+bb337:bb340 bb343 
+bb392:bb350 bb355 bb836 
+bb356:bb366 bb372 bb1028 
+bb359:bb898 
+bb355:
+bb372:
+bb343:bb392 bb395 
+bb340:
+bb1028:
+bb350:bb356 bb359 bb365 
+bb395:
+bb836:
+bb898:
+bb365:
+bb366:
+Reverse_Edge from 366 to 343
+bb[395] in loop
+bb[392] in loop
+bb[343] in loop
+bb[350] in loop
+bb[355] in loop
+bb[356] in loop
+bb[359] in loop
+bb[365] in loop
+bb[366] in loop
+bb[372] in loop
+bb[836] in loop
+bb[898] in loop
+bb[1028] in loop
+compute finish
+loop[395] depth is 1
+loop[392] depth is 1
+loop[343] depth is 1
+loop[350] depth is 1
+loop[355] depth is 1
+loop[356] depth is 1
+loop[359] depth is 1
+loop[365] depth is 1
+loop[366] depth is 1
+loop[372] depth is 1
+loop[836] depth is 1
+loop[898] depth is 1
+loop[1028] depth is 1
+loop End
+[gcm]bb337:depth 0
+[gcm]bb340:depth 0
+[gcm]bb343:depth 1
+[gcm]bb355:depth 1
+[gcm]bb356:depth 1
+[gcm]bb359:depth 1
+[gcm]bb372:depth 1
+[gcm]bb898:depth 1
+[gcm]bb365:depth 1
+[gcm]bb366:depth 1
+[gcm]bb392:depth 1
+[gcm]bb1028:depth 1
+[gcm]bb350:depth 1
+[gcm]bb395:depth 1
+[gcm]bb836:depth 1
+[gcm]%t396:395->343
+[gcm]%t985:898->343
+[gcm]%t984:898->343
+[gcm]%t982:898->343
+[gcm]%t987:898->343
+[gcm]%t860:836->343
+[gcm]%t859:836->343
+[gcm]%t857:836->343
+[gcm]%t852:836->343
+[gcm]%t850:836->343
+[gcm]%t855:836->343
+[gcm]%t839:836->343
+[gcm]%t838:836->343
+[gcm]%t837:836->343
+[gcm]%t862:836->343
+[gcm]%t977:898->343
+[gcm]%t975:898->343
+[gcm]%t980:898->343
+[gcm]%t964:898->343
+[gcm]%t963:898->343
+[gcm]%t962:898->343
+[gcm]%t1052:1028->343
+[gcm]%t1051:1028->343
+[gcm]%t1049:1028->343
+[gcm]%t1044:1028->343
+[gcm]%t1042:1028->343
+[gcm]%t1047:1028->343
+[gcm]%t1031:1028->343
+[gcm]%t1030:1028->343
+[gcm]%t1029:1028->343
+[gcm]%t1054:1028->343
+[gcm]%t922:898->343
+[gcm]%t921:898->343
+[gcm]%t919:898->343
+[gcm]%t914:898->343
+[gcm]%t912:898->343
+[gcm]%t917:898->343
+[gcm]%t901:898->343
+[gcm]%t900:898->343
+[gcm]%t899:898->343
+[gcm]%t924:898->343
+[gcm]%t1019:1028->1028
+[gcm]%t144:366->343
+[gcm]%t952:898->898
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 4 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 3 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 5 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 12 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t26
+base:10
 step:1
-base:0
-exit_var:%t9
-base:0
-step:%t10
+step_op:1
+mod:null
+induction:%t25
+base:%t21
+step:%t23
+step_op:0
+mod:0x4000000000000000
+bb171:
+bb168:
+bb164:
+bb159:
+bb167:bb168 bb171 
+bb163:bb164 bb167 
+bb153:bb159 bb163 
+Reverse_Edge from 168 to 167
+bb[167] in loop
+bb[168] in loop
+bb[171] in loop
+compute finish
+loop[167] depth is 1
+loop[168] depth is 1
+loop[171] depth is 1
+loop End
+[gcm]bb171:depth 1
+[gcm]bb167:depth 1
+[gcm]bb163:depth 0
+[gcm]bb168:depth 1
+[gcm]bb164:depth 0
+[gcm]bb159:depth 0
+[gcm]bb153:depth 0
+[gcm]%t5:159->159
+[gcm]%t9:171->167
+[gcm]%t7:167->167
+[gcm]%t11:168->167
+[gcm]%t10:168->167
+bb194:
+bb186:
+bb197:bb194 
+bb181:bb186 bb197 
+Reverse_Edge from 197 to 197
+bb[197] in loop
+compute finish
+loop[197] depth is 1
+loop End
+[gcm]bb197:depth 1
+[gcm]bb194:depth 0
+[gcm]bb186:depth 0
+[gcm]bb181:depth 0
+[gcm]%t15:186->186
+[gcm]%t26:197->197
+[gcm]%t25:197->197
+[gcm]%t24:197->197
+[gcm]%t23:197->197
+bb263:
+bb257:
+bb454:
+bb485:bb508 
+bb508:
+bb431:bb454 
+bb239:bb425 bb431 
+bb479:bb386 bb389 
+bb389:
+bb425:bb479 bb485 
+bb386:bb257 bb263 
+[gcm]bb485:depth 0
+[gcm]bb479:depth 0
+[gcm]bb454:depth 0
+[gcm]bb508:depth 0
+[gcm]bb431:depth 0
+[gcm]bb425:depth 0
+[gcm]bb389:depth 0
+[gcm]bb386:depth 0
+[gcm]bb263:depth 0
+[gcm]bb257:depth 0
+[gcm]bb239:depth 0
+[gcm]%t473:454->454
+[gcm]%t472:454->454
+[gcm]%t470:454->454
+[gcm]%t462:454->454
+[gcm]%t458:454->454
+[gcm]%t460:454->454
+[gcm]%t468:454->454
+[gcm]%t74:257->257
+[gcm]%t478:454->454
+[gcm]%t69:263->479
+[gcm]%t68:263->479
+[gcm]%t390:389->479
+[gcm]%t61:479->479
+[gcm]%t60:479->479
+[gcm]%t527:508->508
+[gcm]%t526:508->508
+[gcm]%t524:508->508
+[gcm]%t516:508->508
+[gcm]%t512:508->508
+[gcm]%t514:508->508
+[gcm]%t522:508->508
+[gcm]%t532:508->508
+bb296:
+bb293:
+bb291:bb293 bb296 
+[gcm]bb296:depth 0
+[gcm]bb293:depth 0
+[gcm]bb291:depth 0
+[gcm]%t80:296->296
+[gcm]%t93:293->293
+[gcm]%t90:293->293
+[gcm]%t87:293->293
+[gcm]%t86:293->293
+[gcm]%t89:293->293
+[gcm]%t92:293->293
+bb312:
+bb309:
+bb307:bb309 bb312 
+[gcm]bb312:depth 0
+[gcm]bb309:depth 0
+[gcm]bb307:depth 0
+[gcm]%t97:312->312
+[gcm]%t103:309->309
+bb337:bb340 bb343 
+bb392:bb350 bb355 bb836 
+bb356:bb366 bb372 bb1028 
+bb359:bb898 
+bb355:
+bb372:
+bb343:bb392 bb395 
+bb340:
+bb1028:
+bb350:bb356 bb359 bb365 
+bb395:
+bb836:
+bb898:
+bb365:
+bb366:
+Reverse_Edge from 366 to 343
+bb[395] in loop
+bb[392] in loop
+bb[343] in loop
+bb[350] in loop
+bb[355] in loop
+bb[356] in loop
+bb[359] in loop
+bb[365] in loop
+bb[366] in loop
+bb[372] in loop
+bb[836] in loop
+bb[898] in loop
+bb[1028] in loop
+compute finish
+loop[395] depth is 1
+loop[392] depth is 1
+loop[343] depth is 1
+loop[350] depth is 1
+loop[355] depth is 1
+loop[356] depth is 1
+loop[359] depth is 1
+loop[365] depth is 1
+loop[366] depth is 1
+loop[372] depth is 1
+loop[836] depth is 1
+loop[898] depth is 1
+loop[1028] depth is 1
+loop End
+[gcm]bb337:depth 0
+[gcm]bb340:depth 0
+[gcm]bb343:depth 1
+[gcm]bb355:depth 1
+[gcm]bb356:depth 1
+[gcm]bb359:depth 1
+[gcm]bb372:depth 1
+[gcm]bb898:depth 1
+[gcm]bb365:depth 1
+[gcm]bb366:depth 1
+[gcm]bb392:depth 1
+[gcm]bb1028:depth 1
+[gcm]bb350:depth 1
+[gcm]bb395:depth 1
+[gcm]bb836:depth 1
+[gcm]%t396:395->343
+[gcm]%t985:898->343
+[gcm]%t984:898->343
+[gcm]%t982:898->343
+[gcm]%t987:898->343
+[gcm]%t860:836->343
+[gcm]%t859:836->343
+[gcm]%t857:836->343
+[gcm]%t852:836->343
+[gcm]%t850:836->343
+[gcm]%t855:836->343
+[gcm]%t839:836->343
+[gcm]%t838:836->343
+[gcm]%t837:836->343
+[gcm]%t862:836->343
+[gcm]%t977:898->343
+[gcm]%t975:898->343
+[gcm]%t980:898->343
+[gcm]%t964:898->343
+[gcm]%t963:898->343
+[gcm]%t962:898->343
+[gcm]%t1052:1028->343
+[gcm]%t1051:1028->343
+[gcm]%t1049:1028->343
+[gcm]%t1044:1028->343
+[gcm]%t1042:1028->343
+[gcm]%t1047:1028->343
+[gcm]%t1031:1028->343
+[gcm]%t1030:1028->343
+[gcm]%t1029:1028->343
+[gcm]%t1054:1028->343
+[gcm]%t922:898->343
+[gcm]%t921:898->343
+[gcm]%t919:898->343
+[gcm]%t914:898->343
+[gcm]%t912:898->343
+[gcm]%t917:898->343
+[gcm]%t901:898->343
+[gcm]%t900:898->343
+[gcm]%t899:898->343
+[gcm]%t924:898->343
+[gcm]%t1019:1028->1028
+[gcm]%t144:366->343
+[gcm]%t952:898->898
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 4 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 3 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 5 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 12 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t26
+base:10
+step:1
+step_op:1
+mod:null
+induction:%t25
+base:%t21
+step:%t23
+step_op:0
+mod:0x4000000000000000
+bb171:
+bb168:
+bb164:
+bb159:
+bb167:bb168 bb171 
+bb163:bb164 bb167 
+bb153:bb159 bb163 
+Reverse_Edge from 168 to 167
+bb[167] in loop
+bb[168] in loop
+bb[171] in loop
+compute finish
+loop[167] depth is 1
+loop[168] depth is 1
+loop[171] depth is 1
+loop End
+[gcm]bb171:depth 1
+[gcm]bb167:depth 1
+[gcm]bb163:depth 0
+[gcm]bb168:depth 1
+[gcm]bb164:depth 0
+[gcm]bb159:depth 0
+[gcm]bb153:depth 0
+[gcm]%t5:159->159
+[gcm]%t9:171->167
+[gcm]%t7:167->167
+[gcm]%t11:168->167
+[gcm]%t10:168->167
+bb194:
+bb186:
+bb197:bb194 
+bb181:bb186 bb197 
+Reverse_Edge from 197 to 197
+bb[197] in loop
+compute finish
+loop[197] depth is 1
+loop End
+[gcm]bb197:depth 1
+[gcm]bb194:depth 0
+[gcm]bb186:depth 0
+[gcm]bb181:depth 0
+[gcm]%t15:186->186
+[gcm]%t26:197->197
+[gcm]%t25:197->197
+[gcm]%t24:197->197
+[gcm]%t23:197->197
+bb263:
+bb257:
+bb454:
+bb485:bb508 
+bb508:
+bb431:bb454 
+bb239:bb425 bb431 
+bb479:bb386 bb389 
+bb389:
+bb425:bb479 bb485 
+bb386:bb257 bb263 
+[gcm]bb485:depth 0
+[gcm]bb479:depth 0
+[gcm]bb454:depth 0
+[gcm]bb508:depth 0
+[gcm]bb431:depth 0
+[gcm]bb425:depth 0
+[gcm]bb389:depth 0
+[gcm]bb386:depth 0
+[gcm]bb263:depth 0
+[gcm]bb257:depth 0
+[gcm]bb239:depth 0
+[gcm]%t473:454->454
+[gcm]%t472:454->454
+[gcm]%t470:454->454
+[gcm]%t462:454->454
+[gcm]%t458:454->454
+[gcm]%t460:454->454
+[gcm]%t468:454->454
+[gcm]%t74:257->257
+[gcm]%t478:454->454
+[gcm]%t69:263->479
+[gcm]%t68:263->479
+[gcm]%t390:389->479
+[gcm]%t61:479->479
+[gcm]%t60:479->479
+[gcm]%t527:508->508
+[gcm]%t526:508->508
+[gcm]%t524:508->508
+[gcm]%t516:508->508
+[gcm]%t512:508->508
+[gcm]%t514:508->508
+[gcm]%t522:508->508
+[gcm]%t532:508->508
+bb296:
+bb293:
+bb291:bb293 bb296 
+[gcm]bb296:depth 0
+[gcm]bb293:depth 0
+[gcm]bb291:depth 0
+[gcm]%t80:296->296
+[gcm]%t93:293->293
+[gcm]%t90:293->293
+[gcm]%t87:293->293
+[gcm]%t86:293->293
+[gcm]%t89:293->293
+[gcm]%t92:293->293
+bb312:
+bb309:
+bb307:bb309 bb312 
+[gcm]bb312:depth 0
+[gcm]bb309:depth 0
+[gcm]bb307:depth 0
+[gcm]%t97:312->312
+[gcm]%t103:309->309
+bb337:bb340 bb343 
+bb392:bb350 bb355 bb836 
+bb356:bb366 bb372 bb1028 
+bb359:bb898 
+bb355:
+bb372:
+bb343:bb392 bb395 
+bb340:
+bb1028:
+bb350:bb356 bb359 bb365 
+bb395:
+bb836:
+bb898:
+bb365:
+bb366:
+Reverse_Edge from 366 to 343
+bb[395] in loop
+bb[392] in loop
+bb[343] in loop
+bb[350] in loop
+bb[355] in loop
+bb[356] in loop
+bb[359] in loop
+bb[365] in loop
+bb[366] in loop
+bb[372] in loop
+bb[836] in loop
+bb[898] in loop
+bb[1028] in loop
+compute finish
+loop[395] depth is 1
+loop[392] depth is 1
+loop[343] depth is 1
+loop[350] depth is 1
+loop[355] depth is 1
+loop[356] depth is 1
+loop[359] depth is 1
+loop[365] depth is 1
+loop[366] depth is 1
+loop[372] depth is 1
+loop[836] depth is 1
+loop[898] depth is 1
+loop[1028] depth is 1
+loop End
+[gcm]bb337:depth 0
+[gcm]bb340:depth 0
+[gcm]bb343:depth 1
+[gcm]bb355:depth 1
+[gcm]bb356:depth 1
+[gcm]bb359:depth 1
+[gcm]bb372:depth 1
+[gcm]bb898:depth 1
+[gcm]bb365:depth 1
+[gcm]bb366:depth 1
+[gcm]bb392:depth 1
+[gcm]bb1028:depth 1
+[gcm]bb350:depth 1
+[gcm]bb395:depth 1
+[gcm]bb836:depth 1
+[gcm]%t396:395->343
+[gcm]%t985:898->343
+[gcm]%t984:898->343
+[gcm]%t982:898->343
+[gcm]%t987:898->343
+[gcm]%t860:836->343
+[gcm]%t859:836->343
+[gcm]%t857:836->343
+[gcm]%t852:836->343
+[gcm]%t850:836->343
+[gcm]%t855:836->343
+[gcm]%t839:836->343
+[gcm]%t838:836->343
+[gcm]%t837:836->343
+[gcm]%t862:836->343
+[gcm]%t977:898->343
+[gcm]%t975:898->343
+[gcm]%t980:898->343
+[gcm]%t964:898->343
+[gcm]%t963:898->343
+[gcm]%t962:898->343
+[gcm]%t1052:1028->343
+[gcm]%t1051:1028->343
+[gcm]%t1049:1028->343
+[gcm]%t1044:1028->343
+[gcm]%t1042:1028->343
+[gcm]%t1047:1028->343
+[gcm]%t1031:1028->343
+[gcm]%t1030:1028->343
+[gcm]%t1029:1028->343
+[gcm]%t1054:1028->343
+[gcm]%t922:898->343
+[gcm]%t921:898->343
+[gcm]%t919:898->343
+[gcm]%t914:898->343
+[gcm]%t912:898->343
+[gcm]%t917:898->343
+[gcm]%t901:898->343
+[gcm]%t900:898->343
+[gcm]%t899:898->343
+[gcm]%t924:898->343
+[gcm]%t1019:1028->1028
+[gcm]%t144:366->343
+[gcm]%t952:898->898
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 4 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 3 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 5 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 12 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t26
+base:10
+step:1
+step_op:1
+mod:null
+induction:%t25
+base:%t21
+step:%t23
+step_op:0
+mod:0x4000000000000000
 opt ir generated
 declare void @putch(i32)
-declare void @putint(i32)
-declare void @_sysy_stoptime(i32)
-declare void @_sysy_starttime(i32)
+declare void @putfloat(float)
+declare float @getfloat()
 declare i32 @getint()
+define dso_local float @my_pow(float %a, i32 %n) #0{
+B153:                               	; succs = %B159, %B163
+  %t3 = sub i32 0, %n
+  %t2 = icmp slt i32 %n, 0
+  br i1 %t2, label %B159, label %B163
+B159:                               	; preds = %B153
+  %t4 = call float @my_pow(float %a, i32 %t3)
+  %t5 = fdiv float 0x3FF0000000000000, %t4
+  ret float %t5
+B163:                               	; preds = %B153                               	; succs = %B164, %B167
+  %t6 = icmp ne i32 %n, 0
+  br i1 %t6, label %B167, label %B164
+B164:                               	; preds = %B163, %B168
+  %t380 = phi float [ 0x3FF0000000000000 , %B163 ], [ %t381 , %B168 ]
+  ret float %t380
+B167:                               	; preds = %B163, %B168                               	; succs = %B168, %B171
+  %t377 = phi float [ %a , %B163 ], [ %t10 , %B168 ]
+  %t378 = phi i32 [ %n , %B163 ], [ %t11 , %B168 ]
+  %t379 = phi float [ 0x3FF0000000000000 , %B163 ], [ %t381 , %B168 ]
+  %t7 = srem i32 %t378, 2
+  %t8 = icmp ne i32 %t7, 0
+  br i1 %t8, label %B171, label %B168
+B168:                               	; preds = %B167, %B171                               	; succs = %B164, %B167
+  %t381 = phi float [ %t379 , %B167 ], [ %t9 , %B171 ]
+  %t10 = fmul float %t377, %t377
+  %t11 = sdiv i32 %t378, 2
+  %t177 = icmp ne i32 %t11, 0
+  br i1 %t177, label %B167, label %B164
+B171:                               	; preds = %B167                               	; succs = %B168
+  %t9 = fmul float %t379, %t377
+  br label %B168
+}
+define dso_local float @my_sqrt(float %x) #0{
+B181:                               	; succs = %B186, %B197
+  %t13 = fdiv float %x, 0x4059000000000000
+  %t16 = fdiv float %x, 0x4020000000000000
+  %t17 = fadd float %t16, 0x3FE0000000000000
+  %t18 = fmul float 0x4000000000000000, %x
+  %t19 = fadd float 0x4010000000000000, %x
+  %t20 = fdiv float %t18, %t19
+  %t21 = fadd float %t17, %t20
+  %t12 = fcmp ogt float %x, 0x4059000000000000
+  br i1 %t12, label %B186, label %B197
+B186:                               	; preds = %B181
+  %t14 = call float @my_sqrt(float %t13)
+  %t15 = fmul float 0x4024000000000000, %t14
+  ret float %t15
+B197:                               	; preds = %B181, %B197                               	; succs = %B194, %B197
+  %t382 = phi float [ %t21 , %B181 ], [ %t25 , %B197 ]
+  %t383 = phi i32 [ 10 , %B181 ], [ %t26 , %B197 ]
+  %t23 = fdiv float %x, %t382
+  %t24 = fadd float %t382, %t23
+  %t25 = fdiv float %t24, 0x4000000000000000
+  %t26 = sub i32 %t383, 1
+  %t202 = icmp ne i32 %t26, 0
+  br i1 %t202, label %B197, label %B194
+B194:                               	; preds = %B197
+  ret float %t25
+}
+define dso_local float @asr5(float %a, float %b, float %eps, float %A, i32 %flag) #0{
+B239:                               	; succs = %B425, %B431
+  %t55 = fsub float %b, %a
+  %t56 = fdiv float %t55, 0x4000000000000000
+  %t57 = fadd float %a, %t56
+  %t427 = fsub float %t57, %a
+  %t428 = fdiv float %t427, 0x4000000000000000
+  %t429 = fadd float %a, %t428
+  %t70 = fdiv float %eps, 0x4000000000000000
+  %t63 = fmul float 0x402E000000000000, %eps
+  %t438 = fdiv float 0x3FF0000000000000, %a
+  %t445 = fdiv float 0x3FF0000000000000, %t429
+  %t440 = fmul float 0x4010000000000000, %t445
+  %t442 = fadd float %t438, %t440
+  %t452 = fdiv float 0x3FF0000000000000, %t57
+  %t447 = fadd float %t442, %t452
+  %t449 = fmul float %t447, %t427
+  %t450 = fdiv float %t449, 0x4018000000000000
+  %t455 = fmul float %a, %a
+  %t456 = fsub float 0x3FF0000000000000, %t455
+  %t465 = fmul float %t429, %t429
+  %t466 = fsub float 0x3FF0000000000000, %t465
+  %t475 = fmul float %t57, %t57
+  %t476 = fsub float 0x3FF0000000000000, %t475
+  %t481 = fsub float %b, %t57
+  %t482 = fdiv float %t481, 0x4000000000000000
+  %t483 = fadd float %t57, %t482
+  %t499 = fdiv float 0x3FF0000000000000, %t483
+  %t494 = fmul float 0x4010000000000000, %t499
+  %t496 = fadd float %t452, %t494
+  %t506 = fdiv float 0x3FF0000000000000, %b
+  %t501 = fadd float %t496, %t506
+  %t503 = fmul float %t501, %t481
+  %t504 = fdiv float %t503, 0x4018000000000000
+  %t519 = fmul float %t483, %t483
+  %t520 = fsub float 0x3FF0000000000000, %t519
+  %t529 = fmul float %b, %b
+  %t530 = fsub float 0x3FF0000000000000, %t529
+  %t430 = icmp eq i32 %flag, 1
+  br i1 %t430, label %B425, label %B431
+B425:                               	; preds = %B454, %B239, %B431                               	; succs = %B479, %B485
+  %t58 = phi float [ %t473 , %B454 ], [ %t450 , %B239 ], [ 0x0000000000000000 , %B431 ]
+  %t484 = icmp eq i32 %flag, 1
+  br i1 %t484, label %B479, label %B485
+B431:                               	; preds = %B239                               	; succs = %B454, %B425
+  %t432 = icmp eq i32 %flag, 2
+  br i1 %t432, label %B454, label %B425
+B479:                               	; preds = %B425, %B485, %B508                               	; succs = %B389, %B386
+  %t59 = phi float [ %t504 , %B425 ], [ 0x0000000000000000 , %B485 ], [ %t527 , %B508 ]
+  %t60 = fadd float %t58, %t59
+  %t61 = fsub float %t60, %A
+  %t388 = fcmp ogt float %t61, 0x0000000000000000
+  br i1 %t388, label %B386, label %B389
+B485:                               	; preds = %B425                               	; succs = %B479, %B508
+  %t486 = icmp eq i32 %flag, 2
+  br i1 %t486, label %B508, label %B479
+B454:                               	; preds = %B431                               	; succs = %B425
+  %t457 = call float @my_sqrt(float %t456)
+  %t458 = fdiv float 0x3FF0000000000000, %t457
+  %t467 = call float @my_sqrt(float %t466)
+  %t468 = fdiv float 0x3FF0000000000000, %t467
+  %t460 = fmul float 0x4010000000000000, %t468
+  %t462 = fadd float %t458, %t460
+  %t477 = call float @my_sqrt(float %t476)
+  %t478 = fdiv float 0x3FF0000000000000, %t477
+  %t470 = fadd float %t462, %t478
+  %t472 = fmul float %t470, %t427
+  %t473 = fdiv float %t472, 0x4018000000000000
+  br label %B425
+B389:                               	; preds = %B479                               	; succs = %B386
+  %t390 = fsub float 0x0000000000000000, %t61
+  br label %B386
+B386:                               	; preds = %B389, %B479                               	; succs = %B257, %B263
+  %t62 = phi float [ %t390 , %B389 ], [ %t61 , %B479 ]
+  %t64 = fcmp ole float %t62, %t63
+  br i1 %t64, label %B263, label %B257
+B508:                               	; preds = %B485                               	; succs = %B479
+  %t511 = call float @my_sqrt(float %t476)
+  %t512 = fdiv float 0x3FF0000000000000, %t511
+  %t521 = call float @my_sqrt(float %t520)
+  %t522 = fdiv float 0x3FF0000000000000, %t521
+  %t514 = fmul float 0x4010000000000000, %t522
+  %t516 = fadd float %t512, %t514
+  %t531 = call float @my_sqrt(float %t530)
+  %t532 = fdiv float 0x3FF0000000000000, %t531
+  %t524 = fadd float %t516, %t532
+  %t526 = fmul float %t524, %t481
+  %t527 = fdiv float %t526, 0x4018000000000000
+  br label %B479
+B257:                               	; preds = %B386
+  %t71 = call float @asr5(float %a, float %t57, float %t70, float %t58, i32 %flag)
+  %t73 = call float @asr5(float %t57, float %b, float %t70, float %t59, i32 %flag)
+  %t74 = fadd float %t71, %t73
+  ret float %t74
+B263:                               	; preds = %B386
+  %t68 = fdiv float %t61, 0x402E000000000000
+  %t69 = fadd float %t60, %t68
+  ret float %t69
+}
+define dso_local float @eee(float %x) #0{
+B291:                               	; succs = %B293, %B296
+  %t81 = fadd float 0x3FF0000000000000, %x
+  %t82 = fmul float %x, %x
+  %t83 = fdiv float %t82, 0x4000000000000000
+  %t84 = fadd float %t81, %t83
+  %t78 = fdiv float %x, 0x4000000000000000
+  %t77 = fcmp ogt float %x, 0x3F50624DE0000000
+  br i1 %t77, label %B296, label %B293
+B293:                               	; preds = %B291
+  %t85 = call float @my_pow(float %x, i32 3)
+  %t86 = fdiv float %t85, 0x4018000000000000
+  %t87 = fadd float %t84, %t86
+  %t88 = call float @my_pow(float %x, i32 4)
+  %t89 = fdiv float %t88, 0x4038000000000000
+  %t90 = fadd float %t87, %t89
+  %t91 = call float @my_pow(float %x, i32 5)
+  %t92 = fdiv float %t91, 0x405E000000000000
+  %t93 = fadd float %t90, %t92
+  ret float %t93
+B296:                               	; preds = %B291
+  %t79 = call float @eee(float %t78)
+  %t80 = fmul float %t79, %t79
+  ret float %t80
+}
+define dso_local float @my_exp(float %x) #0{
+B307:                               	; succs = %B309, %B312
+  %t98 = fptosi float %x to i32
+  %t99 = sitofp i32 %t98 to float
+  %t100 = fsub float %x, %t99
+  %t95 = fsub float 0x0000000000000000, %x
+  %t94 = fcmp olt float %x, 0x0000000000000000
+  br i1 %t94, label %B312, label %B309
+B309:                               	; preds = %B307
+  %t101 = call float @my_pow(float 0x4005BF0A80000000, i32 %t98)
+  %t102 = call float @eee(float %t100)
+  %t103 = fmul float %t101, %t102
+  ret float %t103
+B312:                               	; preds = %B307
+  %t96 = call float @my_exp(float %t95)
+  %t97 = fdiv float 0x3FF0000000000000, %t96
+  ret float %t97
+}
 define dso_local i32 @main() #0{
-B100017:                               	; succs = %B100021, %B100025
-  %t0 = call i32 @getint()
-  call void @_sysy_starttime(i32 100016)
-  %t2 = icmp slt i32 0, %t0
-  br i1 %t2, label %B100025, label %B100021
-B100021:                               	; preds = %B100017, %B100025
-  %t100053 = phi i32 [ 0 , %B100017 ], [ %t9 , %B100025 ]
-  call void @_sysy_stoptime(i32 100032)
-  call void @putint(i32 %t100053)
-  call void @putch(i32 10)
+B337:                               	; succs = %B340, %B343
+  %t111 = call i32 @getint()
+  %t112 = icmp ne i32 %t111, 0
+  br i1 %t112, label %B343, label %B340
+B340:                               	; preds = %B337, %B366
   ret i32 0
-B100025:                               	; preds = %B100017, %B100025                               	; succs = %B100021, %B100025
-  %t100051 = phi i32 [ 0 , %B100017 ], [ %t9 , %B100025 ]
-  %t100052 = phi i32 [ 0 , %B100017 ], [ %t10 , %B100025 ]
-  %t8 = add i32 %t100051, %t100052
-  %t9 = srem i32 %t8, 134209537
-  %t10 = add i32 %t100052, 1
-  %t100045 = icmp slt i32 %t10, %t0
-  br i1 %t100045, label %B100025, label %B100021
+B343:                               	; preds = %B337, %B366                               	; succs = %B395, %B392
+  %t385 = phi i32 [ %t111 , %B337 ], [ %t144 , %B366 ]
+  %t113 = call float @getfloat()
+  %t114 = call float @getfloat()
+  %t394 = fcmp ogt float %t113, 0x0000000000000000
+  br i1 %t394, label %B392, label %B395
+B395:                               	; preds = %B343                               	; succs = %B392
+  %t396 = fsub float 0x0000000000000000, %t113
+  br label %B392
+B392:                               	; preds = %B395, %B343                               	; succs = %B355, %B836
+  %t115 = phi float [ %t396 , %B395 ], [ %t113 , %B343 ]
+  call void @putfloat(float %t115)
+  call void @putch(i32 32)
+  %t118 = call float @my_pow(float %t113, i32 2)
+  call void @putfloat(float %t118)
+  call void @putch(i32 32)
+  %t121 = call float @my_sqrt(float %t113)
+  call void @putfloat(float %t121)
+  call void @putch(i32 32)
+  %t124 = call float @my_exp(float %t113)
+  call void @putfloat(float %t124)
+  call void @putch(i32 32)
+  %t127 = fcmp ogt float %t113, 0x0000000000000000
+  br i1 %t127, label %B836, label %B355
+B355:                               	; preds = %B392                               	; succs = %B350
+  call void @putch(i32 45)
+  br label %B350
+B836:                               	; preds = %B392                               	; succs = %B350
+  %t837 = fsub float %t113, 0x3FF0000000000000
+  %t838 = fdiv float %t837, 0x4000000000000000
+  %t839 = fadd float 0x3FF0000000000000, %t838
+  %t855 = fdiv float 0x3FF0000000000000, %t839
+  %t850 = fmul float 0x4010000000000000, %t855
+  %t852 = fadd float 0x3FF0000000000000, %t850
+  %t862 = fdiv float 0x3FF0000000000000, %t113
+  %t857 = fadd float %t852, %t862
+  %t859 = fmul float %t857, %t837
+  %t860 = fdiv float %t859, 0x4018000000000000
+  %t834 = call float @asr5(float 0x3FF0000000000000, float %t113, float 0x3E45798EE0000000, float %t860, i32 1)
+  call void @putfloat(float %t834)
+  br label %B350
+B350:                               	; preds = %B355, %B836                               	; succs = %B359, %B365
+  call void @putch(i32 32)
+  %t132 = fcmp ogt float %t113, 0x0000000000000000
+  br i1 %t132, label %B359, label %B365
+B359:                               	; preds = %B350                               	; succs = %B365, %B898
+  %t133 = fcmp ogt float %t114, 0x0000000000000000
+  br i1 %t133, label %B898, label %B365
+B365:                               	; preds = %B350, %B359                               	; succs = %B356
+  call void @putch(i32 45)
+  br label %B356
+B898:                               	; preds = %B359                               	; succs = %B356
+  %t899 = fsub float %t114, 0x3FF0000000000000
+  %t900 = fdiv float %t899, 0x4000000000000000
+  %t901 = fadd float 0x3FF0000000000000, %t900
+  %t917 = fdiv float 0x3FF0000000000000, %t901
+  %t912 = fmul float 0x4010000000000000, %t917
+  %t914 = fadd float 0x3FF0000000000000, %t912
+  %t924 = fdiv float 0x3FF0000000000000, %t114
+  %t919 = fadd float %t914, %t924
+  %t921 = fmul float %t919, %t899
+  %t922 = fdiv float %t921, 0x4018000000000000
+  %t896 = call float @asr5(float 0x3FF0000000000000, float %t114, float 0x3E45798EE0000000, float %t922, i32 1)
+  %t962 = fsub float %t113, 0x3FF0000000000000
+  %t963 = fdiv float %t962, 0x4000000000000000
+  %t964 = fadd float 0x3FF0000000000000, %t963
+  %t980 = fdiv float 0x3FF0000000000000, %t964
+  %t975 = fmul float 0x4010000000000000, %t980
+  %t977 = fadd float 0x3FF0000000000000, %t975
+  %t987 = fdiv float 0x3FF0000000000000, %t113
+  %t982 = fadd float %t977, %t987
+  %t984 = fmul float %t982, %t962
+  %t985 = fdiv float %t984, 0x4018000000000000
+  %t959 = call float @asr5(float 0x3FF0000000000000, float %t113, float 0x3E45798EE0000000, float %t985, i32 1)
+  %t952 = fdiv float %t896, %t959
+  call void @putfloat(float %t952)
+  br label %B356
+B356:                               	; preds = %B365, %B898                               	; succs = %B372, %B1028
+  call void @putch(i32 32)
+  %t139 = fcmp ogt float %t113, 0x0000000000000000
+  br i1 %t139, label %B1028, label %B372
+B372:                               	; preds = %B356                               	; succs = %B366
+  call void @putch(i32 45)
+  br label %B366
+B1028:                               	; preds = %B356                               	; succs = %B366
+  %t1029 = fsub float %t113, 0x3FF0000000000000
+  %t1030 = fdiv float %t1029, 0x4000000000000000
+  %t1031 = fadd float 0x3FF0000000000000, %t1030
+  %t1047 = fdiv float 0x3FF0000000000000, %t1031
+  %t1042 = fmul float 0x4010000000000000, %t1047
+  %t1044 = fadd float 0x3FF0000000000000, %t1042
+  %t1054 = fdiv float 0x3FF0000000000000, %t113
+  %t1049 = fadd float %t1044, %t1054
+  %t1051 = fmul float %t1049, %t1029
+  %t1052 = fdiv float %t1051, 0x4018000000000000
+  %t1026 = call float @asr5(float 0x3FF0000000000000, float %t113, float 0x3E45798EE0000000, float %t1052, i32 1)
+  %t1019 = fmul float %t114, %t1026
+  %t1021 = call float @my_exp(float %t1019)
+  call void @putfloat(float %t1021)
+  br label %B366
+B366:                               	; preds = %B372, %B1028                               	; succs = %B340, %B343
+  call void @putch(i32 10)
+  %t144 = sub i32 %t385, 1
+  %t374 = icmp ne i32 %t144, 0
+  br i1 %t374, label %B343, label %B340
 }
 opt ir output ok
+implicit type conversion: i32 -> i1
+implicit type conversion: i32 -> i1
+implicit type conversion: i32 -> i1
+implicit type conversion: float -> i32
+implicit type conversion: i32 -> float
+implicit type conversion: i32 -> i1
 ast built
 ir generated
-bb100029:
-bb100021:
-bb100025:bb100032 
-bb100032:bb100029 
-bb100017:bb100021 bb100025 
-Reverse_Edge from 100032 to 100032
-Reverse_Edge from 100029 to 100025
-bb[100025] in loop
-bb[100029] in loop
-bb[100032] in loop
+bb171:
+bb168:
+bb164:
+bb159:
+bb167:bb168 bb171 
+bb163:bb164 bb167 
+bb153:bb159 bb163 
+Reverse_Edge from 168 to 167
+bb[167] in loop
+bb[168] in loop
+bb[171] in loop
 compute finish
-loop[100025] depth is 1
-loop[100029] depth is 1
-loop[100032] depth is 1
+loop[167] depth is 1
+loop[168] depth is 1
+loop[171] depth is 1
 loop End
-bb[100032] in loop
+[gcm]bb171:depth 1
+[gcm]bb167:depth 1
+[gcm]bb163:depth 0
+[gcm]bb168:depth 1
+[gcm]bb164:depth 0
+[gcm]bb159:depth 0
+[gcm]bb153:depth 0
+[gcm]%t5:159->159
+[gcm]%t9:171->167
+[gcm]%t7:167->167
+[gcm]%t11:168->167
+[gcm]%t10:168->167
+bb194:
+bb186:
+bb183:bb197 
+bb197:bb194 
+bb181:bb183 bb186 
+Reverse_Edge from 197 to 197
+bb[197] in loop
 compute finish
-loop[100032] depth is 2
+loop[197] depth is 1
 loop End
-[gcm]bb100029:depth 1
-[gcm]bb100032:depth 2
-[gcm]bb100025:depth 1
-[gcm]bb100021:depth 0
-[gcm]bb100017:depth 0
-[GCM]: 0 instructions moved, 0 of them are LOAD
+[gcm]bb197:depth 1
+[gcm]bb194:depth 0
+[gcm]bb186:depth 0
+[gcm]bb183:depth 0
+[gcm]bb181:depth 0
+[gcm]%t15:186->186
+[gcm]%t26:197->197
+[gcm]%t25:197->197
+[gcm]%t24:197->197
+[gcm]%t23:197->197
+bb454:
+bb257:
+bb491:
+bb263:
+bb437:
+bb485:bb508 
+bb508:
+bb431:bb454 
+bb239:bb425 bb431 bb437 
+bb479:bb386 bb389 
+bb389:
+bb425:bb479 bb485 bb491 
+bb386:bb257 bb263 
+[gcm]bb485:depth 0
+[gcm]bb479:depth 0
+[gcm]bb454:depth 0
+[gcm]bb508:depth 0
+[gcm]bb431:depth 0
+[gcm]bb425:depth 0
+[gcm]bb389:depth 0
+[gcm]bb386:depth 0
+[gcm]bb437:depth 0
+[gcm]bb263:depth 0
+[gcm]bb491:depth 0
+[gcm]bb257:depth 0
+[gcm]bb239:depth 0
+[gcm]%t473:454->454
+[gcm]%t472:454->454
+[gcm]%t470:454->454
+[gcm]%t462:454->454
+[gcm]%t458:454->454
+[gcm]%t460:454->454
+[gcm]%t468:454->454
+[gcm]%t74:257->257
+[gcm]%t478:454->454
+[gcm]%t69:263->479
+[gcm]%t68:263->479
+[gcm]%t390:389->479
+[gcm]%t61:479->479
+[gcm]%t60:479->479
+[gcm]%t527:508->508
+[gcm]%t526:508->508
+[gcm]%t524:508->508
+[gcm]%t516:508->508
+[gcm]%t512:508->508
+[gcm]%t514:508->508
+[gcm]%t522:508->508
+[gcm]%t532:508->508
+bb296:
+bb293:
+bb291:bb293 bb296 
+[gcm]bb296:depth 0
+[gcm]bb293:depth 0
+[gcm]bb291:depth 0
+[gcm]%t80:296->296
+[gcm]%t93:293->293
+[gcm]%t90:293->293
+[gcm]%t87:293->293
+[gcm]%t86:293->293
+[gcm]%t89:293->293
+[gcm]%t92:293->293
+bb312:
+bb309:
+bb307:bb309 bb312 
+[gcm]bb312:depth 0
+[gcm]bb309:depth 0
+[gcm]bb307:depth 0
+[gcm]%t97:312->312
+[gcm]%t103:309->309
+bb337:bb340 bb343 
+bb392:bb350 bb355 bb836 
+bb356:bb366 bb372 bb1028 
+bb359:bb898 
+bb355:
+bb372:
+bb343:bb392 bb395 
+bb340:
+bb1028:
+bb350:bb356 bb359 bb365 
+bb395:
+bb836:
+bb898:
+bb365:
+bb366:
+Reverse_Edge from 366 to 343
+bb[395] in loop
+bb[392] in loop
+bb[343] in loop
+bb[350] in loop
+bb[355] in loop
+bb[356] in loop
+bb[359] in loop
+bb[365] in loop
+bb[366] in loop
+bb[372] in loop
+bb[836] in loop
+bb[898] in loop
+bb[1028] in loop
+compute finish
+loop[395] depth is 1
+loop[392] depth is 1
+loop[343] depth is 1
+loop[350] depth is 1
+loop[355] depth is 1
+loop[356] depth is 1
+loop[359] depth is 1
+loop[365] depth is 1
+loop[366] depth is 1
+loop[372] depth is 1
+loop[836] depth is 1
+loop[898] depth is 1
+loop[1028] depth is 1
+loop End
+[gcm]bb337:depth 0
+[gcm]bb340:depth 0
+[gcm]bb343:depth 1
+[gcm]bb355:depth 1
+[gcm]bb356:depth 1
+[gcm]bb359:depth 1
+[gcm]bb372:depth 1
+[gcm]bb898:depth 1
+[gcm]bb365:depth 1
+[gcm]bb366:depth 1
+[gcm]bb392:depth 1
+[gcm]bb1028:depth 1
+[gcm]bb350:depth 1
+[gcm]bb395:depth 1
+[gcm]bb836:depth 1
+[gcm]%t396:395->343
+[gcm]%t985:898->343
+[gcm]%t984:898->343
+[gcm]%t982:898->343
+[gcm]%t987:898->343
+[gcm]%t860:836->343
+[gcm]%t859:836->343
+[gcm]%t857:836->343
+[gcm]%t852:836->343
+[gcm]%t850:836->343
+[gcm]%t855:836->343
+[gcm]%t839:836->343
+[gcm]%t838:836->343
+[gcm]%t837:836->343
+[gcm]%t862:836->343
+[gcm]%t977:898->343
+[gcm]%t975:898->343
+[gcm]%t980:898->343
+[gcm]%t964:898->343
+[gcm]%t963:898->343
+[gcm]%t962:898->343
+[gcm]%t1052:1028->343
+[gcm]%t1051:1028->343
+[gcm]%t1049:1028->343
+[gcm]%t1044:1028->343
+[gcm]%t1042:1028->343
+[gcm]%t1047:1028->343
+[gcm]%t1031:1028->343
+[gcm]%t1030:1028->343
+[gcm]%t1029:1028->343
+[gcm]%t1054:1028->343
+[gcm]%t922:898->343
+[gcm]%t921:898->343
+[gcm]%t919:898->343
+[gcm]%t914:898->343
+[gcm]%t912:898->343
+[gcm]%t917:898->343
+[gcm]%t901:898->343
+[gcm]%t900:898->343
+[gcm]%t899:898->343
+[gcm]%t924:898->343
+[gcm]%t1019:1028->1028
+[gcm]%t144:366->343
+[gcm]%t952:898->898
+[GCM]: 50 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 4 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
 [GVNPRE]:build antic iterate over 3 times
 [GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
 [GVNPRE]:eliminate 0 instructions
 [GVNPRE]:done.
-find induction:
-induction:%t6
-base:0
-step:1
-step_op:0
-mod:null
-induction:%t5
-base:0
-step:%t100052
-step_op:0
-mod:null
-rewrite:
-body:100032
-ctrl_val:%t6
-bound:60
-step:1
-base:0
-exit_var:%t5
-base:0
-step:%t100052
-bb100025:
-bb100021:
-bb100017:bb100021 bb100025 
-Reverse_Edge from 100025 to 100025
-bb[100025] in loop
-compute finish
-loop[100025] depth is 1
-loop End
-[gcm]bb100025:depth 1
-[gcm]bb100021:depth 0
-[gcm]bb100017:depth 0
-[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 5 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 3 instructions
+[GVNPRE]:done.
 [GVNPRE]:build antic iterate over 2 times
 [GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
 [GVNPRE]:eliminate 0 instructions
 [GVNPRE]:done.
-find induction:
-induction:%t10
-base:0
-step:1
-step_op:0
-mod:null
-induction:%t9
-base:0
-step:%t100052
-step_op:0
-mod:134209537
-rewrite:
-body:100025
-ctrl_val:%t10
-bound:%t0
-step:1
-base:0
-exit_var:%t9
-base:0
-step:%t10
-bb100025:
-bb100021:
-bb100017:bb100021 bb100025 
-Reverse_Edge from 100025 to 100025
-bb[100025] in loop
-compute finish
-loop[100025] depth is 1
-loop End
-[gcm]bb100025:depth 1
-[gcm]bb100021:depth 0
-[gcm]bb100017:depth 0
-[GCM]: 0 instructions moved, 0 of them are LOAD
 [GVNPRE]:build antic iterate over 2 times
 [GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
 [GVNPRE]:eliminate 0 instructions
 [GVNPRE]:done.
-find induction:
-induction:%t10
-base:0
-step:1
-step_op:0
-mod:null
-induction:%t9
-base:0
-step:%t100052
-step_op:0
-mod:134209537
-rewrite:
-body:100025
-ctrl_val:%t10
-bound:%t0
-step:1
-base:0
-exit_var:%t9
-base:0
-step:%t10
-bb100025:
-bb100021:
-bb100017:bb100021 bb100025 
-Reverse_Edge from 100025 to 100025
-bb[100025] in loop
-compute finish
-loop[100025] depth is 1
-loop End
-[gcm]bb100025:depth 1
-[gcm]bb100021:depth 0
-[gcm]bb100017:depth 0
-[GCM]: 0 instructions moved, 0 of them are LOAD
-[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:build antic iterate over 12 times
 [GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
 [GVNPRE]:eliminate 0 instructions
 [GVNPRE]:done.
 find induction:
-induction:%t10
-base:0
+induction:%t26
+base:10
 step:1
-step_op:0
+step_op:1
 mod:null
-induction:%t9
-base:0
-step:%t100052
+induction:%t25
+base:%t21
+step:%t23
 step_op:0
-mod:134209537
-rewrite:
-body:100025
-ctrl_val:%t10
-bound:%t0
+mod:0x4000000000000000
+bb171:
+bb168:
+bb164:
+bb159:
+bb167:bb168 bb171 
+bb163:bb164 bb167 
+bb153:bb159 bb163 
+Reverse_Edge from 168 to 167
+bb[167] in loop
+bb[168] in loop
+bb[171] in loop
+compute finish
+loop[167] depth is 1
+loop[168] depth is 1
+loop[171] depth is 1
+loop End
+[gcm]bb171:depth 1
+[gcm]bb167:depth 1
+[gcm]bb163:depth 0
+[gcm]bb168:depth 1
+[gcm]bb164:depth 0
+[gcm]bb159:depth 0
+[gcm]bb153:depth 0
+[gcm]%t5:159->159
+[gcm]%t9:171->167
+[gcm]%t7:167->167
+[gcm]%t11:168->167
+[gcm]%t10:168->167
+bb194:
+bb186:
+bb197:bb194 
+bb181:bb186 bb197 
+Reverse_Edge from 197 to 197
+bb[197] in loop
+compute finish
+loop[197] depth is 1
+loop End
+[gcm]bb197:depth 1
+[gcm]bb194:depth 0
+[gcm]bb186:depth 0
+[gcm]bb181:depth 0
+[gcm]%t15:186->186
+[gcm]%t26:197->197
+[gcm]%t25:197->197
+[gcm]%t24:197->197
+[gcm]%t23:197->197
+bb263:
+bb257:
+bb454:
+bb485:bb508 
+bb508:
+bb431:bb454 
+bb239:bb425 bb431 
+bb479:bb386 bb389 
+bb389:
+bb425:bb479 bb485 
+bb386:bb257 bb263 
+[gcm]bb485:depth 0
+[gcm]bb479:depth 0
+[gcm]bb454:depth 0
+[gcm]bb508:depth 0
+[gcm]bb431:depth 0
+[gcm]bb425:depth 0
+[gcm]bb389:depth 0
+[gcm]bb386:depth 0
+[gcm]bb263:depth 0
+[gcm]bb257:depth 0
+[gcm]bb239:depth 0
+[gcm]%t473:454->454
+[gcm]%t472:454->454
+[gcm]%t470:454->454
+[gcm]%t462:454->454
+[gcm]%t458:454->454
+[gcm]%t460:454->454
+[gcm]%t468:454->454
+[gcm]%t74:257->257
+[gcm]%t478:454->454
+[gcm]%t69:263->479
+[gcm]%t68:263->479
+[gcm]%t390:389->479
+[gcm]%t61:479->479
+[gcm]%t60:479->479
+[gcm]%t527:508->508
+[gcm]%t526:508->508
+[gcm]%t524:508->508
+[gcm]%t516:508->508
+[gcm]%t512:508->508
+[gcm]%t514:508->508
+[gcm]%t522:508->508
+[gcm]%t532:508->508
+bb296:
+bb293:
+bb291:bb293 bb296 
+[gcm]bb296:depth 0
+[gcm]bb293:depth 0
+[gcm]bb291:depth 0
+[gcm]%t80:296->296
+[gcm]%t93:293->293
+[gcm]%t90:293->293
+[gcm]%t87:293->293
+[gcm]%t86:293->293
+[gcm]%t89:293->293
+[gcm]%t92:293->293
+bb312:
+bb309:
+bb307:bb309 bb312 
+[gcm]bb312:depth 0
+[gcm]bb309:depth 0
+[gcm]bb307:depth 0
+[gcm]%t97:312->312
+[gcm]%t103:309->309
+bb337:bb340 bb343 
+bb392:bb350 bb355 bb836 
+bb356:bb366 bb372 bb1028 
+bb359:bb898 
+bb355:
+bb372:
+bb343:bb392 bb395 
+bb340:
+bb1028:
+bb350:bb356 bb359 bb365 
+bb395:
+bb836:
+bb898:
+bb365:
+bb366:
+Reverse_Edge from 366 to 343
+bb[395] in loop
+bb[392] in loop
+bb[343] in loop
+bb[350] in loop
+bb[355] in loop
+bb[356] in loop
+bb[359] in loop
+bb[365] in loop
+bb[366] in loop
+bb[372] in loop
+bb[836] in loop
+bb[898] in loop
+bb[1028] in loop
+compute finish
+loop[395] depth is 1
+loop[392] depth is 1
+loop[343] depth is 1
+loop[350] depth is 1
+loop[355] depth is 1
+loop[356] depth is 1
+loop[359] depth is 1
+loop[365] depth is 1
+loop[366] depth is 1
+loop[372] depth is 1
+loop[836] depth is 1
+loop[898] depth is 1
+loop[1028] depth is 1
+loop End
+[gcm]bb337:depth 0
+[gcm]bb340:depth 0
+[gcm]bb343:depth 1
+[gcm]bb355:depth 1
+[gcm]bb356:depth 1
+[gcm]bb359:depth 1
+[gcm]bb372:depth 1
+[gcm]bb898:depth 1
+[gcm]bb365:depth 1
+[gcm]bb366:depth 1
+[gcm]bb392:depth 1
+[gcm]bb1028:depth 1
+[gcm]bb350:depth 1
+[gcm]bb395:depth 1
+[gcm]bb836:depth 1
+[gcm]%t396:395->343
+[gcm]%t985:898->343
+[gcm]%t984:898->343
+[gcm]%t982:898->343
+[gcm]%t987:898->343
+[gcm]%t860:836->343
+[gcm]%t859:836->343
+[gcm]%t857:836->343
+[gcm]%t852:836->343
+[gcm]%t850:836->343
+[gcm]%t855:836->343
+[gcm]%t839:836->343
+[gcm]%t838:836->343
+[gcm]%t837:836->343
+[gcm]%t862:836->343
+[gcm]%t977:898->343
+[gcm]%t975:898->343
+[gcm]%t980:898->343
+[gcm]%t964:898->343
+[gcm]%t963:898->343
+[gcm]%t962:898->343
+[gcm]%t1052:1028->343
+[gcm]%t1051:1028->343
+[gcm]%t1049:1028->343
+[gcm]%t1044:1028->343
+[gcm]%t1042:1028->343
+[gcm]%t1047:1028->343
+[gcm]%t1031:1028->343
+[gcm]%t1030:1028->343
+[gcm]%t1029:1028->343
+[gcm]%t1054:1028->343
+[gcm]%t922:898->343
+[gcm]%t921:898->343
+[gcm]%t919:898->343
+[gcm]%t914:898->343
+[gcm]%t912:898->343
+[gcm]%t917:898->343
+[gcm]%t901:898->343
+[gcm]%t900:898->343
+[gcm]%t899:898->343
+[gcm]%t924:898->343
+[gcm]%t1019:1028->1028
+[gcm]%t144:366->343
+[gcm]%t952:898->898
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 4 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 3 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 5 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 12 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t26
+base:10
 step:1
-base:0
-exit_var:%t9
-base:0
-step:%t10
+step_op:1
+mod:null
+induction:%t25
+base:%t21
+step:%t23
+step_op:0
+mod:0x4000000000000000
+bb171:
+bb168:
+bb164:
+bb159:
+bb167:bb168 bb171 
+bb163:bb164 bb167 
+bb153:bb159 bb163 
+Reverse_Edge from 168 to 167
+bb[167] in loop
+bb[168] in loop
+bb[171] in loop
+compute finish
+loop[167] depth is 1
+loop[168] depth is 1
+loop[171] depth is 1
+loop End
+[gcm]bb171:depth 1
+[gcm]bb167:depth 1
+[gcm]bb163:depth 0
+[gcm]bb168:depth 1
+[gcm]bb164:depth 0
+[gcm]bb159:depth 0
+[gcm]bb153:depth 0
+[gcm]%t5:159->159
+[gcm]%t9:171->167
+[gcm]%t7:167->167
+[gcm]%t11:168->167
+[gcm]%t10:168->167
+bb194:
+bb186:
+bb197:bb194 
+bb181:bb186 bb197 
+Reverse_Edge from 197 to 197
+bb[197] in loop
+compute finish
+loop[197] depth is 1
+loop End
+[gcm]bb197:depth 1
+[gcm]bb194:depth 0
+[gcm]bb186:depth 0
+[gcm]bb181:depth 0
+[gcm]%t15:186->186
+[gcm]%t26:197->197
+[gcm]%t25:197->197
+[gcm]%t24:197->197
+[gcm]%t23:197->197
+bb263:
+bb257:
+bb454:
+bb485:bb508 
+bb508:
+bb431:bb454 
+bb239:bb425 bb431 
+bb479:bb386 bb389 
+bb389:
+bb425:bb479 bb485 
+bb386:bb257 bb263 
+[gcm]bb485:depth 0
+[gcm]bb479:depth 0
+[gcm]bb454:depth 0
+[gcm]bb508:depth 0
+[gcm]bb431:depth 0
+[gcm]bb425:depth 0
+[gcm]bb389:depth 0
+[gcm]bb386:depth 0
+[gcm]bb263:depth 0
+[gcm]bb257:depth 0
+[gcm]bb239:depth 0
+[gcm]%t473:454->454
+[gcm]%t472:454->454
+[gcm]%t470:454->454
+[gcm]%t462:454->454
+[gcm]%t458:454->454
+[gcm]%t460:454->454
+[gcm]%t468:454->454
+[gcm]%t74:257->257
+[gcm]%t478:454->454
+[gcm]%t69:263->479
+[gcm]%t68:263->479
+[gcm]%t390:389->479
+[gcm]%t61:479->479
+[gcm]%t60:479->479
+[gcm]%t527:508->508
+[gcm]%t526:508->508
+[gcm]%t524:508->508
+[gcm]%t516:508->508
+[gcm]%t512:508->508
+[gcm]%t514:508->508
+[gcm]%t522:508->508
+[gcm]%t532:508->508
+bb296:
+bb293:
+bb291:bb293 bb296 
+[gcm]bb296:depth 0
+[gcm]bb293:depth 0
+[gcm]bb291:depth 0
+[gcm]%t80:296->296
+[gcm]%t93:293->293
+[gcm]%t90:293->293
+[gcm]%t87:293->293
+[gcm]%t86:293->293
+[gcm]%t89:293->293
+[gcm]%t92:293->293
+bb312:
+bb309:
+bb307:bb309 bb312 
+[gcm]bb312:depth 0
+[gcm]bb309:depth 0
+[gcm]bb307:depth 0
+[gcm]%t97:312->312
+[gcm]%t103:309->309
+bb337:bb340 bb343 
+bb392:bb350 bb355 bb836 
+bb356:bb366 bb372 bb1028 
+bb359:bb898 
+bb355:
+bb372:
+bb343:bb392 bb395 
+bb340:
+bb1028:
+bb350:bb356 bb359 bb365 
+bb395:
+bb836:
+bb898:
+bb365:
+bb366:
+Reverse_Edge from 366 to 343
+bb[395] in loop
+bb[392] in loop
+bb[343] in loop
+bb[350] in loop
+bb[355] in loop
+bb[356] in loop
+bb[359] in loop
+bb[365] in loop
+bb[366] in loop
+bb[372] in loop
+bb[836] in loop
+bb[898] in loop
+bb[1028] in loop
+compute finish
+loop[395] depth is 1
+loop[392] depth is 1
+loop[343] depth is 1
+loop[350] depth is 1
+loop[355] depth is 1
+loop[356] depth is 1
+loop[359] depth is 1
+loop[365] depth is 1
+loop[366] depth is 1
+loop[372] depth is 1
+loop[836] depth is 1
+loop[898] depth is 1
+loop[1028] depth is 1
+loop End
+[gcm]bb337:depth 0
+[gcm]bb340:depth 0
+[gcm]bb343:depth 1
+[gcm]bb355:depth 1
+[gcm]bb356:depth 1
+[gcm]bb359:depth 1
+[gcm]bb372:depth 1
+[gcm]bb898:depth 1
+[gcm]bb365:depth 1
+[gcm]bb366:depth 1
+[gcm]bb392:depth 1
+[gcm]bb1028:depth 1
+[gcm]bb350:depth 1
+[gcm]bb395:depth 1
+[gcm]bb836:depth 1
+[gcm]%t396:395->343
+[gcm]%t985:898->343
+[gcm]%t984:898->343
+[gcm]%t982:898->343
+[gcm]%t987:898->343
+[gcm]%t860:836->343
+[gcm]%t859:836->343
+[gcm]%t857:836->343
+[gcm]%t852:836->343
+[gcm]%t850:836->343
+[gcm]%t855:836->343
+[gcm]%t839:836->343
+[gcm]%t838:836->343
+[gcm]%t837:836->343
+[gcm]%t862:836->343
+[gcm]%t977:898->343
+[gcm]%t975:898->343
+[gcm]%t980:898->343
+[gcm]%t964:898->343
+[gcm]%t963:898->343
+[gcm]%t962:898->343
+[gcm]%t1052:1028->343
+[gcm]%t1051:1028->343
+[gcm]%t1049:1028->343
+[gcm]%t1044:1028->343
+[gcm]%t1042:1028->343
+[gcm]%t1047:1028->343
+[gcm]%t1031:1028->343
+[gcm]%t1030:1028->343
+[gcm]%t1029:1028->343
+[gcm]%t1054:1028->343
+[gcm]%t922:898->343
+[gcm]%t921:898->343
+[gcm]%t919:898->343
+[gcm]%t914:898->343
+[gcm]%t912:898->343
+[gcm]%t917:898->343
+[gcm]%t901:898->343
+[gcm]%t900:898->343
+[gcm]%t899:898->343
+[gcm]%t924:898->343
+[gcm]%t1019:1028->1028
+[gcm]%t144:366->343
+[gcm]%t952:898->898
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 4 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 3 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 5 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 12 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t26
+base:10
+step:1
+step_op:1
+mod:null
+induction:%t25
+base:%t21
+step:%t23
+step_op:0
+mod:0x4000000000000000
+bb171:
+bb168:
+bb164:
+bb159:
+bb167:bb168 bb171 
+bb163:bb164 bb167 
+bb153:bb159 bb163 
+Reverse_Edge from 168 to 167
+bb[167] in loop
+bb[168] in loop
+bb[171] in loop
+compute finish
+loop[167] depth is 1
+loop[168] depth is 1
+loop[171] depth is 1
+loop End
+[gcm]bb171:depth 1
+[gcm]bb167:depth 1
+[gcm]bb163:depth 0
+[gcm]bb168:depth 1
+[gcm]bb164:depth 0
+[gcm]bb159:depth 0
+[gcm]bb153:depth 0
+[gcm]%t5:159->159
+[gcm]%t9:171->167
+[gcm]%t7:167->167
+[gcm]%t11:168->167
+[gcm]%t10:168->167
+bb194:
+bb186:
+bb197:bb194 
+bb181:bb186 bb197 
+Reverse_Edge from 197 to 197
+bb[197] in loop
+compute finish
+loop[197] depth is 1
+loop End
+[gcm]bb197:depth 1
+[gcm]bb194:depth 0
+[gcm]bb186:depth 0
+[gcm]bb181:depth 0
+[gcm]%t15:186->186
+[gcm]%t26:197->197
+[gcm]%t25:197->197
+[gcm]%t24:197->197
+[gcm]%t23:197->197
+bb263:
+bb257:
+bb454:
+bb485:bb508 
+bb508:
+bb431:bb454 
+bb239:bb425 bb431 
+bb479:bb386 bb389 
+bb389:
+bb425:bb479 bb485 
+bb386:bb257 bb263 
+[gcm]bb485:depth 0
+[gcm]bb479:depth 0
+[gcm]bb454:depth 0
+[gcm]bb508:depth 0
+[gcm]bb431:depth 0
+[gcm]bb425:depth 0
+[gcm]bb389:depth 0
+[gcm]bb386:depth 0
+[gcm]bb263:depth 0
+[gcm]bb257:depth 0
+[gcm]bb239:depth 0
+[gcm]%t473:454->454
+[gcm]%t472:454->454
+[gcm]%t470:454->454
+[gcm]%t462:454->454
+[gcm]%t458:454->454
+[gcm]%t460:454->454
+[gcm]%t468:454->454
+[gcm]%t74:257->257
+[gcm]%t478:454->454
+[gcm]%t69:263->479
+[gcm]%t68:263->479
+[gcm]%t390:389->479
+[gcm]%t61:479->479
+[gcm]%t60:479->479
+[gcm]%t527:508->508
+[gcm]%t526:508->508
+[gcm]%t524:508->508
+[gcm]%t516:508->508
+[gcm]%t512:508->508
+[gcm]%t514:508->508
+[gcm]%t522:508->508
+[gcm]%t532:508->508
+bb296:
+bb293:
+bb291:bb293 bb296 
+[gcm]bb296:depth 0
+[gcm]bb293:depth 0
+[gcm]bb291:depth 0
+[gcm]%t80:296->296
+[gcm]%t93:293->293
+[gcm]%t90:293->293
+[gcm]%t87:293->293
+[gcm]%t86:293->293
+[gcm]%t89:293->293
+[gcm]%t92:293->293
+bb312:
+bb309:
+bb307:bb309 bb312 
+[gcm]bb312:depth 0
+[gcm]bb309:depth 0
+[gcm]bb307:depth 0
+[gcm]%t97:312->312
+[gcm]%t103:309->309
+bb337:bb340 bb343 
+bb392:bb350 bb355 bb836 
+bb356:bb366 bb372 bb1028 
+bb359:bb898 
+bb355:
+bb372:
+bb343:bb392 bb395 
+bb340:
+bb1028:
+bb350:bb356 bb359 bb365 
+bb395:
+bb836:
+bb898:
+bb365:
+bb366:
+Reverse_Edge from 366 to 343
+bb[395] in loop
+bb[392] in loop
+bb[343] in loop
+bb[350] in loop
+bb[355] in loop
+bb[356] in loop
+bb[359] in loop
+bb[365] in loop
+bb[366] in loop
+bb[372] in loop
+bb[836] in loop
+bb[898] in loop
+bb[1028] in loop
+compute finish
+loop[395] depth is 1
+loop[392] depth is 1
+loop[343] depth is 1
+loop[350] depth is 1
+loop[355] depth is 1
+loop[356] depth is 1
+loop[359] depth is 1
+loop[365] depth is 1
+loop[366] depth is 1
+loop[372] depth is 1
+loop[836] depth is 1
+loop[898] depth is 1
+loop[1028] depth is 1
+loop End
+[gcm]bb337:depth 0
+[gcm]bb340:depth 0
+[gcm]bb343:depth 1
+[gcm]bb355:depth 1
+[gcm]bb356:depth 1
+[gcm]bb359:depth 1
+[gcm]bb372:depth 1
+[gcm]bb898:depth 1
+[gcm]bb365:depth 1
+[gcm]bb366:depth 1
+[gcm]bb392:depth 1
+[gcm]bb1028:depth 1
+[gcm]bb350:depth 1
+[gcm]bb395:depth 1
+[gcm]bb836:depth 1
+[gcm]%t396:395->343
+[gcm]%t985:898->343
+[gcm]%t984:898->343
+[gcm]%t982:898->343
+[gcm]%t987:898->343
+[gcm]%t860:836->343
+[gcm]%t859:836->343
+[gcm]%t857:836->343
+[gcm]%t852:836->343
+[gcm]%t850:836->343
+[gcm]%t855:836->343
+[gcm]%t839:836->343
+[gcm]%t838:836->343
+[gcm]%t837:836->343
+[gcm]%t862:836->343
+[gcm]%t977:898->343
+[gcm]%t975:898->343
+[gcm]%t980:898->343
+[gcm]%t964:898->343
+[gcm]%t963:898->343
+[gcm]%t962:898->343
+[gcm]%t1052:1028->343
+[gcm]%t1051:1028->343
+[gcm]%t1049:1028->343
+[gcm]%t1044:1028->343
+[gcm]%t1042:1028->343
+[gcm]%t1047:1028->343
+[gcm]%t1031:1028->343
+[gcm]%t1030:1028->343
+[gcm]%t1029:1028->343
+[gcm]%t1054:1028->343
+[gcm]%t922:898->343
+[gcm]%t921:898->343
+[gcm]%t919:898->343
+[gcm]%t914:898->343
+[gcm]%t912:898->343
+[gcm]%t917:898->343
+[gcm]%t901:898->343
+[gcm]%t900:898->343
+[gcm]%t899:898->343
+[gcm]%t924:898->343
+[gcm]%t1019:1028->1028
+[gcm]%t144:366->343
+[gcm]%t952:898->898
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 4 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 3 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 5 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+[GVNPRE]:build antic iterate over 12 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t26
+base:10
+step:1
+step_op:1
+mod:null
+induction:%t25
+base:%t21
+step:%t23
+step_op:0
+mod:0x4000000000000000
 opt ir generated
 asm generated
 asm output ok
@@ -352,4 +2354,9 @@ This is inadvisable as it may cause display problems. If
 you REALLY want to taste LLVM bitcode first-hand, you
 can force output with the `-f' option.
 
+Writing '.my_pow.dot'...
+Writing '.my_sqrt.dot'...
+Writing '.asr5.dot'...
+Writing '.eee.dot'...
+Writing '.my_exp.dot'...
 Writing '.main.dot'...

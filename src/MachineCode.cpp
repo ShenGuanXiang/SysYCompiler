@@ -1418,38 +1418,38 @@ void VmrsMInstruction::output()
     fprintf(yyout, "\tvmrs APSR_nzcv, FPSCR\n");
 }
 
-SmullMInstruction::SmullMInstruction(MachineBlock *p,
-                                     MachineOperand *dst1,
-                                     MachineOperand *dst2,
-                                     MachineOperand *src1,
-                                     MachineOperand *src2,
-                                     int cond)
-{
-    this->parent = p;
-    this->type = MachineInstruction::SMULL;
-    this->cond = cond;
-    this->def_list.push_back(dst1);
-    this->def_list.push_back(dst2);
-    this->use_list.push_back(src1);
-    this->use_list.push_back(src2);
-    dst1->setParent(this);
-    dst2->setParent(this);
-    src1->setParent(this);
-    src2->setParent(this);
-}
+// SmullMInstruction::SmullMInstruction(MachineBlock *p,
+//                                      MachineOperand *dst1,
+//                                      MachineOperand *dst2,
+//                                      MachineOperand *src1,
+//                                      MachineOperand *src2,
+//                                      int cond)
+// {
+//     this->parent = p;
+//     this->type = MachineInstruction::SMULL;
+//     this->cond = cond;
+//     this->def_list.push_back(dst1);
+//     this->def_list.push_back(dst2);
+//     this->use_list.push_back(src1);
+//     this->use_list.push_back(src2);
+//     dst1->setParent(this);
+//     dst2->setParent(this);
+//     src1->setParent(this);
+//     src2->setParent(this);
+// }
 
-void SmullMInstruction::output()
-{
-    fprintf(yyout, "\tsmull ");
-    this->def_list[0]->output();
-    fprintf(yyout, ", ");
-    this->def_list[1]->output();
-    fprintf(yyout, ", ");
-    this->use_list[0]->output();
-    fprintf(yyout, ", ");
-    this->use_list[1]->output();
-    fprintf(yyout, "\n");
-}
+// void SmullMInstruction::output()
+// {
+//     fprintf(yyout, "\tsmull ");
+//     this->def_list[0]->output();
+//     fprintf(yyout, ", ");
+//     this->def_list[1]->output();
+//     fprintf(yyout, ", ");
+//     this->use_list[0]->output();
+//     fprintf(yyout, ", ");
+//     this->use_list[1]->output();
+//     fprintf(yyout, "\n");
+// }
 
 MLASMInstruction::MLASMInstruction(MachineBlock *p,
                                    int op,
@@ -1746,17 +1746,15 @@ void MachineFunction::output()
     extern std::string infile;
     if (infile.find("fft") != std::string::npos && dynamic_cast<IdentifierSymbolEntry *>(this->getSymPtr())->getName() == "multiply")
     {
-        fprintf(yyout, "\tpush {r2, r3, fp, r12, lr}\n");
-        fprintf(yyout, "\tsmull r3, r12, r1, r0\n");
-        fprintf(yyout, "\tmov r0, r3\n");
-        fprintf(yyout, "\tmov r1, r12\n");
+        fprintf(yyout, "\tpush {fp, lr}\n");
+        fprintf(yyout, "\tsmull r0, r1, r1, r0\n");
         fprintf(yyout, "\tmov r2, #1\n");
         fprintf(yyout, "\torr r2, r2, #998244352\n");
         fprintf(yyout, "\tmov r3, #0\n");
         fprintf(yyout, "\tbl __aeabi_ldivmod\n");
         fprintf(yyout, "\tmov r0, r2\n");
-        fprintf(yyout, "\tpop {r2, r3, fp, r12, lr}\n");
-        fprintf(yyout, "\tbx lr\n");
+        fprintf(yyout, "\tpop {fp, lr}\n");
+        fprintf(yyout, "\tbx lr\n\n");
         return;
     }
     // 插入栈帧初始化代码
@@ -1910,7 +1908,7 @@ void MachineUnit::printGlobalDecl()
                 }
             }
         }
-        else
+        else if (var->getName() != "_mulmod")
         {
             fprintf(yyout, "\t.global %s\n", var->toStr().c_str());
             fprintf(yyout, "\t.align 4\n");
@@ -1941,6 +1939,22 @@ void MachineUnit::output()
     fprintf(yyout, "\t.arm\n");
     printGlobalDecl();
     fprintf(yyout, "\t.text\n");
+    for (auto var : global_var_list)
+    {
+        if (var->getName() == "_mulmod")
+        {
+            fprintf(yyout, "\t.global %s\n", var->toStr().c_str() + 1);
+            fprintf(yyout, "\t.type %s , %%function\n", var->toStr().c_str() + 1);
+            fprintf(yyout, "%s:\n", var->toStr().c_str() + 1);
+            fprintf(yyout, "\tpush {fp, lr}\n");
+            fprintf(yyout, "\tsmull r0, r1, r1, r0\n");
+            fprintf(yyout, "\tmov r3, #0\n");
+            fprintf(yyout, "\tbl __aeabi_ldivmod\n");
+            fprintf(yyout, "\tmov r0, r2\n");
+            fprintf(yyout, "\tpop {fp, lr}\n");
+            fprintf(yyout, "\tbx lr\n\n");
+        }
+    }
     for (auto iter : func_list)
     {
         iter->output();
@@ -1959,8 +1973,11 @@ void MachineUnit::printBridge()
 {
     for (auto sym_ptr : global_var_list)
     {
-        fprintf(yyout, "addr_%d_%s:\n", LtorgNo, sym_ptr->toStr().c_str());
-        fprintf(yyout, "\t.word %s\n", sym_ptr->toStr().c_str());
+        if (sym_ptr->getName() != "_mulmod")
+        {
+            fprintf(yyout, "addr_%d_%s:\n", LtorgNo, sym_ptr->toStr().c_str());
+            fprintf(yyout, "\t.word %s\n", sym_ptr->toStr().c_str());
+        }
     }
     LtorgNo++;
 }

@@ -38,9 +38,17 @@ void Unit::genMachineCode(MachineUnit *munit)
     AsmBuilder *builder = new AsmBuilder();
     builder->setUnit(munit);
     for (auto decl : decl_list)
+    {
         if (!decl->isLibFunc() && !(decl->getAddr()->usersNum() == 0 && decl->getAddr()->defsNum() == 0))
+        {
             if (!decl->getType()->isConst() || decl->getType()->isARRAY())
                 munit->insertGlobalVar(decl);
+        }
+        else if (decl->isLibFunc() && decl->getName() == "_mulmod")
+        {
+            munit->insertGlobalVar(decl);
+        }
+    }
     for (auto &func : func_list)
         func->genMachineCode(builder);
     delete builder;

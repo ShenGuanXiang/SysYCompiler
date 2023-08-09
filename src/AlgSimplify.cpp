@@ -722,7 +722,7 @@ void AlgSimplify::pass(Function *func)
                         }
                         case BinaryInstruction::DIV:
                         {
-                            // a * b / b
+                            // (a * b) / b
                             if (binary_expr.count(inst->getUses()[0]) && std::get<0>(binary_expr[inst->getUses()[0]]) == BinaryInstruction::MUL &&
                                 (equal(std::get<1>(binary_expr[inst->getUses()[0]]), inst->getUses()[1]) || equal(std::get<2>(binary_expr[inst->getUses()[0]]), inst->getUses()[1])))
                             {
@@ -742,6 +742,13 @@ void AlgSimplify::pass(Function *func)
                         }
                         case BinaryInstruction::MOD:
                         {
+                            // (a % b) % b
+                            if (binary_expr.count(inst->getUses()[0]) && std::get<0>(binary_expr[inst->getUses()[0]]) == BinaryInstruction::MOD &&
+                                equal(std::get<2>(binary_expr[inst->getUses()[0]]), inst->getUses()[1]))
+                            {
+                                freeInsts.insert(inst);
+                                inst->replaceAllUsesWith(std::get<1>(binary_expr[inst->getUses()[0]]));
+                            }
                             break;
                         }
                         default:

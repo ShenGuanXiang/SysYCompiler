@@ -64,6 +64,7 @@ void GlobalCodeMotion::schedule_late(Instruction *inst)
     if(uses_list.empty())
         lca = schedule_block[inst];
     BasicBlock* best = lca;
+    fprintf(stderr,"[gcm]%s:%d->%d\n",inst->getDef()->toStr().c_str(),lca->getNo(),schedule_block[inst]->getNo());
     while(lca != schedule_block[inst]->getIDom()){
         if(h.get_loop_depth(lca) < h.get_loop_depth(best)){
             best = lca;
@@ -109,7 +110,7 @@ void GlobalCodeMotion::pass()
 
 void GlobalCodeMotion::pass(Function *func)
 {
-    gvn(func);
+    // gvn(func);
 
     h.compute_info(func);
 

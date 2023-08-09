@@ -333,17 +333,17 @@ public:
     void output();
 };
 
-class SmullMInstruction : public MachineInstruction
-{
-public:
-    SmullMInstruction(MachineBlock *p,
-                      MachineOperand *dst1,
-                      MachineOperand *dst2,
-                      MachineOperand *src1,
-                      MachineOperand *src2,
-                      int cond = MachineInstruction::NONE);
-    void output();
-};
+// class SmullMInstruction : public MachineInstruction
+// {
+// public:
+//     SmullMInstruction(MachineBlock *p,
+//                       MachineOperand *dst1,
+//                       MachineOperand *dst2,
+//                       MachineOperand *src1,
+//                       MachineOperand *src2,
+//                       int cond = MachineInstruction::NONE);
+//     void output();
+// };
 
 class MLASMInstruction : public MachineInstruction
 {

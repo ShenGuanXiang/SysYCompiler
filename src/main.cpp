@@ -132,8 +132,8 @@ int main(int argc, char *argv[])
             // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
-        LoopSimplify ls(unit);
-        ls.pass();
+            LoopSimplify ls(unit);
+            ls.pass(); // scalar evolution
         }
         // LoopAnalyzer La;
         // for (auto f : unit->getFuncList())
