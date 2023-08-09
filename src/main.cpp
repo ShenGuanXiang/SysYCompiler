@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
             pf.pass(); // 纯函数清理
             AutoInliner autoinliner(unit);
             autoinliner.pass(); // 函数自动内联
-            // TODO:其它中间代码优化
+            // // TODO:其它中间代码优化
             AlgSimplify alsim(unit);
             alsim.pass(); // 代数化简
             SparseCondConstProp sccp(unit);
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
             gcm.pass(); // 全局代码移动
             GVNPRE gvnpre(unit);
             gvnpre.pass(); // 部分冗余消除&循环不变外提
-            // 循环展开
+            // // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
             LoopSimplify ls(unit);
