@@ -13,7 +13,6 @@ parser.h
 *.s
 *.dot
 debug*
-*.log
 performance
 median2.in
 median2.out
@@ -23,4 +22,7 @@ Main.cpp
 oldignore
 token
 note
-olg
+old
+log
+tmp
+a.out
