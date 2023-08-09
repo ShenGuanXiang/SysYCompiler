@@ -43,8 +43,11 @@ void BasicBlock::insertAfter(Instruction *dst, Instruction *src)
 // remove the instruction from intruction list.
 void BasicBlock::remove(Instruction *inst)
 {
-    inst->getPrev()->setNext(inst->getNext());
-    inst->getNext()->setPrev(inst->getPrev());
+    if (inst->getPrev() && inst->getNext())
+    {
+        inst->getPrev()->setNext(inst->getNext());
+        inst->getNext()->setPrev(inst->getPrev());
+    }
     inst->setParent(nullptr);
 }
 

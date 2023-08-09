@@ -29,7 +29,7 @@ Function::~Function()
 // remove the basicblock bb from its block_list.
 void Function::remove(BasicBlock *bb)
 {
-    std::vector<BasicBlock *> preds(bb->pred_begin(), bb->pred_end()), succs(bb->succ_begin(), bb->succ_end());
+    std::set<BasicBlock *> preds(bb->pred_begin(), bb->pred_end()), succs(bb->succ_begin(), bb->succ_end());
     for (auto pred : preds)
         bb->removePred(pred);
     for (auto succ : succs)

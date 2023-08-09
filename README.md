@@ -172,6 +172,13 @@
       
       str r4, [r6, r3, lsl #2]     
 
+    - lsl r3, r2, #2
+ 
+      add r12, r5, r2, lsl #2
+
+      ldr r3, [r5, r3] 
+      
+      ->
 ## memset
 
 ## 寄存器分配
@@ -238,6 +245,8 @@
 
 ## 图着色寄存器分配
 
+## 寄存器溢出到局部数组下方、保存常量的寄存器优先溢出
+
 ## Inliner
 
 - 用散列表保存单参数的递归函数的返回值(记忆化搜索)
@@ -247,6 +256,7 @@
 ## 代数化简
 
 - 代数恒等式化简 +--a !!a a\*b+a\*c a\*b/b 数组寻址表达式 a+0 a\*1 a/1 a*0 a%1
+- (i-1)*1024 + j-1
 - a+a = a*2, a-a = 0 a/a = 1 a%a = 0
 - a+b+b+b+...
 
@@ -350,17 +360,9 @@
 
 2. // TODO：next_inst为vmov/mov && next_inst目标为r0~r3/s0~s3 && curr_inst目标 = next_inst源, curr_inst可以是其它指令=>
 
-3. 
-  
-   lsl r3, r2, #2
- 
-   add r12, r5, r2, lsl #2
- 
-   ldr r3, [r5, r3] 
+3. 将多条store替换为vdup和vstm【暂时不做了 :) 】
 
-4. 将多条store替换为vdup和vstm【暂时不做了 :) 】
-
-5. 多条push/pop合并为一条push/pop【发现有个bug :( 】
+4. 多条push/pop合并为一条push/pop【发现有个bug :( 】
 
 ## 参考网站
 

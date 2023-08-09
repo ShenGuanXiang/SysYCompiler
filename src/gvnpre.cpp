@@ -255,7 +255,7 @@ void GVNPRE::clean(Exprset &set)
     // logf("before cleaning:\n");
     // printset(set);
     std::vector<Expr> toplist = set.topological_sort();
-    auto& valset = set.getValnrs();
+    auto &valset = set.getValnrs();
     for (const Expr &e : toplist)
     {
         assert(lookup(e));
@@ -602,7 +602,6 @@ void GVNPRE::buildAntic(Function *func)
                     antic_in[bb].vinsert(e);
             }
 
-
             clean(antic_in[bb]);
             // logf("after clean:\nantic_in[bb%d]:\n", bb->getNo());
             // printset(antic_in[bb]);
@@ -615,7 +614,7 @@ void GVNPRE::buildAntic(Function *func)
                     q.push(*succ_it);
         }
     }
-    fprintf(stderr,"[GVNPRE]:build antic iterate over %d times\n",iter);
+    fprintf(stderr, "[GVNPRE]:build antic iterate over %d times\n", iter);
 }
 
 void GVNPRE::insert(Function *func)
@@ -700,7 +699,6 @@ void GVNPRE::insert(Function *func)
                             for (auto item : avail)
                                 logf("bb%d: %s\n", item.first->getNo(), item.second.tostr().c_str());
 
-
                             // bool new_expr = false;
                             bool insert_phi = false;
                             for (auto pred_it = bb->pred_begin(); pred_it != bb->pred_end(); pred_it++)
@@ -743,7 +741,7 @@ void GVNPRE::insert(Function *func)
                                             break;
                                         }
                                     }
-                            expr_cnt++;
+                                    expr_cnt++;
 
                                     // avail_out[pred].insert(t);
                                     avail_out[pred].vrplc(t);
@@ -809,7 +807,7 @@ void GVNPRE::insert(Function *func)
         //     new_sets[bb].clear();
         // }
     }
-    fprintf(stderr,"[GVNPRE]:insert iterate over %d times,insert %d expressions, %d phis\n",iter,expr_cnt,phi_cnt);
+    fprintf(stderr, "[GVNPRE]:insert iterate over %d times,insert %d expressions, %d phis\n", iter, expr_cnt, phi_cnt);
 }
 
 void GVNPRE::elminate(Function *func)
@@ -842,7 +840,7 @@ void GVNPRE::elminate(Function *func)
             }
         }
     }
-    fprintf(stderr,"[GVNPRE]:eliminate %d instructions\n",torm.size());
+    fprintf(stderr, "[GVNPRE]:eliminate %d instructions\n", (int)torm.size());
     for (auto i : torm)
     {
         // i->output();
@@ -854,6 +852,7 @@ void GVNPRE::elminate(Function *func)
 
 void GVNPRE::pass()
 {
+    trans_cache.clear();
     for (auto func_it = unit->begin(); func_it != unit->end(); func_it++)
     {
         gvnpre(*func_it);

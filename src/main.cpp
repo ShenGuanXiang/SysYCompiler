@@ -1,4 +1,3 @@
-#include <iostream>
 #include <string.h>
 #include <unistd.h>
 #include "Ast.h"
@@ -18,6 +17,8 @@
 #include "gvnpre.h"
 #include "LoopUnroll.h"
 #include "MemoryOpt.h"
+#include "AlgSimplify.h"
+#include "PureFunc.h"
 #include "GlobalCodeMotion.h"
 #include "LoopSimplify.h"
 
@@ -32,6 +33,7 @@ extern void clearTypes();
 extern void clearMachineOperands();
 int yyparse();
 
+std::string infile = "a.in";
 char outfile[256] = "a.out";
 bool dump_tokens = false;
 bool dump_ast = false;
@@ -75,6 +77,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "no input file\n");
         exit(EXIT_FAILURE);
     }
+    infile = argv[optind];
     if (!(yyin = fopen(argv[optind], "r")))
     {
         fprintf(stderr, "%s: No such file or directory\nno input file\n", argv[optind]);
@@ -107,16 +110,19 @@ int main(int argc, char *argv[])
     {
         for (int i = 0; i < 4; i++)
         {
-            AutoInliner autoinliner(unit);
-            autoinliner.pass(); // 函数自动内联
             Mem2Reg m2r(unit);
             m2r.pass();
-            // TODO:其它中间代码优化
-            // 代数化简
-            SparseCondConstProp sccp(unit);
-            sccp.pass(); // 常量传播
             ComSubExprElim cse(unit);
             cse.pass3(); // 公共子表达式消除
+            PureFunc pf(unit);
+            pf.pass(); // 纯函数清理
+            AutoInliner autoinliner(unit);
+            autoinliner.pass(); // 函数自动内联
+            // TODO:其它中间代码优化
+            AlgSimplify alsim(unit);
+            alsim.pass(); // 代数化简
+            SparseCondConstProp sccp(unit);
+            sccp.pass(); // 常量传播
             MemoryOpt memopt(unit);
             memopt.pass(); // 访存优化
             GlobalCodeMotion gcm(unit);
@@ -129,17 +135,17 @@ int main(int argc, char *argv[])
         LoopSimplify ls(unit);
         ls.pass();
         }
+        // LoopAnalyzer La;
+        // for (auto f : unit->getFuncList())
+        // {
+        //     La.FindLoops(f);
+        //     La.PrintInfo(f);
+        // }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
             unit->output();
             fprintf(stderr, "opt ir output ok\n");
-        }
-        LoopAnalyzer La;
-        for (auto f : unit->getFuncList())
-        {
-            La.FindLoops(f);
-            La.PrintInfo(f);
         }
         ElimPHI ep(unit);
         ep.pass();

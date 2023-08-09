@@ -1,0 +1,355 @@
+ast built
+ir generated
+bb100029:
+bb100021:
+bb100025:bb100032 
+bb100032:bb100029 
+bb100017:bb100021 bb100025 
+Reverse_Edge from 100032 to 100032
+Reverse_Edge from 100029 to 100025
+bb[100025] in loop
+bb[100029] in loop
+bb[100032] in loop
+compute finish
+loop[100025] depth is 1
+loop[100029] depth is 1
+loop[100032] depth is 1
+loop End
+bb[100032] in loop
+compute finish
+loop[100032] depth is 2
+loop End
+[gcm]bb100029:depth 1
+[gcm]bb100032:depth 2
+[gcm]bb100025:depth 1
+[gcm]bb100021:depth 0
+[gcm]bb100017:depth 0
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 3 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t6
+base:0
+step:1
+step_op:0
+mod:null
+induction:%t5
+base:0
+step:%t100052
+step_op:0
+mod:null
+rewrite:
+body:100032
+ctrl_val:%t6
+bound:60
+step:1
+base:0
+exit_var:%t5
+base:0
+step:%t100052
+bb100025:
+bb100021:
+bb100017:bb100021 bb100025 
+Reverse_Edge from 100025 to 100025
+bb[100025] in loop
+compute finish
+loop[100025] depth is 1
+loop End
+[gcm]bb100025:depth 1
+[gcm]bb100021:depth 0
+[gcm]bb100017:depth 0
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t10
+base:0
+step:1
+step_op:0
+mod:null
+induction:%t9
+base:0
+step:%t100052
+step_op:0
+mod:134209537
+rewrite:
+body:100025
+ctrl_val:%t10
+bound:%t0
+step:1
+base:0
+exit_var:%t9
+base:0
+step:%t10
+bb100025:
+bb100021:
+bb100017:bb100021 bb100025 
+Reverse_Edge from 100025 to 100025
+bb[100025] in loop
+compute finish
+loop[100025] depth is 1
+loop End
+[gcm]bb100025:depth 1
+[gcm]bb100021:depth 0
+[gcm]bb100017:depth 0
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t10
+base:0
+step:1
+step_op:0
+mod:null
+induction:%t9
+base:0
+step:%t100052
+step_op:0
+mod:134209537
+rewrite:
+body:100025
+ctrl_val:%t10
+bound:%t0
+step:1
+base:0
+exit_var:%t9
+base:0
+step:%t10
+bb100025:
+bb100021:
+bb100017:bb100021 bb100025 
+Reverse_Edge from 100025 to 100025
+bb[100025] in loop
+compute finish
+loop[100025] depth is 1
+loop End
+[gcm]bb100025:depth 1
+[gcm]bb100021:depth 0
+[gcm]bb100017:depth 0
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t10
+base:0
+step:1
+step_op:0
+mod:null
+induction:%t9
+base:0
+step:%t100052
+step_op:0
+mod:134209537
+rewrite:
+body:100025
+ctrl_val:%t10
+bound:%t0
+step:1
+base:0
+exit_var:%t9
+base:0
+step:%t10
+opt ir generated
+declare void @putch(i32)
+declare void @putint(i32)
+declare void @_sysy_stoptime(i32)
+declare void @_sysy_starttime(i32)
+declare i32 @getint()
+define dso_local i32 @main() #0{
+B100017:                               	; succs = %B100021, %B100025
+  %t0 = call i32 @getint()
+  call void @_sysy_starttime(i32 100016)
+  %t2 = icmp slt i32 0, %t0
+  br i1 %t2, label %B100025, label %B100021
+B100021:                               	; preds = %B100017, %B100025
+  %t100053 = phi i32 [ 0 , %B100017 ], [ %t9 , %B100025 ]
+  call void @_sysy_stoptime(i32 100032)
+  call void @putint(i32 %t100053)
+  call void @putch(i32 10)
+  ret i32 0
+B100025:                               	; preds = %B100017, %B100025                               	; succs = %B100021, %B100025
+  %t100051 = phi i32 [ 0 , %B100017 ], [ %t9 , %B100025 ]
+  %t100052 = phi i32 [ 0 , %B100017 ], [ %t10 , %B100025 ]
+  %t8 = add i32 %t100051, %t100052
+  %t9 = srem i32 %t8, 134209537
+  %t10 = add i32 %t100052, 1
+  %t100045 = icmp slt i32 %t10, %t0
+  br i1 %t100045, label %B100025, label %B100021
+}
+opt ir output ok
+ast built
+ir generated
+bb100029:
+bb100021:
+bb100025:bb100032 
+bb100032:bb100029 
+bb100017:bb100021 bb100025 
+Reverse_Edge from 100032 to 100032
+Reverse_Edge from 100029 to 100025
+bb[100025] in loop
+bb[100029] in loop
+bb[100032] in loop
+compute finish
+loop[100025] depth is 1
+loop[100029] depth is 1
+loop[100032] depth is 1
+loop End
+bb[100032] in loop
+compute finish
+loop[100032] depth is 2
+loop End
+[gcm]bb100029:depth 1
+[gcm]bb100032:depth 2
+[gcm]bb100025:depth 1
+[gcm]bb100021:depth 0
+[gcm]bb100017:depth 0
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 3 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t6
+base:0
+step:1
+step_op:0
+mod:null
+induction:%t5
+base:0
+step:%t100052
+step_op:0
+mod:null
+rewrite:
+body:100032
+ctrl_val:%t6
+bound:60
+step:1
+base:0
+exit_var:%t5
+base:0
+step:%t100052
+bb100025:
+bb100021:
+bb100017:bb100021 bb100025 
+Reverse_Edge from 100025 to 100025
+bb[100025] in loop
+compute finish
+loop[100025] depth is 1
+loop End
+[gcm]bb100025:depth 1
+[gcm]bb100021:depth 0
+[gcm]bb100017:depth 0
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t10
+base:0
+step:1
+step_op:0
+mod:null
+induction:%t9
+base:0
+step:%t100052
+step_op:0
+mod:134209537
+rewrite:
+body:100025
+ctrl_val:%t10
+bound:%t0
+step:1
+base:0
+exit_var:%t9
+base:0
+step:%t10
+bb100025:
+bb100021:
+bb100017:bb100021 bb100025 
+Reverse_Edge from 100025 to 100025
+bb[100025] in loop
+compute finish
+loop[100025] depth is 1
+loop End
+[gcm]bb100025:depth 1
+[gcm]bb100021:depth 0
+[gcm]bb100017:depth 0
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t10
+base:0
+step:1
+step_op:0
+mod:null
+induction:%t9
+base:0
+step:%t100052
+step_op:0
+mod:134209537
+rewrite:
+body:100025
+ctrl_val:%t10
+bound:%t0
+step:1
+base:0
+exit_var:%t9
+base:0
+step:%t10
+bb100025:
+bb100021:
+bb100017:bb100021 bb100025 
+Reverse_Edge from 100025 to 100025
+bb[100025] in loop
+compute finish
+loop[100025] depth is 1
+loop End
+[gcm]bb100025:depth 1
+[gcm]bb100021:depth 0
+[gcm]bb100017:depth 0
+[GCM]: 0 instructions moved, 0 of them are LOAD
+[GVNPRE]:build antic iterate over 2 times
+[GVNPRE]:insert iterate over 1 times,insert 0 expressions, 0 phis
+[GVNPRE]:eliminate 0 instructions
+[GVNPRE]:done.
+find induction:
+induction:%t10
+base:0
+step:1
+step_op:0
+mod:null
+induction:%t9
+base:0
+step:%t100052
+step_op:0
+mod:134209537
+rewrite:
+body:100025
+ctrl_val:%t10
+bound:%t0
+step:1
+base:0
+exit_var:%t9
+base:0
+step:%t10
+opt ir generated
+asm generated
+asm output ok
+WARNING: You're attempting to print out a bitcode file.
+This is inadvisable as it may cause display problems. If
+you REALLY want to taste LLVM bitcode first-hand, you
+can force output with the `-f' option.
+
+Writing '.main.dot'...

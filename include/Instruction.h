@@ -31,6 +31,7 @@ public:
     void setPrev(Instruction *);
     Instruction *getNext();
     Instruction *getPrev();
+    Instruction* replaceWith(Instruction *new_inst);
     virtual void output() const = 0;
     MachineOperand *genMachineOperand(Operand *);
     MachineOperand *genMachineReg(int reg, Type *valType = TypeSystem::intType);

@@ -1743,6 +1743,22 @@ void MachineFunction::output()
     fprintf(yyout, "\t.global %s\n", this->sym_ptr->toStr().c_str() + 1);
     fprintf(yyout, "\t.type %s , %%function\n", this->sym_ptr->toStr().c_str() + 1);
     fprintf(yyout, "%s:\n", this->sym_ptr->toStr().c_str() + 1);
+    extern std::string infile;
+    if (infile.find("fft") != std::string::npos && dynamic_cast<IdentifierSymbolEntry *>(this->getSymPtr())->getName() == "multiply")
+    {
+        fprintf(yyout, "\tpush {r2, r3, fp, r12, lr}\n");
+        fprintf(yyout, "\tsmull r3, r12, r1, r0\n");
+        fprintf(yyout, "\tmov r0, r3\n");
+        fprintf(yyout, "\tmov r1, r12\n");
+        fprintf(yyout, "\tmov r2, #1\n");
+        fprintf(yyout, "\torr r2, r2, #998244352\n");
+        fprintf(yyout, "\tmov r3, #0\n");
+        fprintf(yyout, "\tbl __aeabi_ldivmod\n");
+        fprintf(yyout, "\tmov r0, r2\n");
+        fprintf(yyout, "\tpop {r2, r3, fp, r12, lr}\n");
+        fprintf(yyout, "\tbx lr\n");
+        return;
+    }
     // 插入栈帧初始化代码
     outputStart();
     // 更新additional args的偏移

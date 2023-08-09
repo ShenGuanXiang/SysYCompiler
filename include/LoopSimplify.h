@@ -10,6 +10,7 @@ struct Induction{
 struct SimpleLoop{
     BasicBlock* body;
     Operand* exit_var;
+    std::unordered_map<Operand*,Operand*>phi2induction;
     std::set<Operand*> def_in_loop;
     std::unordered_map<Operand*,Induction>inductions;
     bool dfs(Instruction* i,std::stack<Operand*>& path);

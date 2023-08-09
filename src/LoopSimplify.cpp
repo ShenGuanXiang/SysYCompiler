@@ -59,6 +59,7 @@ void SimpleLoop::findInduction()
         }
         else break;
     }
+    fprintf(stderr,"find induction:\n");
     for(auto phi : phis){
         std::stack<Operand*> path;
         if(!dfs(phi,path)) continue;
@@ -82,15 +83,25 @@ void SimpleLoop::findInduction()
         else
             base = the_other(phi,stepi->getDef());
         
-        if(def_in_loop.count(step))
-            continue;
+        // if(def_in_loop.count(step))
+        //     continue;
         //%t3 = add i32 %t24, %t24,这种可以在cse中简化
         inductions[the_other(phi,base)] = {base,step,step_op,mod};
-        // fprintf(stderr,"induction:%s\n",the_other(phi,base)->toStr().c_str());
-        // fprintf(stderr,"base:%s\n",base->toStr().c_str());
-        // fprintf(stderr,"step:%s\n",step->toStr().c_str());
-        // fprintf(stderr,"step_op:%d\n",step_op);
-        // fprintf(stderr,"mod:%s\n",mod?mod->toStr().c_str():"null");
+        phi2induction[phi->getDef()]=the_other(phi,base);
+        fprintf(stderr,"induction:%s\n",the_other(phi,base)->toStr().c_str());
+        fprintf(stderr,"base:%s\n",base->toStr().c_str());
+        fprintf(stderr,"step:%s\n",step->toStr().c_str());
+        fprintf(stderr,"step_op:%d\n",step_op);
+        fprintf(stderr,"mod:%s\n",mod?mod->toStr().c_str():"null");
+    }
+    for(auto& p : inductions){
+        auto& ind = p.second;
+        if(def_in_loop.count(ind.step)){
+            if(phi2induction.count(ind.step))
+                ind.step = phi2induction[ind.step];
+            else
+                inductions.erase(p.first);
+        }
     }
 }
 
@@ -108,6 +119,24 @@ bool SimpleLoop::dfs(Instruction *i, std::stack<Operand *>& path)
         path.pop();
     }
     return false;
+}
+
+static bool isPrime(int a) {
+  if (a < 2) return 0;
+  for (int i = 2; i * i <= a; ++i)
+    if (a % i == 0) return 0;
+  return 1;
+}
+
+static int binpow(int a, int b, int m) {
+  a %= m;
+  long long res = 1;
+  while (b > 0) {
+    if (b & 1) res = res * a % m;
+    a = (long long) a * a % m;
+    b >>= 1;
+  }
+  return res;
 }
 
 void SimpleLoop::simplify()
@@ -144,6 +173,7 @@ void SimpleLoop::simplify()
     //目前只处理等差数列
     if(!inductions.count(exit_var) || inductions[exit_var].op!=BinaryInstruction::ADD) return;
 
+    fprintf(stderr,"rewrite:\n");
     fprintf(stderr,"body:%d\n",body->getNo());
     
     fprintf(stderr,"ctrl_val:%s\n",ctrl_val->toStr().c_str());
@@ -155,41 +185,122 @@ void SimpleLoop::simplify()
     fprintf(stderr,"base:%s\n",inductions[exit_var].base->toStr().c_str());
     fprintf(stderr,"step:%s\n",inductions[exit_var].step->toStr().c_str());
 
-    //删除所有指令
-    Instruction* dummy = body->end();
-    while(dummy->getNext()!=dummy){
-        Instruction* inst = dummy->getNext();
-        body->remove(inst);
-        // delete inst;
-    }
-    for(auto succ_it=body->succ_begin();succ_it!=body->succ_end();succ_it++){
-        auto succ = *succ_it;
-        succ->removePred(body);
-    }
-    body->CleanSucc();
-    body->addSucc(exit_bb);
-    exit_bb->addPred(body);
 
-    // base + loop_time * step = exit_var
-    // (base+step*times)%mod == (base%mod+step*times%mod)%mod
-    auto mulmod_type = new FunctionType(TypeSystem::intType, std::vector<Type *>{TypeSystem::intType, TypeSystem::intType, TypeSystem::intType});
-    // 1. 生成循环次数
-    Operand* loop_time = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
-    new BinaryInstruction(BinaryInstruction::SUB,loop_time,bound,inductions[ctrl_val].base,body);
-    //2. 计算循环结果
-    Operand* tmp = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
-    if(inductions[exit_var].modulo){
-        new FuncCallInstruction(tmp,std::vector<Operand*>{loop_time,inductions[exit_var].step,inductions[exit_var].modulo},
-        new IdentifierSymbolEntry(mulmod_type,"mulmod",0),body);
+
+    if(!def_in_loop.count(inductions[exit_var].step)){
+        //删除所有指令
+        Instruction* dummy = body->end();
+        while(dummy->getNext()!=dummy){
+            Instruction* inst = dummy->getNext();
+            body->remove(inst);
+            delete inst;
+        }
+        for(auto succ_it=body->succ_begin();succ_it!=body->succ_end();succ_it++){
+            auto succ = *succ_it;
+            succ->removePred(body);
+        }
+        body->CleanSucc();
+        body->addSucc(exit_bb);
+        exit_bb->addPred(body);     
+        // base + loop_time * step = exit_var
+        // (base+step*times)%mod == (base%mod+step*times%mod)%mod
+        auto mulmod_type = new FunctionType(TypeSystem::intType, std::vector<Type *>{TypeSystem::intType, TypeSystem::intType, TypeSystem::intType});
+        // 1. 生成循环次数
+        Operand* loop_time = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
+        new BinaryInstruction(BinaryInstruction::SUB,loop_time,bound,inductions[ctrl_val].base,body);
+        //2. 计算循环结果
+        Operand* tmp = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
+        if(inductions[exit_var].modulo){
+            new FuncCallInstruction(tmp,std::vector<Operand*>{loop_time,inductions[exit_var].step,inductions[exit_var].modulo},
+            new IdentifierSymbolEntry(mulmod_type,"mulmod",0),body);
+        }
+        else
+            new BinaryInstruction(BinaryInstruction::MUL,tmp,inductions[exit_var].step,loop_time,body);
+        if(inductions[exit_var].modulo){
+            Operand* base_mod = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
+            new BinaryInstruction(BinaryInstruction::MOD,base_mod,inductions[exit_var].base,inductions[exit_var].modulo,body);
+            inductions[exit_var].base = base_mod;
+        }
+        new BinaryInstruction(BinaryInstruction::ADD,exit_var,inductions[exit_var].base,tmp,body);
+        //3. 跳转
+        //TODO:mod
+        new UncondBrInstruction(exit_bb,body);
     }
-    else
-        new BinaryInstruction(BinaryInstruction::MUL,tmp,inductions[exit_var].step,loop_time,body);
-    if(inductions[exit_var].modulo){
-        Operand* base_mod = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
-        new BinaryInstruction(BinaryInstruction::MOD,base_mod,inductions[exit_var].base,inductions[exit_var].modulo,body);
-        inductions[exit_var].base = base_mod;
+    else{
+        if(inductions[exit_var].step==ctrl_val){
+            //ctrl_val.step=1
+            //增量是一个等差数列
+            //exit_var = (loop_time * (loop_time+1) / 2  + base) % mod
+            //exit_var = (loop_time * (loop_time+1) / 2 % mod + base%mod)%mod
+            //exit_var = (((loop_time*(2^{mod-2}%mod))%mod * (loop_time+1)%mod)%mod  + base%mod)%mod
+            if(inductions[exit_var].modulo){
+                if(!inductions[exit_var].modulo->getEntry()->isConstant()) return;
+                int mod = dynamic_cast<ConstantSymbolEntry*>(inductions[exit_var].modulo->getEntry())->getValue();
+                // if(!isPrime(mod)) return;
+            }
+            //删除所有指令
+            Instruction* dummy = body->end();
+            while(dummy->getNext()!=dummy){
+                Instruction* inst = dummy->getNext();
+                body->remove(inst);
+                delete inst;
+            }
+            for(auto succ_it=body->succ_begin();succ_it!=body->succ_end();succ_it++){
+                auto succ = *succ_it;
+                succ->removePred(body);
+            }
+            body->CleanSucc();
+            body->addSucc(exit_bb);
+            exit_bb->addPred(body);
+
+            // 1. 生成循环次数
+            Operand* loop_time = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
+            new BinaryInstruction(BinaryInstruction::SUB,loop_time,bound,inductions[ctrl_val].base,body);
+        
+            //2. 计算循环结果
+            if(!inductions[exit_var].modulo){
+                //exit_var = (loop_time * (loop_time+1) / 2  + base)
+                Operand* loop_time_plus_one = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
+                Operand* const_one = new Operand(new ConstantSymbolEntry(TypeSystem::intType,1));
+                Operand* const_two = new Operand(new ConstantSymbolEntry(TypeSystem::intType,2));
+                new BinaryInstruction(BinaryInstruction::ADD,loop_time_plus_one,loop_time,const_one,body);
+                Operand* tmp = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
+                new BinaryInstruction(BinaryInstruction::MUL,tmp,loop_time,loop_time_plus_one,body);
+                new BinaryInstruction(BinaryInstruction::DIV,exit_var,tmp,const_two,body);
+                new BinaryInstruction(BinaryInstruction::ADD,exit_var,exit_var,inductions[exit_var].base,body);
+                new UncondBrInstruction(exit_bb,body);   
+            }
+            else{
+                //exit_var = (((loop_time*(2^{mod-2}%mod))%mod * (loop_time+1)%mod)%mod  + base%mod)%mod
+                int mod = dynamic_cast<ConstantSymbolEntry*>(inductions[exit_var].modulo->getEntry())->getValue();
+                int inv = binpow(2,mod-2,mod);
+                Operand* inv_op = new Operand(new ConstantSymbolEntry(TypeSystem::intType,inv));
+
+                Operand* loop_time_plus_one = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
+                Operand* const_one = new Operand(new ConstantSymbolEntry(TypeSystem::intType,1));
+                new BinaryInstruction(BinaryInstruction::ADD,loop_time_plus_one,loop_time,const_one,body);
+                Operand* loop_time_plus_one_mod = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
+                new BinaryInstruction(BinaryInstruction::MOD,loop_time_plus_one_mod,loop_time_plus_one,inductions[exit_var].modulo,body);
+
+                auto mulmod_type = new FunctionType(TypeSystem::intType, std::vector<Type *>{TypeSystem::intType, TypeSystem::intType, TypeSystem::intType});
+
+                Operand* tmp = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
+                new FuncCallInstruction(tmp,std::vector<Operand*>{loop_time,inv_op,inductions[exit_var].modulo},
+                new IdentifierSymbolEntry(mulmod_type,"mulmod",0),body);
+
+                Operand* tmp2 = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
+                new FuncCallInstruction(tmp2,std::vector<Operand*>{tmp,loop_time_plus_one_mod,inductions[exit_var].modulo},
+                new IdentifierSymbolEntry(mulmod_type,"mulmod",0),body);
+
+                Operand* base_mod = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
+                new BinaryInstruction(BinaryInstruction::MOD,base_mod,inductions[exit_var].base,inductions[exit_var].modulo,body);
+
+                Operand* tmp3 = new Operand(new TemporarySymbolEntry(TypeSystem::intType,SymbolTable::getLabel()));
+                new BinaryInstruction(BinaryInstruction::ADD,tmp3,tmp2,base_mod,body);
+
+                new BinaryInstruction(BinaryInstruction::MOD,exit_var,tmp3,inductions[exit_var].modulo,body);
+            }
+
+        }
     }
-    new BinaryInstruction(BinaryInstruction::ADD,exit_var,inductions[exit_var].base,tmp,body);
-    //3. 跳转
-    new UncondBrInstruction(exit_bb,body);
 }

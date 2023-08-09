@@ -69,6 +69,18 @@ Instruction *Instruction::getPrev()
     return prev;
 }
 
+Instruction *Instruction::replaceWith(Instruction *new_inst)
+{
+    new_inst->setPrev(this->getPrev());
+    new_inst->setNext(this->getNext());
+    new_inst->setParent(this->getParent());
+    this->getPrev()->setNext(new_inst);
+    this->getNext()->setPrev(new_inst);
+    this->setPrev(nullptr);
+    this->setNext(nullptr);
+    return new_inst;
+}
+
 AllocaInstruction::AllocaInstruction(Operand *dst, SymbolEntry *se, BasicBlock *insert_bb) : Instruction(ALLOCA, insert_bb)
 {
     assert(dst->getType()->isPTR());
@@ -418,13 +430,6 @@ FuncCallInstruction::FuncCallInstruction(Operand *dst, std::vector<Operand *> pa
     {
         for (auto decl : this->getParent()->getParent()->getParent()->getDeclList())
             if (decl->getType()->isFunc() && decl->getName() == "memset")
-                return;
-        this->getParent()->getParent()->getParent()->insertDecl(func_se);
-    }
-    else if (funcse->getName() == "mulmod")
-    {
-        for (auto decl : this->getParent()->getParent()->getParent()->getDeclList())
-            if (decl->getType()->isFunc() && decl->getName() == "mulmod")
                 return;
         this->getParent()->getParent()->getParent()->insertDecl(func_se);
     }
