@@ -17,6 +17,7 @@
 #include "gvnpre.h"
 #include "LoopUnroll.h"
 #include "MemoryOpt.h"
+#include "GraphColor.h"
 #include "AlgSimplify.h"
 #include "PureFunc.h"
 #include "GlobalCodeMotion.h"
@@ -174,6 +175,10 @@ int main(int argc, char *argv[])
         }
         LinearScan linearScan(mUnit);
         linearScan.pass();
+
+        // RegisterAllocation registerAllocation(mUnit);
+        // registerAllocation.pass();
+        
         if (optimize)
         {
             // TODO: 汇编代码优化
