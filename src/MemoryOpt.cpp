@@ -4,6 +4,7 @@
 #include <stack>
 
 // TODO：反向做一遍，删除没用的Store，删除无用的memset
+// 遇到很大的局部数组会超时
 
 struct Info
 {
@@ -249,6 +250,8 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                 assert(arrType->getElemType()->getSize() == 4);
                 assert(inst->getUses()[1]->getEntry()->getValue() == 0);
                 auto se = inst->getUses()[0]->getEntry();
+                if (inst->getUses()[2]->getEntry()->getValue() > 1000000)
+                    return std::pair<Info, bool>{out, false};
                 for (int i = 0; i < inst->getUses()[2]->getEntry()->getValue() / 4; i++)
                 {
                     if (bb_out[bb].arr2ops.count(se) && bb_out[bb].arr2ops[se].count(i) && bb_out[bb].arr2ops[se][i] != nullptr && bb_out[bb].arr2ops[se][i]->getType() == Var2Const(inst->getUses()[1]->getType()) && bb_out[bb].arr2ops[se][i]->getEntry()->getValue() == inst->getUses()[1]->getEntry()->getValue())

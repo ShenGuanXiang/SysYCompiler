@@ -78,7 +78,7 @@ void SimpleLoop::findInduction()
         else
             break;
     }
-    fprintf(stderr,"find induction:\n");
+    // fprintf(stderr,"find induction:\n");
     for(auto phi : phis){
         std::stack<Operand*> path;
         if(!dfs(phi,path)) continue;
@@ -111,11 +111,11 @@ void SimpleLoop::findInduction()
         //%t3 = add i32 %t24, %t24,这种可以在cse中简化
         inductions[the_other(phi,base)] = {base,step,step_op,mod};
         phi2induction[phi->getDef()]=the_other(phi,base);
-        fprintf(stderr,"induction:%s\n",the_other(phi,base)->toStr().c_str());
-        fprintf(stderr,"base:%s\n",base->toStr().c_str());
-        fprintf(stderr,"step:%s\n",step->toStr().c_str());
-        fprintf(stderr,"step_op:%d\n",step_op);
-        fprintf(stderr,"mod:%s\n",mod?mod->toStr().c_str():"null");
+        // fprintf(stderr,"induction:%s\n",the_other(phi,base)->toStr().c_str());
+        // fprintf(stderr,"base:%s\n",base->toStr().c_str());
+        // fprintf(stderr,"step:%s\n",step->toStr().c_str());
+        // fprintf(stderr,"step_op:%d\n",step_op);
+        // fprintf(stderr,"mod:%s\n",mod?mod->toStr().c_str():"null");
     }
     for(auto& p : inductions){
         auto& ind = p.second;
@@ -211,17 +211,17 @@ void SimpleLoop::simplify()
     if (!inductions.count(exit_var) || inductions[exit_var].op != BinaryInstruction::ADD)
         return;
 
-    fprintf(stderr,"rewrite:\n");
-    fprintf(stderr,"body:%d\n",body->getNo());
+    // fprintf(stderr,"rewrite:\n");
+    // fprintf(stderr,"body:%d\n",body->getNo());
     
-    fprintf(stderr,"ctrl_val:%s\n",ctrl_val->toStr().c_str());
-    fprintf(stderr,"bound:%s\n",bound->toStr().c_str());
-    fprintf(stderr,"step:%s\n",inductions[ctrl_val].step->toStr().c_str());
-    fprintf(stderr,"base:%s\n",inductions[ctrl_val].base->toStr().c_str());
+    // fprintf(stderr,"ctrl_val:%s\n",ctrl_val->toStr().c_str());
+    // fprintf(stderr,"bound:%s\n",bound->toStr().c_str());
+    // fprintf(stderr,"step:%s\n",inductions[ctrl_val].step->toStr().c_str());
+    // fprintf(stderr,"base:%s\n",inductions[ctrl_val].base->toStr().c_str());
 
-    fprintf(stderr, "exit_var:%s\n", exit_var->toStr().c_str());
-    fprintf(stderr, "base:%s\n", inductions[exit_var].base->toStr().c_str());
-    fprintf(stderr, "step:%s\n", inductions[exit_var].step->toStr().c_str());
+    // fprintf(stderr, "exit_var:%s\n", exit_var->toStr().c_str());
+    // fprintf(stderr, "base:%s\n", inductions[exit_var].base->toStr().c_str());
+    // fprintf(stderr, "step:%s\n", inductions[exit_var].step->toStr().c_str());
 
 
 

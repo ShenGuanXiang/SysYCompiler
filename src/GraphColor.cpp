@@ -1,9 +1,7 @@
 #include "GraphColor.h"
-// #include "machine.h"
-// #include "ReachingDefination.h"
 #include "LiveVariableAnalysis.h"
 #include "LinearScan.h"
-// #include "ControlFlowAnalysis.h"
+#include "LoopUnroll.h"
 #include <math.h>
 #include <algorithm>
 #include <stack>
@@ -32,8 +30,11 @@ static bool isInterestingReg(MachineOperand *op)
     return op->isReg() && op->getValType()->isInt() && Reg2WebIdx(op->getReg()) != -1;
 }
 
-static bool isImmDef(MachineInstruction *minst)
+static bool isImmWeb(Web *web)
 {
+    if (web->defs.size() != 1 || web->uses.size() == 1)
+        return false;
+    auto minst = (*web->defs.begin())->getParent();
     return (minst->isMov() || minst->isLoad()) && minst->getUse().size() == 1 && minst->getUse()[0]->isImm();
 }
 
@@ -41,9 +42,6 @@ RegisterAllocation::RegisterAllocation(MachineUnit *unit)
 {
     this->unit = unit;
     nregs = 14;
-    defWt = 2;
-    useWt = 4;
-    copyWt = 1;
 }
 
 void RegisterAllocation::pass()
@@ -58,7 +56,8 @@ void RegisterAllocation::pass()
             while (change)
             {
                 // 发现du链中所有的网
-                makeWebs();
+                if (makeWebs() == false)
+                    return;
                 if (debug1)
                     printf("makeWebs  ");
                 // 构造冲突矩阵
@@ -78,19 +77,23 @@ void RegisterAllocation::pass()
             // 计算符号寄存器溢出到内存和从内存恢复的开销
             computeSpillCosts();
             if (debug1)
+            {
+                for (int i = nregs; i < webs.size(); i++)
+                {
+                    if (webs[i]->rreg == -1)
+                        webs[i]->Print();
+                }
+            }
+            if (debug1)
                 printf("computeSpillCosts  ");
             //
             pruneGraph();
             if (debug1)
                 printf("pruneGraph  ");
-            for (int i = nregs; i < webs.size(); i++)
-                webs[i]->Print();
             // 着色
             success = assignRegs();
             if (debug1)
                 printf("assignRegs  ");
-            for (int i = nregs; i < webs.size(); i++)
-                webs[i]->Print();
             if (success)
                 // 将颜色替换为真实寄存器
                 modifyCode();
@@ -100,6 +103,14 @@ void RegisterAllocation::pass()
                 genSpillCode();
                 if (debug1)
                     printf("genSpillCode\n");
+            }
+            if (debug1)
+            {
+                for (int i = nregs; i < webs.size(); i++)
+                {
+                    if (webs[i]->rreg == -1)
+                        webs[i]->Print();
+                }
             }
         }
     }
@@ -111,7 +122,7 @@ void RegisterAllocation::pass()
     freeInsts.clear();
 }
 
-void RegisterAllocation::makeDuChains()
+bool RegisterAllocation::makeDuChains()
 {
     bool change;
     do
@@ -145,11 +156,15 @@ void RegisterAllocation::makeDuChains()
                             liveVar[*def] = res;
                         }
                     }
+                    if (def->isReg() && def->getValType()->isFloat())
+                        return false;
                 }
                 for (auto &use : (*inst)->getUse())
                 {
                     if (use->getValType()->isInt() && (use->isVReg() || isInterestingReg(use)))
                         liveVar[*use].insert(use);
+                    if (use->isReg() && use->getValType()->isFloat())
+                        return false;
                 }
             }
         }
@@ -381,11 +396,13 @@ void RegisterAllocation::makeDuChains()
             }
         } while (change);
     }
+    return true;
 }
 
-void RegisterAllocation::makeWebs()
+bool RegisterAllocation::makeWebs()
 {
-    makeDuChains();
+    if (makeDuChains() == false)
+        return false;
     webs.clear();
     operand2web.clear();
     for (auto &du_chain : du_chains)
@@ -423,6 +440,7 @@ void RegisterAllocation::makeWebs()
     }
 
     webs.insert(webs.begin(), rregWebs.begin(), rregWebs.end());
+    return true;
 }
 
 // build the adjacency matrix representation of the interference graph
@@ -518,12 +536,26 @@ void RegisterAllocation::buildAdjLists()
 
 void RegisterAllocation::computeSpillCosts()
 {
-    // TODO: 暂时先这么写 保存常数的寄存器减小开销
-    // ControlFlowAnalysis cfa;
-    // cfa.pass(func);
+    // MLoopAnalyzer mla;
+    // mla.FindLoops(func);
+    // std::map<MachineBlock *, int> loop_depth;
+    // for (auto bb : func->getBlocks())
+    // {
+    //     loop_depth[bb] = 0;
+    // }
+    // for (auto loop : mla.getLoops())
+    // {
+    //     for (auto bb : loop->GetLoop()->GetBasicBlock())
+    //     {
+    //         loop_depth[bb] = std::max(loop->GetLoop()->GetDepth(), loop_depth[bb]);
+    //     }
+    // }
+
     for (auto &bb : func->getBlocks())
     {
-        // double factor = pow(10, cfa.getLoopDepth(bb));
+        // double factor = pow(4, loop_depth[bb]); // TODO：加if-else深度、调loop_depth
+        // double factor = 10 * loop_depth[bb];
+        double factor = 1.f;
         for (auto &inst : bb->getInsts())
         {
             auto defs = inst->getDef();
@@ -533,27 +565,23 @@ void RegisterAllocation::computeSpillCosts()
                     continue;
                 int w = operand2web[def];
 
-                if (isImmDef(inst))
-                    webs[w]->spillCost -= 200;
+                if (isImmWeb(webs[w]))
+                    webs[w]->spillCost -= factor * 200;
 
-                // webs[w]->spillCost += factor * defWt;
-                webs[w]->spillCost += 2;
+                webs[w]->spillCost += factor * 2;
 
                 if (inst->isMov())
-                    // webs[w]->spillCost -= factor * copyWt;
-                    webs[w]->spillCost -= 1;
+                    webs[w]->spillCost -= factor;
             }
             for (auto &use : inst->getUse())
             {
                 if (!operand2web.count(use))
                     continue;
                 int w = operand2web[use];
-                // webs[w]->spillCost += factor * useWt;
-                webs[w]->spillCost += 4;
+                webs[w]->spillCost += factor * 4;
 
                 if (inst->isMov())
-                    // webs[w]->spillCost -= factor * copyWt;
-                    webs[w]->spillCost -= 1;
+                    webs[w]->spillCost -= factor;
             }
         }
     }
@@ -605,6 +633,7 @@ void RegisterAllocation::pruneGraph()
                 spillnode = i;
             }
         }
+        assert(spillnode != -1);
         pruneStack.push_back(spillnode);
         adjustIG(spillnode);
     }
@@ -749,7 +778,7 @@ void RegisterAllocation::genSpillCode()
         if (!web->spill)
             continue;
         // 保存常数的寄存器单独讨论
-        if (web->defs.size() == 1 && isImmDef((*web->defs.begin())->getParent()))
+        if (isImmWeb(web))
         {
             auto imm = (*web->defs.begin())->getParent()->getUse()[0];
             for (auto &use : web->uses)

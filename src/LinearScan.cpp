@@ -21,11 +21,6 @@ static auto compareStart = [](LinearScan::Interval *a, LinearScan::Interval *b) 
     return a->start < b->start;
 };
 
-static bool isImmDef(MachineInstruction *minst)
-{
-    return (minst->isMov() || minst->isLoad()) && minst->getUse().size() == 1 && minst->getUse()[0]->isImm();
-}
-
 void LinearScan::pass()
 {
     for (auto &f : unit->getFuncs())
@@ -589,73 +584,56 @@ void LinearScan::genSpillCode()
          * 1. insert ldr inst before the use of vreg
          * 2. insert str inst after the def of vreg
          */
-        // 保存常数的寄存器单独讨论
-        if (interval->defs.size() == 1 && isImmDef((*interval->defs.begin())->getParent()))
+        interval->disp = func->AllocSpace(/*interval->valType->getSize()*/ 4);
+        for (auto &use : interval->uses)
         {
-            auto imm = (*interval->defs.begin())->getParent()->getUse()[0];
-            for (auto &use : interval->uses)
+            auto block = use->getParent()->getParent();
+            auto pos = use->getParent();
+            if (!pos->isBL() && !pos->isDummy())
             {
-                auto block = use->getParent()->getParent();
-                auto pos = use->getParent();
-                if (!pos->isBL() && !pos->isDummy())
+                auto offset = new MachineOperand(MachineOperand::IMM, -interval->disp);
+                if ((use->getValType()->isInt() && (offset->getVal() < -4095 || offset->getVal() > 4095)) || (use->getValType()->isFloat() && (offset->isIllegalShifterOperand() || offset->getVal() < -1023 || offset->getVal() > 1023)))
                 {
-                    block->insertBefore(pos, new LoadMInstruction(block, new MachineOperand(*use), new MachineOperand(*imm)));
+                    auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
+                    auto ldr = new LoadMInstruction(block, internal_reg, offset);
+                    block->insertBefore(pos, ldr);
+                    offset = new MachineOperand(*internal_reg);
                 }
+                if (use->getValType()->isFloat() && !offset->isImm())
+                {
+                    auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
+                    block->insertBefore(pos, new BinaryMInstruction(block, BinaryMInstruction::ADD, internal_reg, new MachineOperand(MachineOperand::REG, 11), offset));
+                    block->insertBefore(pos, new LoadMInstruction(block, new MachineOperand(*use), new MachineOperand(*internal_reg)));
+                }
+                else
+                    block->insertBefore(pos, new LoadMInstruction(block, new MachineOperand(*use), new MachineOperand(MachineOperand::REG, 11), offset));
             }
         }
-        else
-        {
-            interval->disp = func->AllocSpace(/*interval->valType->getSize()*/ 4);
-            for (auto &use : interval->uses)
-            {
-                auto block = use->getParent()->getParent();
-                auto pos = use->getParent();
-                if (!pos->isBL() && !pos->isDummy())
-                {
-                    auto offset = new MachineOperand(MachineOperand::IMM, -interval->disp);
-                    if ((use->getValType()->isInt() && (offset->getVal() < -4095 || offset->getVal() > 4095)) || (use->getValType()->isFloat() && (offset->isIllegalShifterOperand() || offset->getVal() < -1023 || offset->getVal() > 1023)))
-                    {
-                        auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
-                        auto ldr = new LoadMInstruction(block, internal_reg, offset);
-                        block->insertBefore(pos, ldr);
-                        offset = new MachineOperand(*internal_reg);
-                    }
-                    if (use->getValType()->isFloat() && !offset->isImm())
-                    {
-                        auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
-                        block->insertBefore(pos, new BinaryMInstruction(block, BinaryMInstruction::ADD, internal_reg, new MachineOperand(MachineOperand::REG, 11), offset));
-                        block->insertBefore(pos, new LoadMInstruction(block, new MachineOperand(*use), new MachineOperand(*internal_reg)));
-                    }
-                    else
-                        block->insertBefore(pos, new LoadMInstruction(block, new MachineOperand(*use), new MachineOperand(MachineOperand::REG, 11), offset));
-                }
-            }
 
-            for (auto &def : interval->defs)
+        for (auto &def : interval->defs)
+        {
+            auto block = def->getParent()->getParent();
+            auto pos = def->getParent();
+            if (!pos->isBL() && !pos->isDummy())
             {
-                auto block = def->getParent()->getParent();
-                auto pos = def->getParent();
-                if (!pos->isBL() && !pos->isDummy())
+                auto offset = new MachineOperand(MachineOperand::IMM, -interval->disp);
+                if ((def->getValType()->isInt() && (offset->getVal() < -4095 || offset->getVal() > 4095)) || (def->getValType()->isFloat() && (offset->isIllegalShifterOperand() || offset->getVal() < -1023 || offset->getVal() > 1023)))
                 {
-                    auto offset = new MachineOperand(MachineOperand::IMM, -interval->disp);
-                    if ((def->getValType()->isInt() && (offset->getVal() < -4095 || offset->getVal() > 4095)) || (def->getValType()->isFloat() && (offset->isIllegalShifterOperand() || offset->getVal() < -1023 || offset->getVal() > 1023)))
-                    {
-                        auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
-                        auto ldr = new LoadMInstruction(block, internal_reg, offset);
-                        block->insertAfter(pos, ldr);
-                        offset = new MachineOperand(*internal_reg);
-                        pos = ldr;
-                    }
-                    if (def->getValType()->isFloat() && !offset->isImm())
-                    {
-                        auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
-                        auto add = new BinaryMInstruction(block, BinaryMInstruction::ADD, internal_reg, new MachineOperand(MachineOperand::REG, 11), offset);
-                        block->insertAfter(pos, add);
-                        block->insertAfter(add, new StoreMInstruction(block, new MachineOperand(*def), new MachineOperand(*internal_reg)));
-                    }
-                    else
-                        block->insertAfter(pos, new StoreMInstruction(block, new MachineOperand(*def), new MachineOperand(MachineOperand::REG, 11), offset));
+                    auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
+                    auto ldr = new LoadMInstruction(block, internal_reg, offset);
+                    block->insertAfter(pos, ldr);
+                    offset = new MachineOperand(*internal_reg);
+                    pos = ldr;
                 }
+                if (def->getValType()->isFloat() && !offset->isImm())
+                {
+                    auto internal_reg = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel(), TypeSystem::intType);
+                    auto add = new BinaryMInstruction(block, BinaryMInstruction::ADD, internal_reg, new MachineOperand(MachineOperand::REG, 11), offset);
+                    block->insertAfter(pos, add);
+                    block->insertAfter(add, new StoreMInstruction(block, new MachineOperand(*def), new MachineOperand(*internal_reg)));
+                }
+                else
+                    block->insertAfter(pos, new StoreMInstruction(block, new MachineOperand(*def), new MachineOperand(MachineOperand::REG, 11), offset));
             }
         }
     }

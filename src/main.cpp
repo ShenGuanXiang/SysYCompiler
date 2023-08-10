@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
             GVNPRE gvnpre(unit);
             gvnpre.pass(); // 部分冗余消除&循环不变外提
             GlobalCodeMotion gcm(unit);
-            // gcm.pass(); // 全局代码移动
+            gcm.pass(); // 全局代码移动
             // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
@@ -190,11 +190,10 @@ int main(int argc, char *argv[])
             ph.pass(); // 窥孔优化
             MachineDeadCodeElim mdce(mUnit);
             mdce.pass(true); // 死代码消除
-                             // 控制流优化 straighten
+            // Straighten st(mUnit);
+            // st.pass();// 控制流优化 straighten
+            // st.pass2();
         }
-        // Straighten st(mUnit);
-        // st.pass();
-        // st.pass2();
         fprintf(stderr, "asm generated\n");
         mUnit->output();
         fprintf(stderr, "asm output ok\n");
