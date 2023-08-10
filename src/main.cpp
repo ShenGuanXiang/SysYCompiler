@@ -22,7 +22,7 @@
 #include "PureFunc.h"
 #include "GlobalCodeMotion.h"
 #include "LoopSimplify.h"
-// #include "Straighten.h"
+#include "Straighten.h"
 
 Ast ast;
 Unit *unit = new Unit();
