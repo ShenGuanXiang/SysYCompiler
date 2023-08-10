@@ -137,12 +137,6 @@ int main(int argc, char *argv[])
             LoopSimplify ls(unit);
             ls.pass(); // scalar evolution
         }
-        // LoopAnalyzer La;
-        // for (auto f : unit->getFuncList())
-        // {
-        //     La.FindLoops(f);
-        //     La.PrintInfo(f);
-        // }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
         {
@@ -190,9 +184,8 @@ int main(int argc, char *argv[])
             ph.pass(); // 窥孔优化
             MachineDeadCodeElim mdce(mUnit);
             mdce.pass(true); // 死代码消除
-            // Straighten st(mUnit);
-            // st.pass();// 控制流优化 straighten
-            // st.pass2();
+            Straighten st(mUnit);
+            st.pass(); // 控制流优化 straighten
         }
         fprintf(stderr, "asm generated\n");
         mUnit->output();
