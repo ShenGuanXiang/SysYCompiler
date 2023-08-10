@@ -174,16 +174,13 @@ int main(int argc, char *argv[])
             mdce.pass(true); // 死代码消除
             // 指令调度
         }
-        // if (optimize)
-        // {
-        //     RegisterAllocation registerAllocation(mUnit);
-        //     registerAllocation.pass();
-        // }
-        // else
+        if (optimize)
         {
-            LinearScan linearScan(mUnit);
-            linearScan.pass();
+            RegisterAllocation registerAllocation(mUnit);
+            registerAllocation.pass();
         }
+        LinearScan linearScan(mUnit);
+        linearScan.pass();
         if (optimize)
         {
             // TODO: 汇编代码优化
@@ -191,9 +188,9 @@ int main(int argc, char *argv[])
             cseasm.pass(); // 公共子表达式删除
             PeepholeOptimization ph(mUnit);
             ph.pass(); // 窥孔优化
-            // 控制流优化
             MachineDeadCodeElim mdce(mUnit);
             mdce.pass(true); // 死代码消除
+                             // 控制流优化 straighten
         }
         Straighten st(mUnit);
         st.pass();

@@ -62,30 +62,8 @@ void MLiveVariableAnalysis::pass()
     for (auto &func : unit->getFuncs())
     {
         func->AnalyzeLiveVariable();
-        computeUsePos(func);
-    }
-        
-}
-
-void MLiveVariableAnalysis::pass(MachineFunction* func)
-{
-    func->AnalyzeLiveVariable();
-    computeUsePos(func);
-}
-
-void MLiveVariableAnalysis::computeUsePos(MachineFunction *func)
-{
-    for (auto &block : func->getBlocks())
-    {
-        for (auto &inst : block->getInsts())
-        {
-            auto uses = inst->getUse();
-            for (auto &use : uses)
-                use_pos[*use].insert(use);
-        }
     }
 }
-
 
 void MachineFunction::AnalyzeLiveVariable()
 {

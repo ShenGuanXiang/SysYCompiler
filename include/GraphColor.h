@@ -11,7 +11,6 @@ class MachineUnit;
 class MachineOperand;
 class MachineFunction;
 
-
 struct Web
 {
     std::set<MachineOperand *> defs;
@@ -21,6 +20,14 @@ struct Web
     int sreg;
     int disp;
     int rreg;
+
+    void Print()
+    {
+        if (defs != std::set<MachineOperand *>())
+        {
+            fprintf(stderr, "%s:\tspill=%d;\tspillCost=%lf\tsreg=%d\tdisp=%d\trreg=%d\n", (*defs.begin())->toStr().c_str(), spill, spillCost, sreg, disp, rreg);
+        }
+    }
 };
 
 class RegisterAllocation
@@ -35,6 +42,7 @@ public:
             return (defs < another.defs || (defs == another.defs && uses < another.uses));
         }
     };
+
 private:
     MachineUnit *unit;
     int nregs;
@@ -48,8 +56,8 @@ private:
     std::vector<Web *> webs;
     std::map<MachineOperand *, int> operand2web;
     std::vector<std::vector<bool>> adjMtx;
-    std::vector<std::vector<int>> adjList;
-    std::vector<std::vector<int>> rmvList;
+    std::vector<std::set<int>> adjList;
+    std::vector<std::set<int>> rmvList;
     int minColor(int);
     void makeDuChains();
     void makeWebs();
