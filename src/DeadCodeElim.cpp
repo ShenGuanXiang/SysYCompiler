@@ -475,13 +475,8 @@ void MachineDeadCodeElim::pass(MachineFunction *f, bool iter)
                 if (!defs.empty())
                 {
                     MachineOperand *def = nullptr;
-                    if ((*itr)->isSmull())
-                    {
-                        def = defs[1];
-                    }
-                    else
-                        def = defs[0];
-                    if (out[*def].empty())
+                    def = defs[0];
+                    if (out[*def].empty() && defs.size() == 1)
                         deleteList.push_back(*itr);
                 }
 

@@ -82,13 +82,12 @@ protected:
     int no;
     int type;                            // Instruction type
     int cond = MachineInstruction::NONE; // Instruction execution condition, optional !!
-    int op;                              // Instruction opcode
+    int op = -1;                         // Instruction opcode
     // Instruction operand list, sorted by appearance order in assembly instruction
     std::vector<MachineOperand *> def_list;
     std::vector<MachineOperand *> use_list;
     // print execution code after printing opcode
     void printCond();
-    int getcond() { return cond; }
 
 public:
     enum instType
@@ -104,7 +103,7 @@ public:
         ZEXT,
         VCVT,
         VMRS,
-        SMULL,
+        // SMULL,
         MLAS,
         VMLAS
     };
@@ -144,6 +143,8 @@ public:
 
     bool isCritical() const;
 
+    virtual MachineInstruction *deepCopy() = 0;
+
     bool isDummy() const { return type == DUMMY; };
     bool isAdd() const;
     bool isAddShift() const;
@@ -167,7 +168,7 @@ public:
     bool isBL() const;
     bool isZext() const { return type == ZEXT; };
     bool isCondMov() const;
-    bool isSmull() const;
+    // bool isSmull() const;
 };
 
 // 放在函数开头和结尾，分别假装定义函数参数对应的物理寄存器和使用函数返回值r0/s0，从而便于生存期等处理，防止被误判为死代码消除
@@ -178,6 +179,7 @@ public:
                       std::vector<MachineOperand *> defs, std::vector<MachineOperand *> uses,
                       int cond = MachineInstruction::NONE);
     void output();
+    MachineInstruction* deepCopy();
 };
 
 class BinaryMInstruction : public MachineInstruction
@@ -206,6 +208,7 @@ public:
                        MachineOperand *shifter = nullptr,
                        int cond = MachineInstruction::NONE);
     void output();
+    MachineInstruction* deepCopy();
 };
 
 class LoadMInstruction : public MachineInstruction
@@ -222,6 +225,7 @@ public:
                      int op = -1, MachineOperand *shifter = nullptr,
                      int cond = MachineInstruction::NONE);
     void output();
+    MachineInstruction* deepCopy();
 };
 
 class StoreMInstruction : public MachineInstruction
@@ -238,6 +242,7 @@ public:
                       int op = -1, MachineOperand *shifter = nullptr,
                       int cond = MachineInstruction::NONE);
     void output();
+    MachineInstruction* deepCopy();
 };
 
 class MovMInstruction : public MachineInstruction
@@ -258,6 +263,7 @@ public:
                     MachineOperand *shifter = nullptr,
                     int cond = MachineInstruction::NONE);
     void output();
+    MachineInstruction* deepCopy();
 };
 
 class BranchMInstruction : public MachineInstruction
@@ -272,14 +278,8 @@ public:
     BranchMInstruction(MachineBlock *p, int op,
                        MachineOperand *dst,
                        int cond = MachineInstruction::NONE);
-    void setTarget(MachineOperand *dst)
-    {
-        assert(this->op == B || this->op == BL && "不能修改target");
-        use_list.clear();
-        use_list.push_back(dst);
-        dst->setParent(this);
-    };
     void output();
+    MachineInstruction* deepCopy();
 };
 
 class CmpMInstruction : public MachineInstruction
@@ -289,6 +289,7 @@ public:
                     MachineOperand *src1, MachineOperand *src2,
                     int cond = MachineInstruction::NONE);
     void output();
+    MachineInstruction* deepCopy();
 };
 
 class StackMInstruction : public MachineInstruction
@@ -306,6 +307,7 @@ public:
                       std::vector<MachineOperand *> src,
                       int cond = MachineInstruction::NONE);
     void output();
+    MachineInstruction* deepCopy();
 };
 
 class ZextMInstruction : public MachineInstruction
@@ -315,6 +317,7 @@ public:
                      MachineOperand *dst, MachineOperand *src,
                      int cond = MachineInstruction::NONE);
     void output();
+    MachineInstruction* deepCopy();
 };
 
 class VcvtMInstruction : public MachineInstruction
@@ -331,6 +334,7 @@ public:
                      MachineOperand *src,
                      int cond = MachineInstruction::NONE);
     void output();
+    MachineInstruction* deepCopy();
 };
 
 class VmrsMInstruction : public MachineInstruction
@@ -338,6 +342,7 @@ class VmrsMInstruction : public MachineInstruction
 public:
     VmrsMInstruction(MachineBlock *p);
     void output();
+    MachineInstruction* deepCopy();
 };
 
 // class SmullMInstruction : public MachineInstruction
@@ -365,8 +370,10 @@ public:
                      MachineOperand *dst,
                      MachineOperand *src1,
                      MachineOperand *src2,
-                     MachineOperand *src3);
+                     MachineOperand *src3,
+                     int cond = MachineInstruction::NONE);
     void output();
+    MachineInstruction* deepCopy();
 };
 
 // class VMLASMInstruction : public MachineInstruction
@@ -412,6 +419,7 @@ public:
     void insertBack(MachineInstruction *inst)
     {
         this->inst_list.push_back(inst);
+        inst->setParent(this);
     };
     void removeInst(MachineInstruction *inst)
     {

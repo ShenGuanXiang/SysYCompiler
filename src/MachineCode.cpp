@@ -569,10 +569,10 @@ bool MachineInstruction::isCondMov() const
     return type == MOV && (op == MovMInstruction::MOV || op == MovMInstruction::VMOV) && cond != NONE;
 }
 
-bool MachineInstruction::isSmull() const
-{
-    return type == SMULL;
-}
+// bool MachineInstruction::isSmull() const
+// {
+//     return type == SMULL;
+// }
 
 bool MachineInstruction::isCritical() const
 {
@@ -1255,7 +1255,7 @@ CmpMInstruction::CmpMInstruction(MachineBlock *p,
 {
     this->type = MachineInstruction::CMP;
     this->parent = p;
-    this->op = cond;
+    this->cond = cond;
     this->use_list.push_back(src1);
     this->use_list.push_back(src2);
     src1->setParent(this);
@@ -1489,11 +1489,13 @@ MLASMInstruction::MLASMInstruction(MachineBlock *p,
                                    MachineOperand *dst,
                                    MachineOperand *src1,
                                    MachineOperand *src2,
-                                   MachineOperand *src3)
+                                   MachineOperand *src3,
+                                   int cond)
 {
     this->parent = p;
     this->type = MachineInstruction::MLAS;
     this->op = op;
+    this->cond = cond;
     this->def_list.push_back(dst);
     this->use_list.push_back(src1);
     this->use_list.push_back(src2);
@@ -1576,6 +1578,7 @@ void MachineBlock::insertBefore(MachineInstruction *pos, MachineInstruction *ins
 {
     auto p = find(inst_list.begin(), inst_list.end(), pos);
     inst_list.insert(p, inst);
+    inst->setParent(this);
 }
 
 void MachineBlock::insertAfter(MachineInstruction *pos, MachineInstruction *inst)
@@ -1587,6 +1590,7 @@ void MachineBlock::insertAfter(MachineInstruction *pos, MachineInstruction *inst
         return;
     }
     inst_list.insert(p + 1, inst);
+    inst->setParent(this);
 }
 
 MachineBlock::~MachineBlock()
@@ -2022,4 +2026,104 @@ void clearMachineOperands()
         delete mope;
         mope = nullptr;
     }
+}
+
+static void deepCopyMachineOperands(MachineInstruction *from, MachineInstruction *to)
+{
+    assert(to->getDef() == from->getDef());
+    for (int i = 0; i < (int)to->getDef().size(); i++)
+    {
+        to->getDef()[i] = new MachineOperand(*from->getDef()[i]);
+        to->getDef()[i]->setParent(to);
+    }
+    assert(to->getUse() == from->getUse());
+    for (int i = 0; i < (int)to->getUse().size(); i++)
+    {
+        to->getUse()[i] = new MachineOperand(*from->getUse()[i]);
+        to->getUse()[i]->setParent(to);
+    }
+}
+
+MachineInstruction *DummyMInstruction::deepCopy()
+{
+    auto ret = new DummyMInstruction(*this);
+    deepCopyMachineOperands(this, ret);
+    return ret;
+}
+
+MachineInstruction *BinaryMInstruction::deepCopy()
+{
+    auto ret = new BinaryMInstruction(*this);
+    deepCopyMachineOperands(this, ret);
+    return ret;
+}
+
+MachineInstruction *LoadMInstruction::deepCopy()
+{
+    auto ret = new LoadMInstruction(*this);
+    deepCopyMachineOperands(this, ret);
+    return ret;
+}
+
+MachineInstruction *StoreMInstruction::deepCopy()
+{
+    auto ret = new StoreMInstruction(*this);
+    deepCopyMachineOperands(this, ret);
+    return ret;
+}
+
+MachineInstruction *MovMInstruction::deepCopy()
+{
+    auto ret = new MovMInstruction(*this);
+    deepCopyMachineOperands(this, ret);
+    return ret;
+}
+
+MachineInstruction *BranchMInstruction::deepCopy()
+{
+    auto ret = new BranchMInstruction(*this);
+    deepCopyMachineOperands(this, ret);
+    return ret;
+}
+
+MachineInstruction *CmpMInstruction::deepCopy()
+{
+    auto ret = new CmpMInstruction(*this);
+    deepCopyMachineOperands(this, ret);
+    return ret;
+}
+
+MachineInstruction *StackMInstruction::deepCopy()
+{
+    auto ret = new StackMInstruction(*this);
+    deepCopyMachineOperands(this, ret);
+    return ret;
+}
+
+MachineInstruction *ZextMInstruction::deepCopy()
+{
+    auto ret = new ZextMInstruction(*this);
+    deepCopyMachineOperands(this, ret);
+    return ret;
+}
+
+MachineInstruction *VcvtMInstruction::deepCopy()
+{
+    auto ret = new VcvtMInstruction(*this);
+    deepCopyMachineOperands(this, ret);
+    return ret;
+}
+
+MachineInstruction *VmrsMInstruction::deepCopy()
+{
+    auto ret = new VmrsMInstruction(*this);
+    deepCopyMachineOperands(this, ret);
+    return ret;
+}
+
+MachineInstruction *MLASMInstruction::deepCopy()
+{
+    auto ret = new MLASMInstruction(*this);
+    deepCopyMachineOperands(this, ret);
+    return ret;
 }
