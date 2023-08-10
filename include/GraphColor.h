@@ -25,7 +25,10 @@ struct Web
     {
         if (defs != std::set<MachineOperand *>())
         {
-            fprintf(stderr, "%s:\tspill=%d;\tspillCost=%lf\tsreg=%d\tdisp=%d\trreg=%d\n", (*defs.begin())->toStr().c_str(), spill, spillCost, sreg, disp, rreg);
+            if (spillCost >= __DBL_MAX__ / 2)
+                fprintf(stderr, "%s:\tspill=%d;\tspillCost=INF\tsreg=%d\tdisp=%d\trreg=%d\n", (*defs.begin())->toStr().c_str(), spill, sreg, disp, rreg);
+            else
+                fprintf(stderr, "%s:\tspill=%d;\tspillCost=%lf\tsreg=%d\tdisp=%d\trreg=%d\n", (*defs.begin())->toStr().c_str(), spill, spillCost, sreg, disp, rreg);
         }
     }
 };

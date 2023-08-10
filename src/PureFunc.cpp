@@ -407,6 +407,25 @@ static void clearRedundantPureCall(Function *func)
     all_paths.clear();
     htable.clear();
     dfs_clear(func->getEntry());
+
+    // 清理返回值没被用过的纯函数调用
+    std::set<Instruction *> freeCall;
+    for (auto bb : func->getBlockList())
+    {
+        for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
+        {
+            if (inst->isCall())
+            {
+                auto callInst = dynamic_cast<FuncCallInstruction *>(inst);
+                if (pureFuncs.count(callInst->getFuncSe()->getFunction()) && (inst->hasNoDef() || inst->getDef()->getUses().empty()))
+                {
+                    freeCall.insert(inst);
+                }
+            }
+        }
+    }
+    for (auto inst : freeCall)
+        delete inst;
 }
 
 void replaceLoadByNearestLoad(BasicBlock *bb)

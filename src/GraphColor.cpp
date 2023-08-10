@@ -59,41 +59,47 @@ void RegisterAllocation::pass()
                 if (makeWebs() == false)
                     return;
                 if (debug1)
-                    printf("makeWebs  ");
+                    fprintf(stderr, "makeWebs\n");
                 // 构造冲突矩阵
                 buildAdjMatrix();
                 if (debug1)
-                    printf("buildAdjMatrix  ");
+                    fprintf(stderr, "buildAdjMatrix\n");
                 // 寄存器合并
                 // change = regCoalesce();
                 change = false;
                 if (debug1)
-                    printf("regCoalesce  ");
+                    fprintf(stderr, "regCoalesce\n");
             }
             // 构造邻接表
             buildAdjLists();
             if (debug1)
-                printf("buildAdjLists  ");
+                fprintf(stderr, "buildAdjLists\n");
             // 计算符号寄存器溢出到内存和从内存恢复的开销
             computeSpillCosts();
             if (debug1)
             {
                 for (int i = nregs; i < webs.size(); i++)
                 {
-                    if (webs[i]->rreg == -1)
-                        webs[i]->Print();
+                    webs[i]->Print();
                 }
             }
             if (debug1)
-                printf("computeSpillCosts  ");
+                fprintf(stderr, "computeSpillCosts\n");
             //
             pruneGraph();
             if (debug1)
-                printf("pruneGraph  ");
+                fprintf(stderr, "pruneGraph\n");
             // 着色
             success = assignRegs();
             if (debug1)
-                printf("assignRegs  ");
+                fprintf(stderr, "assignRegs\n");
+            if (debug1)
+            {
+                for (int i = nregs; i < webs.size(); i++)
+                {
+                    webs[i]->Print();
+                }
+            }
             if (success)
                 // 将颜色替换为真实寄存器
                 modifyCode();
@@ -102,20 +108,19 @@ void RegisterAllocation::pass()
                 // 产生溢出指令
                 genSpillCode();
                 if (debug1)
-                    printf("genSpillCode\n");
+                    fprintf(stderr, "genSpillCode\n");
             }
             if (debug1)
             {
                 for (int i = nregs; i < webs.size(); i++)
                 {
-                    if (webs[i]->rreg == -1)
-                        webs[i]->Print();
+                    webs[i]->Print();
                 }
             }
         }
     }
     if (debug1)
-        printf("\n pass\n");
+        fprintf(stderr, "\n pass\n");
 
     for (auto inst : freeInsts)
         delete inst;
@@ -716,15 +721,17 @@ bool RegisterAllocation::assignRegs()
         int w = pruneStack.back();
         pruneStack.pop_back();
         int color = minColor(w);
-        if (webs[w]->rreg != -1)
-            assert(webs[w]->rreg == color);
         if (color < 0)
         {
             success = false;
             webs[w]->spill = true;
         }
         else
+        {
+            if (webs[w]->rreg != -1)
+                assert(webs[w]->rreg == color);
             webs[w]->rreg = color;
+        }
     }
     return success;
 }

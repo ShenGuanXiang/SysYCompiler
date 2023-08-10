@@ -19,7 +19,7 @@ void Straighten::pass()
                     change = true;
 
                     auto src_bb = dst_bb->getSuccs()[0];
-                    fprintf(stderr, "copy .L%d to .L%d\n", src_bb->getNo(), dst_bb->getNo());
+                    // fprintf(stderr, "copy .L%d to .L%d\n", src_bb->getNo(), dst_bb->getNo());
                     assert((*dst_bb->rbegin())->isBranch() && (*dst_bb->rbegin())->getOpType() == BranchMInstruction::B);
                     // copy insts
                     delete (*dst_bb->rbegin());
