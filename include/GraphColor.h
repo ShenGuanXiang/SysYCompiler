@@ -46,9 +46,6 @@ public:
 private:
     MachineUnit *unit;
     int nregs;
-    double defWt;
-    double useWt;
-    double copyWt;
     std::vector<int> pruneStack;
     MachineFunction *func;
     // std::map<MachineOperand *, std::set<MachineOperand *>> du_chains;
@@ -59,8 +56,8 @@ private:
     std::vector<std::set<int>> adjList;
     std::vector<std::set<int>> rmvList;
     int minColor(int);
-    void makeDuChains();
-    void makeWebs();
+    bool makeDuChains();
+    bool makeWebs();
     void buildAdjMatrix();
     void buildAdjLists();
     void computeSpillCosts();
