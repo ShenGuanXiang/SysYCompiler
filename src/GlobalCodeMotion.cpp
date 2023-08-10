@@ -32,6 +32,11 @@ void GlobalCodeMotion::schedule_early(Instruction *inst)
             }
         }
     }
+    //如果深度不变，则没必要向前调度
+    //但如果是因为lvn被消除，则需要重新调度
+    if(h.get_loop_depth(schedule_block[inst]) == h.get_loop_depth(inst->getParent())){
+        schedule_block[inst] = inst->getParent();
+    }
 }
 
 void GlobalCodeMotion::schedule_late(Instruction *inst)
@@ -41,6 +46,7 @@ void GlobalCodeMotion::schedule_late(Instruction *inst)
     BasicBlock* lca = nullptr;
     if(inst->hasNoDef())
         return;
+    // fprintf(stderr,"find use lca:%s\n",inst->getDef()->toStr().c_str());
     const auto& uses_list = inst->getDef()->getUses();
     for(const auto use_inst : uses_list){
         schedule_late(use_inst);
@@ -64,13 +70,18 @@ void GlobalCodeMotion::schedule_late(Instruction *inst)
     if(uses_list.empty())
         lca = schedule_block[inst];
     BasicBlock* best = lca;
-    if(lca->getNo()!=schedule_block[inst]->getNo())
-        fprintf(stderr,"[gcm]%s:%d-%d->%d\n",inst->getDef()->toStr().c_str(),lca->getNo(),inst->getParent()->getNo(),schedule_block[inst]->getNo());
+    // if(lca->getNo()!=schedule_block[inst]->getNo()){
+    //     fprintf(stderr,"[gcm]%s:%d-%d->%d\n",inst->getDef()->toStr().c_str(),lca->getNo(),inst->getParent()->getNo(),schedule_block[inst]->getNo());
+    //     fprintf(stderr,"------------------interesting----------------------\n");
+    // }
     while(lca != schedule_block[inst]->getIDom()){
         if(h.get_loop_depth(lca) < h.get_loop_depth(best)){
             best = lca;
         }
         lca = lca->getIDom();
+    }
+    if(inst->getParent()->getNo() != best->getNo()){
+        fprintf(stderr,"[gcm]move%s:%d->%d\n",inst->getDef()->toStr().c_str(),inst->getParent()->getNo(),best->getNo());
     }
     schedule_block[inst] = best;
 }
@@ -95,6 +106,7 @@ void GlobalCodeMotion::move(Instruction *inst)
     else{
         dst->insertBefore(inst,h.append_points[dst]);
     }
+    fprintf(stderr,"[gcm...]move%s:%d->%d\n",inst->getDef()->toStr().c_str(),src->getNo(),dst->getNo());
     move_count++;
     if(inst->isLoad())
         load_count++;
@@ -247,13 +259,13 @@ void Helper::compute_info(Function *func)
     }
 
     //print dom tree
-    for(auto p: dom_tree){
-        fprintf(stderr,"bb%d:",p.first->getNo());
-        for(auto child:p.second){
-            fprintf(stderr,"bb%d ",child->getNo());
-        }
-        fprintf(stderr,"\n");
-    }
+    // for(auto p: dom_tree){
+    //     fprintf(stderr,"bb%d:",p.first->getNo());
+    //     for(auto child:p.second){
+    //         fprintf(stderr,"bb%d ",child->getNo());
+    //     }
+    //     fprintf(stderr,"\n");
+    // }
 
     // 计算循环深度
     LoopAnalyzer la;
@@ -269,9 +281,9 @@ void Helper::compute_info(Function *func)
         }
     }
     
-    for(auto p : loop_depth){
-        fprintf(stderr,"[gcm]bb%d:depth %d\n",p.first->getNo(),p.second);
-    }
+    // for(auto p : loop_depth){
+    //     fprintf(stderr,"[gcm]bb%d:depth %d\n",p.first->getNo(),p.second);
+    // }
 
     // 计算插入点
     for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
@@ -302,6 +314,7 @@ void Helper::clear_visited(Function *func)
 BasicBlock *Helper::find_lca(BasicBlock *a, BasicBlock *b)
 {
     if(a == nullptr) return b;
+    // fprintf(stderr,"(%d,%d)=",a?a->getNo():-1,b?b->getNo():-1);
     while(get_dom_depth(a) > get_dom_depth(b))
         a = a->getIDom();
     while(get_dom_depth(b) > get_dom_depth(a))
@@ -310,6 +323,7 @@ BasicBlock *Helper::find_lca(BasicBlock *a, BasicBlock *b)
         a = a->getIDom();
         b = b->getIDom();
     }
+    // fprintf(stderr,"%d\n",a?a->getNo():-1);
     assert(a);
     return a;
 }

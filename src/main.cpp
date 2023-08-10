@@ -41,11 +41,12 @@ bool dump_ast = false;
 bool dump_ir = false;
 bool dump_asm = false;
 bool optimize = false;
+bool noopt = false;
 
 int main(int argc, char *argv[])
 {
     int opt;
-    while ((opt = getopt(argc, argv, "Siato:O::")) != -1)
+    while ((opt = getopt(argc, argv, "Siato:O::D::")) != -1)
     {
         switch (opt)
         {
@@ -66,6 +67,9 @@ int main(int argc, char *argv[])
             break;
         case 'O':
             optimize = true;
+            break;
+        case 'D':
+            noopt = true;
             break;
         default:
             fprintf(stderr, "Usage: %s [-o outfile] infile\n", argv[0]);
@@ -109,7 +113,7 @@ int main(int argc, char *argv[])
 
     if (optimize)
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 1; i++)
         {
             Mem2Reg m2r(unit);
             m2r.pass();
@@ -126,10 +130,12 @@ int main(int argc, char *argv[])
             sccp.pass(); // 常量传播
             MemoryOpt memopt(unit);
             memopt.pass(); // 访存优化
-            GlobalCodeMotion gcm(unit);
-            gcm.pass(); // 全局代码移动
             GVNPRE gvnpre(unit);
             gvnpre.pass(); // 部分冗余消除&循环不变外提
+            if(!noopt){
+                GlobalCodeMotion gcm(unit);
+                gcm.pass(); // 全局代码移动
+            }
             // // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除

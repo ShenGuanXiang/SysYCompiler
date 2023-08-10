@@ -9,11 +9,11 @@ static Operand *copyOperand(Operand *ope)
 }
 
 void Loop::PrintInfo() {
-    for (auto b : bb)
-        fprintf(stderr, "BasicBlock[%d] ", b->getNo());
+    // for (auto b : bb)
+    //     fprintf(stderr, "BasicBlock[%d] ", b->getNo());
     
-    fprintf(stderr, "\nisInerloop: %d\n", InnerLoop);
-    fprintf(stderr, "loopdepth: %d\n", loop_depth);
+    // fprintf(stderr, "\nisInerloop: %d\n", InnerLoop);
+    // fprintf(stderr, "loopdepth: %d\n", loop_depth);
 }
 
 Loop::Loop(std::set<BasicBlock*> origin_bb) {
@@ -23,11 +23,11 @@ Loop::Loop(std::set<BasicBlock*> origin_bb) {
 }
 
 void LoopStruct::PrintInfo() {
-    fprintf(stderr, "The loopstruct contains basicblock: ");
-    origin_loop->PrintInfo();
+    // fprintf(stderr, "The loopstruct contains basicblock: ");
+    // origin_loop->PrintInfo();
 
-    fprintf(stderr, "cond bb is %d\n", loopstruct.first->getNo());
-    fprintf(stderr, "body bb is %d\n", loopstruct.second->getNo());
+    // fprintf(stderr, "cond bb is %d\n", loopstruct.first->getNo());
+    // fprintf(stderr, "body bb is %d\n", loopstruct.second->getNo());
 }
 
 void LoopAnalyzer::Analyze(Function* f) {
@@ -54,7 +54,7 @@ void LoopAnalyzer::Get_REdge(BasicBlock* root) {
             auto Dom = t->getSDoms();
             if (*b == t || Dom.find(*b) != Dom.end()) {
                 edgeType.insert({t, *b});
-                fprintf(stderr, "Reverse_Edge from %d to %d\n", t->getNo(), (*b)->getNo());
+                // fprintf(stderr, "Reverse_Edge from %d to %d\n", t->getNo(), (*b)->getNo());
             }
             if (visit.find(*b) == visit.end()) 
                 q_edge.push(*b), visit.insert(*b);
@@ -84,9 +84,9 @@ std::set<BasicBlock*> LoopAnalyzer::computeNaturalLoop(BasicBlock* cond, BasicBl
                 loop.insert(*b);
             }
     }
-    for (auto l : loop)
-        fprintf(stderr, "bb[%d] in loop\n", l->getNo());
-    fprintf(stderr, "compute finish\n");
+    // for (auto l : loop)
+        // fprintf(stderr, "bb[%d] in loop\n", l->getNo());
+    // fprintf(stderr, "compute finish\n");
     return loop;
 }
 
@@ -100,9 +100,9 @@ void LoopAnalyzer::computeLoopDepth() {
         Loops.insert(loopstruct);
         for (auto& b : loop->GetBasicBlock()) {
             loopDepth[b] ++;
-            fprintf(stderr, "loop[%d] depth is %d\n", b->getNo(), loopDepth[b]);
+            // fprintf(stderr, "loop[%d] depth is %d\n", b->getNo(), loopDepth[b]);
         }
-        fprintf(stderr, "loop End\n");
+        // fprintf(stderr, "loop End\n");
     }
 }
 

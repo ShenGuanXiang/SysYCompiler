@@ -643,7 +643,13 @@ void GVNPRE::insert(Function *func)
             // TODO: find good time to clear new_sets
             BasicBlock *dom = bb->getIDom();
 
-            logf("visiting bb%d\n", bb->getNo());
+            logf("visiting bb%d,pred:\n", bb->getNo());
+            for(auto pred_it = bb->pred_begin(); pred_it != bb->pred_end(); pred_it++){
+                auto pred = *pred_it;
+                logf("bb%d ", pred->getNo());
+            }
+            logf(" %d in total\n", bb->getNumOfPred());
+
 
             // if(dom){
             //     // new_sets[bb].clear();
@@ -663,6 +669,8 @@ void GVNPRE::insert(Function *func)
                     { // v1 op v2 etc.
                         if (avail_out[dom].find_leader(lookup(e)))
                             continue;
+                        
+                        logf("%s\n", e.tostr().c_str());
 
                         std::unordered_map<BasicBlock *, Expr> avail;
                         bool by_some = false, all_same = true;
@@ -672,7 +680,7 @@ void GVNPRE::insert(Function *func)
                             auto pred = *pred_it;
                             // TODO: optimize 'phi_trans' to avoid calulating the whole set
                             Expr trans_e = phi_trans(e, pred, bb);
-                            // logf("%s->%s\n",e.tostr().c_str(),trans_e.tostr().c_str());
+                            logf("%s->%s\n",e.tostr().c_str(),trans_e.tostr().c_str());
                             ValueNr trans_val = lookup(trans_e);
                             if (Operand *temp_leader = avail_out[pred].find_leader(trans_val))
                             {

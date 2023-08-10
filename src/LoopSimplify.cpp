@@ -203,11 +203,10 @@ void SimpleLoop::simplify()
     BasicBlock *exit_bb = br->getTrueBranch() == body ? br->getFalseBranch() : br->getTrueBranch();
 
     // 现在induction增量为1的情况
-    if (inductions[ctrl_val].step->getEntry()->isConstant())
-    {
-        if (inductions[ctrl_val].step->getEntry()->getValue() != 1)
-            return;
-    }
+    if (!inductions[ctrl_val].step->getEntry()->isConstant())
+        return;
+    if (inductions[ctrl_val].step->getEntry()->getValue() != 1)
+        return;
     // 目前只处理等差数列
     if (!inductions.count(exit_var) || inductions[exit_var].op != BinaryInstruction::ADD)
         return;

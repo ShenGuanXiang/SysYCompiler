@@ -10,7 +10,7 @@ TIMING ?= 1
 
 INC = $(addprefix -I, $(INC_PATH))
 SRC = $(shell find $(SRC_PATH)  -name "*.cpp" -not -name "Main.cpp")
-CFLAGS = -O2 -g -Wall -std=c++17 $(INC)
+CFLAGS = -O0 -g -Wall -std=c++17 $(INC)
 FLEX ?= $(SRC_PATH)/lexer.l
 LEXER ?= $(addsuffix .cpp, $(basename $(FLEX)))
 BISON ?= $(SRC_PATH)/parser.y
@@ -55,6 +55,12 @@ run:app
 	@$(BINARY) -o debug.ll -i debug.sy -O2
 	@$(BINARY) -o debug.s -S debug.sy -O2
 	@opt -dot-cfg debug.ll
+
+old:app
+	@$(BINARY) -o old.ll -i debug.sy -O2 -D
+	@$(BINARY) -o old.s -S debug.sy -O2 -D
+	@opt -dot-cfg old.ll
+
 
 gdb:app
 	@gdb $(BINARY) 
