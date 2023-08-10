@@ -74,7 +74,6 @@ std::string ComSubExprElim::getOpString(Instruction *inst)
         }
         if (meaningless)
         {
-            printf("\n");
             return "MEANINGLESS_PHI";
         }
     }

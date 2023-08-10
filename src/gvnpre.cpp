@@ -502,6 +502,7 @@ void GVNPRE::buildSets(Function *func)
                     {
                         const auto &symentry = temp->getEntry();
                         // global, parameter, constant is available anywhere instinctly
+                        fprintf(stderr,"%s\n",symentry->toStr().c_str());
                         assert(symentry->isConstant() || symentry->isVariable());
                         // add a new value number
                         htable[temp] = temp;

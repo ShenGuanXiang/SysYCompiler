@@ -70,7 +70,6 @@ bool AutoInliner::ShouldBeinlined(Function *f)
 {
     return !is_recur[f];
 }
-
 void AutoInliner::pass()
 {
     SimplifyCFG sc(unit);

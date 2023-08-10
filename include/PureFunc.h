@@ -10,6 +10,7 @@ class PureFunc
 private:
     Unit *unit;
 
+    void funcElim();
 public:
     PureFunc(Unit *unit) : unit(unit){};
     void pass();

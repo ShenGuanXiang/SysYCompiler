@@ -440,6 +440,7 @@ void replaceLoadByNearestLoad(BasicBlock *bb)
 
 void PureFunc::pass()
 {
+    funcElim();
     pureFuncs.clear();
     func2read.clear();
     bb2dirtyse.clear();
@@ -460,5 +461,44 @@ void PureFunc::pass()
     for (auto func : unit->getFuncList())
     {
         clearRedundantPureCall(func);
+    }
+}
+
+void PureFunc::funcElim()
+{
+    unit->getCallGraph();
+    for(auto func_it = unit->begin();func_it!=unit->end();func_it++){
+        Function *func = *func_it;
+        if(dynamic_cast<IdentifierSymbolEntry*>(func->getSymPtr())->getName() == "main")
+            continue;
+        bool is_useless = true;
+        for(auto call_i : func->getCallersInsts()){
+            FuncCallInstruction* call = dynamic_cast<FuncCallInstruction*>(call_i);
+            if(call->hasNoDef()) continue;
+            if(call->getDef()->getUses().empty()) continue;
+            else{
+                is_useless = false;
+                break;
+            }
+        }
+        if(is_useless){
+            if(dynamic_cast<FunctionType*>(func->getSymPtr()->getType())->getRetType()->isVoid())
+                continue;
+            for(auto bb_it=func->begin();bb_it!=func->end();bb_it++){
+                BasicBlock* bb = *bb_it;
+                for(auto inst = bb->rbegin();inst!=bb->rend();inst=inst->getPrev()){
+                    if(inst->isRet()){
+                        assert(inst->getUses().size()==1);
+                        // inst->output();
+                        Operand* retop = inst->getUses()[0];
+                        bb->insertBefore(new RetInstruction(new Operand(new ConstantSymbolEntry(retop->getType(),0)))
+                        , inst);
+                        bb->remove(inst);
+                        delete inst;
+                        break;
+                    }
+                }
+            }
+        }
     }
 }
