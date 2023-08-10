@@ -22,7 +22,7 @@
 #include "PureFunc.h"
 #include "GlobalCodeMotion.h"
 #include "LoopSimplify.h"
-#include "Straighten.h"
+// #include "Straighten.h"
 
 Ast ast;
 Unit *unit = new Unit();
@@ -42,12 +42,11 @@ bool dump_ast = false;
 bool dump_ir = false;
 bool dump_asm = false;
 bool optimize = false;
-bool noopt = false;
 
 int main(int argc, char *argv[])
 {
     int opt;
-    while ((opt = getopt(argc, argv, "Siato:O::D::")) != -1)
+    while ((opt = getopt(argc, argv, "Siato:O::")) != -1)
     {
         switch (opt)
         {
@@ -68,9 +67,6 @@ int main(int argc, char *argv[])
             break;
         case 'O':
             optimize = true;
-            break;
-        case 'D':
-            noopt = true;
             break;
         default:
             fprintf(stderr, "Usage: %s [-o outfile] infile\n", argv[0]);
@@ -114,7 +110,7 @@ int main(int argc, char *argv[])
 
     if (optimize)
     {
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i < 4; i++)
         {
             Mem2Reg m2r(unit);
             m2r.pass();
@@ -124,7 +120,7 @@ int main(int argc, char *argv[])
             pf.pass(); // 纯函数清理
             AutoInliner autoinliner(unit);
             autoinliner.pass(); // 函数自动内联
-            // // TODO:其它中间代码优化
+            // TODO:其它中间代码优化
             AlgSimplify alsim(unit);
             alsim.pass(); // 代数化简
             SparseCondConstProp sccp(unit);
@@ -133,11 +129,9 @@ int main(int argc, char *argv[])
             memopt.pass(); // 访存优化
             GVNPRE gvnpre(unit);
             gvnpre.pass(); // 部分冗余消除&循环不变外提
-            if(!noopt){
-                GlobalCodeMotion gcm(unit);
-                gcm.pass(); // 全局代码移动
-            }
-            // // 循环展开
+            GlobalCodeMotion gcm(unit);
+            // gcm.pass(); // 全局代码移动
+            // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
             LoopSimplify ls(unit);
@@ -198,9 +192,9 @@ int main(int argc, char *argv[])
             mdce.pass(true); // 死代码消除
                              // 控制流优化 straighten
         }
-        Straighten st(mUnit);
-        st.pass();
-        st.pass2();
+        // Straighten st(mUnit);
+        // st.pass();
+        // st.pass2();
         fprintf(stderr, "asm generated\n");
         mUnit->output();
         fprintf(stderr, "asm output ok\n");

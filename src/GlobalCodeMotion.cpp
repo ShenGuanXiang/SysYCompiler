@@ -37,6 +37,9 @@ void GlobalCodeMotion::schedule_early(Instruction *inst)
     if(h.get_loop_depth(schedule_block[inst]) == h.get_loop_depth(inst->getParent())){
         schedule_block[inst] = inst->getParent();
     }
+    if(schedule_block[inst]->getNo() == inst->getParent()->getParent()->getEntry()->getNo()){
+        schedule_block[inst] = inst->getParent();
+    }
 }
 
 void GlobalCodeMotion::schedule_late(Instruction *inst)
@@ -70,6 +73,7 @@ void GlobalCodeMotion::schedule_late(Instruction *inst)
     if(uses_list.empty())
         lca = schedule_block[inst];
     BasicBlock* best = lca;
+    fprintf(stderr,"[gcm]:lca is %d\n",lca->getNo());
     // if(lca->getNo()!=schedule_block[inst]->getNo()){
     //     fprintf(stderr,"[gcm]%s:%d-%d->%d\n",inst->getDef()->toStr().c_str(),lca->getNo(),inst->getParent()->getNo(),schedule_block[inst]->getNo());
     //     fprintf(stderr,"------------------interesting----------------------\n");
@@ -140,33 +144,41 @@ void GlobalCodeMotion::pass(Function *func)
     }
     
     // schedule early
-    h.clear_visited(func);
-    for(auto pinned : pinned_insts){
-        h.visited[pinned] = true;
-    }
-    for(auto pinned : pinned_insts){
-        for(const auto input : pinned->getUses()){
-            if(input->getEntry()->isConstant() || input->getEntry()->isVariable()) 
-                continue;
-            Instruction* input_inst = input->getDef();
-            schedule_early(input_inst);
-        }
-    }
+    // 向前调度过于激进，导致的溢出过多，我们只保留向后调度
+
+    // h.clear_visited(func);
+    // for(auto pinned : pinned_insts){
+    //     h.visited[pinned] = true;
+    // }
+    // for(auto pinned : pinned_insts){
+    //     for(const auto input : pinned->getUses()){
+    //         if(input->getEntry()->isConstant() || input->getEntry()->isVariable()) 
+    //             continue;
+    //         Instruction* input_inst = input->getDef();
+    //         schedule_early(input_inst);
+    //     }
+    // }
 
     // sanity check
+    // for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
+    //     BasicBlock* bb = *bb_it;
+    //     for(auto inst = bb->begin();inst!=bb->end();inst=inst->getNext()){
+    //         if(!schedule_block.count(inst)){
+    //             inst->output();
+    //             assert(schedule_block.count(inst));
+    //         }
+    //     }
+    // }
+    // for(auto p : schedule_block){
+    //     assert(p.first);
+    // }
+
     for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
         BasicBlock* bb = *bb_it;
         for(auto inst = bb->begin();inst!=bb->end();inst=inst->getNext()){
-            if(!schedule_block.count(inst)){
-                inst->output();
-                assert(schedule_block.count(inst));
-            }
+            schedule_block[inst] = inst->getParent();        
         }
     }
-    for(auto p : schedule_block){
-        assert(p.first);
-    }
-
     // print_schedule();
     // schedule late
     h.clear_visited(func);
@@ -281,9 +293,9 @@ void Helper::compute_info(Function *func)
         }
     }
     
-    // for(auto p : loop_depth){
-    //     fprintf(stderr,"[gcm]bb%d:depth %d\n",p.first->getNo(),p.second);
-    // }
+    for(auto p : loop_depth){
+        fprintf(stderr,"[gcm]bb%d:depth %d\n",p.first->getNo(),p.second);
+    }
 
     // 计算插入点
     for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
