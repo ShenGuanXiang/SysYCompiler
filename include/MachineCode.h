@@ -272,6 +272,13 @@ public:
     BranchMInstruction(MachineBlock *p, int op,
                        MachineOperand *dst,
                        int cond = MachineInstruction::NONE);
+    void setTarget(MachineOperand *dst)
+    {
+        assert(this->op == B || this->op == BL && "不能修改target");
+        use_list.clear();
+        use_list.push_back(dst);
+        dst->setParent(this);
+    };
     void output();
 };
 
@@ -479,6 +486,7 @@ public:
     };
     bool hasLargeStack() { return largeStack; };
     void setLargeStack() { largeStack = true; };
+    void insertFront(MachineBlock *block) { this->block_list.insert(this->block_list.begin(), block); };
     void insertBlock(MachineBlock *block) { this->block_list.push_back(block); };
     void removeBlock(MachineBlock *block) { this->block_list.erase(std::find(block_list.begin(), block_list.end(), block)); };
     void addSavedRegs(int regno, bool is_sreg = false);
