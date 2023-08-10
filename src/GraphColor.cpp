@@ -227,7 +227,7 @@ bool RegisterAllocation::makeDuChains()
                     def->getParent()->getUse().size() == 1 && def->getParent()->getCond() == MachineInstruction::NONE)
                 {
                     auto src = def->getParent()->getUse()[0];
-                    if ((def->isVReg() && (src->isVReg() || isInterestingReg(src)) &&
+                    if ((def->isVReg() && (src->isVReg() /*|| isInterestingReg(src)*/) &&
                          (def->getValType()->isInt() && src->getValType()->isInt())) ||
                         *def == *src)
                     {
