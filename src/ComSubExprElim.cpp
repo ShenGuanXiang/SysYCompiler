@@ -161,7 +161,9 @@ void ComSubExprElim::dvnt(BasicBlock *bb)
         }
         else
         {
-            if (htable.count(instString))
+            //注意这个lvn只用于gcm，gcm不能将faulting instruction（DIV）
+            //向前移动，因此这里也不能消除
+            if (htable.count(instString) && instString.substr(0, 3) != "DIV" && instString.substr(0, 3) != "MOD")
             {
                 auto src = htable[instString];
                 torm.push_back(cur_inst);
@@ -231,7 +233,8 @@ void ComSubExprElim::pass1(BasicBlock *bb)
         }
         else
         {
-            if (htable.count(instString))
+            if (htable.count(instString) &&
+             instString.substr(0,3)!="DIV" && instString.substr(0,3)!="MOD")
             {
                 if (instString.substr(0, 3) == "PHI")
                     continue; // we cannot elminate phi here

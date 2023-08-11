@@ -135,6 +135,7 @@ void GlobalCodeMotion::pass(Function *func)
 
     // pin instructions
     std::set<Instruction*> pinned_insts;
+    std::set<Instruction*> faulting;
     for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
         BasicBlock* bb = *bb_it;
         for(auto inst = bb->begin();inst!=bb->end();inst=inst->getNext()){
@@ -142,12 +143,18 @@ void GlobalCodeMotion::pass(Function *func)
             if(h.is_pinned(inst)){
                 pinned_insts.insert(inst);
             }
+            else if(inst->isBinary()){
+                auto opcpde = dynamic_cast<BinaryInstruction*>(inst)->getOpcode();
+                if(opcpde==BinaryInstruction::DIV || opcpde==BinaryInstruction::MOD){
+                    faulting.insert(inst);
+                    pinned_insts.insert(inst);
+                    // div instruction cannont be hoisted forward
+                }
+            }
         }
     }
     
     // schedule early
-    // 向前调度过于激进，导致的溢出过多，我们只保留向后调度
-
     h.clear_visited(func);
     for(auto pinned : pinned_insts){
         h.visited[pinned] = true;
@@ -162,6 +169,7 @@ void GlobalCodeMotion::pass(Function *func)
     }
 
     // sanity check
+    // pin指令的block貌似是0？
     for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
         BasicBlock* bb = *bb_it;
         for(auto inst = bb->begin();inst!=bb->end();inst=inst->getNext()){
@@ -182,22 +190,22 @@ void GlobalCodeMotion::pass(Function *func)
     //     }
     // }
     // print_schedule();
+
+
+    //div instruction can be hoisted backward
+    std::set<Instruction*> tmp;
+    for(auto i : faulting){
+        schedule_block[i] = i->getParent();
+    }
+    std::set_difference(pinned_insts.begin(),pinned_insts.end(),faulting.begin(),faulting.end(),std::inserter(tmp,tmp.begin()));
+    pinned_insts.clear();
+    pinned_insts = tmp;
+
     // schedule late
     h.clear_visited(func);
     for(auto pinned : pinned_insts){
         h.visited[pinned] = true;
     }
-    // following code is used to remove pinned load, but not correct 
-    // std::vector<Instruction*> rm_list;
-    // for(auto pinned : pinned_insts){
-    //     if(pinned->isLoad())
-    //         rm_list.push_back(pinned);
-    //     else
-    //         h.visited[pinned] = true;
-    // }
-    // for(auto pinned : rm_list){
-    //     pinned_insts.erase(pinned);
-    // }
     for(auto pinned : pinned_insts){
         if(pinned->hasNoDef())
             continue;

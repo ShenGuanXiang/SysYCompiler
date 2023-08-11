@@ -27,8 +27,9 @@ public:
     BasicBlock* find_lca(BasicBlock* a,BasicBlock* b);
     bool is_pinned(Instruction* inst){
         return inst->isPHI() || inst->isRet() || inst->isCond() || inst->isUncond() || inst->isStore() || inst->isLoad() 
-        || inst->isCall() || inst->isCmp();// || inst->isGep();
+        || inst->isCall() || inst->isCmp();
     }
+    // TODO：抛出异常的指令不能向前移动
 };
 
 class GlobalCodeMotion{
