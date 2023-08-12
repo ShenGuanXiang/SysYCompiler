@@ -110,32 +110,32 @@ int main(int argc, char *argv[])
 
     if (optimize)
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 1; i++)
         {
             Mem2Reg m2r(unit);
             m2r.pass();
-            ComSubExprElim cse(unit);
-            cse.pass3(); // 公共子表达式消除
-            PureFunc pf(unit);
-            pf.pass(); // 纯函数清理
-            AutoInliner autoinliner(unit);
-            autoinliner.pass(); // 函数自动内联
-            // TODO:其它中间代码优化
-            AlgSimplify alsim(unit);
-            alsim.pass(); // 代数化简
-            SparseCondConstProp sccp(unit);
-            sccp.pass(); // 常量传播
+            // ComSubExprElim cse(unit);
+            // cse.pass3(); // 公共子表达式消除
+            // PureFunc pf(unit);
+            // pf.pass(); // 纯函数清理
+            // AutoInliner autoinliner(unit);
+            // autoinliner.pass(); // 函数自动内联
+            // // TODO:其它中间代码优化
+            // AlgSimplify alsim(unit);
+            // alsim.pass(); // 代数化简
+            // SparseCondConstProp sccp(unit);
+            // sccp.pass(); // 常量传播
             MemoryOpt memopt(unit);
             memopt.pass(); // 访存优化
             GVNPRE gvnpre(unit);
             gvnpre.pass(); // 部分冗余消除&循环不变外提
-            GlobalCodeMotion gcm(unit);
-            gcm.pass(); // 全局代码移动
+            // GlobalCodeMotion gcm(unit);
+            // gcm.pass(); // 全局代码移动
             // // 循环展开
-            DeadCodeElim dce(unit);
-            dce.pass(); // 死代码删除
-            LoopSimplify ls(unit);
-            ls.pass(); // scalar evolution
+            // DeadCodeElim dce(unit);
+            // dce.pass(); // 死代码删除
+            // LoopSimplify ls(unit);
+            // ls.pass(); // scalar evolution
         }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
@@ -173,8 +173,11 @@ int main(int argc, char *argv[])
             RegisterAllocation registerAllocation(mUnit);
             registerAllocation.pass();
         }
-        LinearScan linearScan(mUnit);
-        linearScan.pass();
+        else
+        {
+            LinearScan linearScan(mUnit);
+            linearScan.pass();
+        }
         if (optimize)
         {
             // TODO: 汇编代码优化
