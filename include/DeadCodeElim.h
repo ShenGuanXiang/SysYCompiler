@@ -21,7 +21,7 @@ private:
 public:
     DeadCodeElim(Unit *unit) : unit(unit){};
     void deadInstrMark(Function *f);
-    void deadInstrEliminate(Function *f);
+    bool deadInstrEliminate(Function *f);
     BasicBlock* get_nearest_dom(Instruction *instr);
     void pass(Function *func);
     void pass();

@@ -29,9 +29,6 @@ private:
     std::set<Instruction *> callers_instr;
     std::set<Instruction *> callees_instr;
 
-    // DCE
-    int iscritical = -1;
-
 public:
     Function(Unit *, SymbolEntry *);
     ~Function();
@@ -73,14 +70,13 @@ public:
     void ComputeRDom();
     void ComputeRiDom();
     void ComputeRDF();
-    bool isCritical();
     std::set<BasicBlock *> getExits();
 
     // AutoInline
     std::set<Function *> &getCallers() { return callers; };
     std::set<Instruction *> &getCallersInsts() { return callers_instr; };
     std::set<Function *> &getCallees() { return callees; };
-    std::set<Instruction*>&getCalleesInsts(){return callees_instr;};
+    std::set<Instruction *> &getCalleesInsts() { return callees_instr; };
 };
 
 #endif

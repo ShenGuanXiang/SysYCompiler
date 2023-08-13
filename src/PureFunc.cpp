@@ -14,7 +14,7 @@ static inline bool isImportantSe(SymbolEntry *se)
 }
 
 // get pureFuncs、func2read、bb2dirtyse、unknownbb2dirty
-static bool analyzeFunc(Function *func)
+bool analyzeFunc(Function *func)
 {
     bool isPure = true;
     func2read[func];

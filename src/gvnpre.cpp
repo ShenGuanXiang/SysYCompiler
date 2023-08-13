@@ -457,7 +457,7 @@ void GVNPRE::gvnpre(Function *func)
     //     logf("\n");
     // }
     elminate(func);
-    fprintf(stderr, "[GVNPRE]:done.\n");
+    // fprintf(stderr, "[GVNPRE]:done.\n");
 }
 
 void GVNPRE::buildSets(Function *func)
@@ -502,7 +502,7 @@ void GVNPRE::buildSets(Function *func)
                     {
                         const auto &symentry = temp->getEntry();
                         // global, parameter, constant is available anywhere instinctly
-                        fprintf(stderr,"%s\n",symentry->toStr().c_str());
+                        fprintf(stderr, "%s\n", symentry->toStr().c_str());
                         assert(symentry->isConstant() || symentry->isVariable());
                         // add a new value number
                         htable[temp] = temp;
@@ -615,7 +615,7 @@ void GVNPRE::buildAntic(Function *func)
                     q.push(*succ_it);
         }
     }
-    fprintf(stderr, "[GVNPRE]:build antic iterate over %d times\n", iter);
+    // fprintf(stderr, "[GVNPRE]:build antic iterate over %d times\n", iter);
 }
 
 void GVNPRE::insert(Function *func)
@@ -645,12 +645,12 @@ void GVNPRE::insert(Function *func)
             BasicBlock *dom = bb->getIDom();
 
             logf("visiting bb%d,pred:\n", bb->getNo());
-            for(auto pred_it = bb->pred_begin(); pred_it != bb->pred_end(); pred_it++){
+            for (auto pred_it = bb->pred_begin(); pred_it != bb->pred_end(); pred_it++)
+            {
                 auto pred = *pred_it;
                 logf("bb%d ", pred->getNo());
             }
             logf(" %d in total\n", bb->getNumOfPred());
-
 
             // if(dom){
             //     // new_sets[bb].clear();
@@ -670,7 +670,7 @@ void GVNPRE::insert(Function *func)
                     { // v1 op v2 etc.
                         if (avail_out[dom].find_leader(lookup(e)))
                             continue;
-                        
+
                         logf("%s\n", e.tostr().c_str());
 
                         std::unordered_map<BasicBlock *, Expr> avail;
@@ -681,7 +681,7 @@ void GVNPRE::insert(Function *func)
                             auto pred = *pred_it;
                             // TODO: optimize 'phi_trans' to avoid calulating the whole set
                             Expr trans_e = phi_trans(e, pred, bb);
-                            logf("%s->%s\n",e.tostr().c_str(),trans_e.tostr().c_str());
+                            logf("%s->%s\n", e.tostr().c_str(), trans_e.tostr().c_str());
                             ValueNr trans_val = lookup(trans_e);
                             if (Operand *temp_leader = avail_out[pred].find_leader(trans_val))
                             {
@@ -816,7 +816,7 @@ void GVNPRE::insert(Function *func)
         //     new_sets[bb].clear();
         // }
     }
-    fprintf(stderr, "[GVNPRE]:insert iterate over %d times,insert %d expressions, %d phis\n", iter, expr_cnt, phi_cnt);
+    // fprintf(stderr, "[GVNPRE]:insert iterate over %d times,insert %d expressions, %d phis\n", iter, expr_cnt, phi_cnt);
 }
 
 void GVNPRE::elminate(Function *func)
@@ -849,7 +849,7 @@ void GVNPRE::elminate(Function *func)
             }
         }
     }
-    fprintf(stderr, "[GVNPRE]:eliminate %d instructions\n", (int)torm.size());
+    // fprintf(stderr, "[GVNPRE]:eliminate %d instructions\n", (int)torm.size());
     for (auto i : torm)
     {
         // i->output();
