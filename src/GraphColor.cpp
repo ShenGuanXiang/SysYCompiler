@@ -8,26 +8,43 @@
 
 // static const double __DBL_MAX__ = 10000000000;
 
-static bool debug1 = 0;
+// TODO：加if-else深度、调loop_depth、+live_range
+
+static bool debug1 = 1;
 
 static std::set<MachineInstruction *> freeInsts; // def not use & coalesced mov insts
 
-// real reg -> 0 ~ nreg
-static int Reg2WebIdx(int Reg)
+static bool is_float = false;
+
+static bool isRightType(MachineOperand *op)
 {
+    return ((op->getValType()->isInt() && !is_float) || (op->getValType()->isFloat() && is_float));
+}
+
+// real reg -> 0 ~ nreg
+static inline int Reg2WebIdx(int Reg)
+{
+    if (is_float)
+    {
+        return 4 <= Reg && Reg <= 31 ? Reg - 4 : -1;
+    }
     return Reg == 14 ? 13 : Reg <= 12 ? Reg
                                       : -1;
 }
 
 // 0 ~ nreg -> real reg
-static int WebIdx2Reg(int Idx)
+static inline int WebIdx2Reg(int Idx)
 {
+    if (is_float)
+    {
+        return Idx + 4;
+    }
     return Idx == 13 ? 14 : Idx;
 }
 
-static bool isInterestingReg(MachineOperand *op)
+static inline bool isInterestingReg(MachineOperand *op)
 {
-    return op->isReg() && op->getValType()->isInt() && Reg2WebIdx(op->getReg()) != -1;
+    return op->isReg() && isRightType(op) && Reg2WebIdx(op->getReg()) != -1;
 }
 
 static bool isImmWeb(Web *web)
@@ -35,7 +52,7 @@ static bool isImmWeb(Web *web)
     if (web->defs.size() != 1 || web->uses.size() == 1)
         return false;
     auto minst = (*web->defs.begin())->getParent();
-    return (minst->isMov() || minst->isLoad()) && minst->getUse().size() == 1 && minst->getUse()[0]->isImm();
+    return (minst->isMov() || minst->isLoad()) && minst->getUse().size() == 1 && minst->getUse()[0]->isImm() && minst->getUse()[0]->getValType()->isInt();
 }
 
 RegisterAllocation::RegisterAllocation(MachineUnit *unit)
@@ -46,88 +63,99 @@ RegisterAllocation::RegisterAllocation(MachineUnit *unit)
 
 void RegisterAllocation::pass()
 {
-    for (auto &f : unit->getFuncs())
+    for (int i = 0; i < 2; i++)
     {
-        func = f;
-        bool success = false;
-        while (!success)
+        for (auto &f : unit->getFuncs())
         {
-            bool change = true;
-            while (change)
+            func = f;
+            bool success = false;
+            while (!success)
             {
-                // 发现du链中所有的网
-                if (makeWebs() == false)
-                    return;
-                if (debug1)
-                    fprintf(stderr, "makeWebs\n");
-                // 构造冲突矩阵
-                buildAdjMatrix();
-                if (debug1)
-                    fprintf(stderr, "buildAdjMatrix\n");
-                // 寄存器合并
-                // change = regCoalesce();
-                change = false;
-                if (debug1)
-                    fprintf(stderr, "regCoalesce\n");
-            }
-            // 构造邻接表
-            buildAdjLists();
-            if (debug1)
-                fprintf(stderr, "buildAdjLists\n");
-            // 计算符号寄存器溢出到内存和从内存恢复的开销
-            computeSpillCosts();
-            if (debug1)
-            {
-                for (int i = nregs; i < webs.size(); i++)
+                bool change = true;
+                while (change)
                 {
-                    webs[i]->Print();
+                    // 发现du链中所有的网
+                    makeWebs();
+                    if (debug1)
+                        fprintf(stderr, "makeWebs\n");
+                    // 构造冲突矩阵
+                    buildAdjMatrix();
+                    if (debug1)
+                        fprintf(stderr, "buildAdjMatrix\n");
+                    // 寄存器合并
+                    change = regCoalesce();
+                    if (debug1)
+                        fprintf(stderr, "regCoalesce\n");
+                }
+                // 构造邻接表
+                buildAdjLists();
+                if (debug1)
+                    fprintf(stderr, "buildAdjLists\n");
+                // 计算符号寄存器溢出到内存和从内存恢复的开销
+                computeSpillCosts();
+                if (debug1)
+                {
+                    for (int i = nregs; i < webs.size(); i++)
+                    {
+                        webs[i]->Print();
+                    }
+                }
+                if (debug1)
+                    fprintf(stderr, "computeSpillCosts\n");
+                //
+                pruneGraph();
+                if (debug1)
+                    fprintf(stderr, "pruneGraph\n");
+                // 着色
+                success = assignRegs();
+                if (debug1)
+                    fprintf(stderr, "assignRegs\n");
+                if (debug1)
+                {
+                    for (int i = nregs; i < webs.size(); i++)
+                    {
+                        webs[i]->Print();
+                    }
+                }
+                if (success)
+                    // 将颜色替换为真实寄存器
+                    modifyCode();
+                else
+                {
+                    // 产生溢出指令
+                    genSpillCode();
+                    if (debug1)
+                        fprintf(stderr, "genSpillCode\n");
+                }
+                if (debug1)
+                {
+                    for (int i = nregs; i < webs.size(); i++)
+                    {
+                        webs[i]->Print();
+                    }
                 }
             }
+
             if (debug1)
-                fprintf(stderr, "computeSpillCosts\n");
-            //
-            pruneGraph();
-            if (debug1)
-                fprintf(stderr, "pruneGraph\n");
-            // 着色
-            success = assignRegs();
-            if (debug1)
-                fprintf(stderr, "assignRegs\n");
-            if (debug1)
-            {
-                for (int i = nregs; i < webs.size(); i++)
-                {
-                    webs[i]->Print();
-                }
-            }
-            if (success)
-                // 将颜色替换为真实寄存器
-                modifyCode();
-            else
-            {
-                // 产生溢出指令
-                genSpillCode();
-                if (debug1)
-                    fprintf(stderr, "genSpillCode\n");
-            }
-            if (debug1)
-            {
-                for (int i = nregs; i < webs.size(); i++)
-                {
-                    webs[i]->Print();
-                }
-            }
+                fprintf(stderr, "\n pass %s\n", dynamic_cast<IdentifierSymbolEntry *>(f->getSymPtr())->getName().c_str());
         }
+        nregs = 28;
+        is_float = true;
+
+        for (auto web : webs)
+            delete web;
+        webs.clear();
     }
-    if (debug1)
-        fprintf(stderr, "\n pass\n");
 
     for (auto inst : freeInsts)
         delete inst;
     freeInsts.clear();
+    for (auto web : webs)
+        delete web;
+    webs.clear();
 }
 
-bool RegisterAllocation::makeDuChains()
+void RegisterAllocation::makeDuChains()
 {
     bool change;
     do
@@ -142,14 +170,14 @@ bool RegisterAllocation::makeDuChains()
             liveVar.clear();
             for (auto &t : bb->getLiveOut())
             {
-                if (t->getValType()->isInt() && (t->isVReg() || isInterestingReg(t)))
+                if ((t->isVReg() || isInterestingReg(t)) && isRightType(t))
                     liveVar[*t].insert(t);
             }
             for (auto inst = bb->getInsts().rbegin(); inst != bb->getInsts().rend(); inst++)
             {
                 for (auto &def : (*inst)->getDef())
                 {
-                    if (def->getValType()->isInt() && (def->isVReg() || isInterestingReg(def)))
+                    if ((def->isVReg() || isInterestingReg(def)) && isRightType(def))
                     {
                         auto &uses = liveVar[*def];
                         du_chains[*def].insert({{def}, std::set<MachineOperand *>(uses.begin(), uses.end())});
@@ -161,15 +189,11 @@ bool RegisterAllocation::makeDuChains()
                             liveVar[*def] = res;
                         }
                     }
-                    if (def->isReg() && def->getValType()->isFloat())
-                        return false;
                 }
                 for (auto &use : (*inst)->getUse())
                 {
-                    if (use->getValType()->isInt() && (use->isVReg() || isInterestingReg(use)))
+                    if ((use->isVReg() || isInterestingReg(use)) && isRightType(use))
                         liveVar[*use].insert(use);
-                    if (use->isReg() && use->getValType()->isFloat())
-                        return false;
                 }
             }
         }
@@ -212,160 +236,9 @@ bool RegisterAllocation::makeDuChains()
                 du_iter++;
             }
         }
-        //*****************************************************************************
-        // coalesce： 删除一些mov，但会延长生命期
-        for (auto &du_chain : du_chains)
-        {
-            auto du_chain_second_copy = du_chain.second;
-            auto du_iter = du_chain_second_copy.begin();
-            while (du_iter != du_chain_second_copy.end())
-            {
-                auto du = *du_iter;
-                assert(du.defs.size() == 1);
-                auto def = *du.defs.begin();
-                if ((def->getParent()->isMov() || def->getParent()->isVmov() || def->getParent()->isZext()) &&
-                    def->getParent()->getUse().size() == 1 && def->getParent()->getCond() == MachineInstruction::NONE)
-                {
-                    auto src = def->getParent()->getUse()[0];
-                    if ((def->isVReg() && (src->isVReg() /*|| isInterestingReg(src)*/) &&
-                         (def->getValType()->isInt() && src->getValType()->isInt())) ||
-                        *def == *src)
-                    {
-                        assert(du_chains.count(*src));
-                        if (def->getParent()->isZext())
-                            assert(du_chains[*src].size() == 2);
-                        else if (du_chains[*def].size() > 1 || du_chains[*src].size() > 1)
-                        {
-                            bool eliminable = true;
-                            for (auto &du : du_chains[*def])
-                                if ((*du.defs.begin())->getParent()->getParent() != (*(*du_chains[*def].begin()).defs.begin())->getParent()->getParent() || (*du.defs.begin())->getParent()->getCond() != MachineInstruction::NONE)
-                                {
-                                    eliminable = false;
-                                    break;
-                                }
-                            for (auto &du : du_chains[*src])
-                                if ((*du.defs.begin())->getParent()->getParent() != (*(*du_chains[*src].begin()).defs.begin())->getParent()->getParent() || (*du.defs.begin())->getParent()->getCond() != MachineInstruction::NONE)
-                                {
-                                    eliminable = false;
-                                    break;
-                                }
-                            if (!eliminable)
-                            {
-                                du_iter++;
-                                continue;
-                            }
-                            else
-                            {
-                                std::vector<MachineOperand *> oldOps, newOps;
-                                for (auto &inst : def->getParent()->getParent()->getInsts())
-                                {
-                                    if (inst->getNo() <= def->getParent()->getNo())
-                                        continue;
-                                    bool redef = false;
-                                    for (auto it = inst->getUse().begin(); it != inst->getUse().end(); it++)
-                                        if (**it == *def)
-                                        {
-                                            oldOps.push_back(*it);
-                                            *it = new MachineOperand(*src);
-                                            (*it)->setParent(inst);
-                                            newOps.push_back(*it);
-                                        }
-                                    for (auto inst_def : inst->getDef())
-                                        if (*inst_def == *def || *inst_def == *src)
-                                            redef = true;
-                                    if (redef)
-                                        break;
-                                }
-                                if (!oldOps.empty() && !(*def == *src))
-                                    change = true;
-                                if (oldOps.size() < du.uses.size())
-                                {
-                                    std::vector<RegisterAllocation::DU> v_def;
-                                    v_def.assign(du_chains[*def].begin(), du_chains[*def].end());
-                                    du_chains[*def].clear();
-                                    for (auto oldOp : oldOps)
-                                    {
-                                        int cnt = 0;
-                                        for (size_t i = 0; i != v_def.size(); i++)
-                                        {
-                                            if (v_def[i].uses.find(oldOp) != v_def[i].uses.end())
-                                            {
-                                                assert(cnt == 0);
-                                                cnt++;
-                                                v_def[i].uses.erase(oldOp);
-                                            }
-                                        }
-                                    }
-                                    for (size_t i = 0; i != v_def.size(); i++)
-                                        du_chains[*def].insert(v_def[i]);
-                                }
-                                else
-                                {
-                                    assert(oldOps.size() == du.uses.size());
-                                    def->getParent()->getParent()->removeInst(def->getParent());
-                                    freeInsts.insert(def->getParent());
-                                    du_chain.second.erase(du);
-                                }
-                                std::vector<RegisterAllocation::DU> v_src;
-                                v_src.assign(du_chains[*src].begin(), du_chains[*src].end());
-                                du_chains[*src].clear();
-                                int cnt = 0;
-                                for (size_t i = 0; i != v_src.size(); i++)
-                                {
-                                    if (v_src[i].uses.find(src) != v_src[i].uses.end())
-                                    {
-                                        assert(cnt == 0);
-                                        cnt++;
-                                        for (auto newOp : newOps)
-                                            v_src[i].uses.insert(newOp);
-                                    }
-                                    du_chains[*src].insert(v_src[i]);
-                                }
-                                du_iter++;
-                                continue;
-                            }
-                        }
-                        change = true;
-                        std::vector<MachineOperand *> newOps;
-                        for (auto use : du.uses)
-                        {
-                            auto inst = use->getParent();
-                            for (auto iter = inst->getUse().begin(); iter != inst->getUse().end(); iter++)
-                            {
-                                if (*iter == use)
-                                {
-                                    *iter = new MachineOperand(*src);
-                                    (*iter)->setParent(inst);
-                                    newOps.push_back(*iter);
-                                }
-                            }
-                        }
-                        std::vector<RegisterAllocation::DU> v;
-                        v.assign(du_chains[*src].begin(), du_chains[*src].end());
-                        du_chains[*src].clear();
-                        for (size_t i = 0; i != v.size(); i++)
-                        {
-                            if (v[i].uses.find(src) != v[i].uses.end())
-                            {
-                                for (auto newOp : newOps)
-                                    v[i].uses.insert(newOp);
-                                v[i].uses.erase(src);
-                            }
-                            du_chains[*src].insert(v[i]);
-                        }
-                        def->getParent()->getParent()->removeInst(def->getParent());
-                        freeInsts.insert(def->getParent());
-                        du_chain.second.erase(du);
-                        du_iter++;
-                        continue;
-                    }
-                }
-                du_iter++;
-            }
-        }
     } while (change);
     //**********************************************************************************
-    // 合并相同MachineOperand的多个def
+    // 合并交叉的chain
     for (auto &du_chain : du_chains)
     {
         bool change;
@@ -401,51 +274,47 @@ bool RegisterAllocation::makeDuChains()
             }
         } while (change);
     }
-    return true;
 }
 
-bool RegisterAllocation::makeWebs()
+void RegisterAllocation::makeWebs()
 {
-    if (makeDuChains() == false)
-        return false;
+    makeDuChains();
     webs.clear();
     operand2web.clear();
+
+    for (int i = 0; i < nregs; i++)
+    {
+        // sreg = -1, rreg = idx2reg, spillCost = INF
+        Web *regWeb = new Web({std::set<MachineOperand *>(), std::set<MachineOperand *>(), false, __DBL_MAX__ / 2, -1, -1, WebIdx2Reg(i)});
+        webs.push_back(regWeb);
+    }
+
+    int idx = nregs;
     for (auto &du_chain : du_chains)
     {
         for (auto &du : du_chain.second)
         {
-            Web *web;
-            double initSpillCost = 0;
             if (du_chain.first.isReg())
             {
-                initSpillCost = __DBL_MAX__ / 2;
+                for (auto &def : du.defs)
+                    operand2web[def] = Reg2WebIdx(def->getReg());
+                for (auto &use : du.uses)
+                    operand2web[use] = Reg2WebIdx(use->getReg());
             }
-            // sreg = -1, rreg = -1
-            web = new Web({du.defs, du.uses, false, initSpillCost, -1, -1, -1});
-            webs.push_back(web);
+            else
+            {
+                // sreg = -1, rreg = -1, spillCost = 0
+                Web *web = new Web({du.defs, du.uses, false, 0, -1, -1, -1});
+                webs.push_back(web);
+                web->sreg = idx;
+                for (auto &def : web->defs)
+                    operand2web[def] = idx;
+                for (auto &use : web->uses)
+                    operand2web[use] = idx;
+                idx++;
+            }
         }
     }
-    int idx = nregs;
-    for (auto &web : webs)
-    {
-        web->sreg = idx;
-        for (auto &def : web->defs)
-            operand2web[def] = idx;
-        for (auto &use : web->uses)
-            operand2web[use] = idx;
-        idx++;
-    }
-
-    std::vector<Web *> rregWebs;
-    for (int i = 0; i < nregs; i++)
-    {
-        // sreg = -1, rreg = idx2reg
-        Web *reg = new Web({std::set<MachineOperand *>(), std::set<MachineOperand *>(), false, __DBL_MAX__ / 2, -1, -1, WebIdx2Reg(i)});
-        rregWebs.push_back(reg);
-    }
-
-    webs.insert(webs.begin(), rregWebs.begin(), rregWebs.end());
-    return true;
 }
 
 // build the adjacency matrix representation of the interference graph
@@ -453,6 +322,7 @@ void RegisterAllocation::buildAdjMatrix()
 {
     func->AnalyzeLiveVariable();
 
+    adjMtx.clear();
     adjMtx.resize(webs.size());
     for (int i = 0; i < (int)webs.size(); i++)
         adjMtx[i].resize(webs.size());
@@ -470,27 +340,10 @@ void RegisterAllocation::buildAdjMatrix()
         }
     }
 
-    // pre-allocation
-    for (int i = nregs; i < (int)webs.size(); i++)
-    {
-        MachineOperand *def = *webs[i]->defs.begin();
-        if (!def->isReg())
-            continue;
-        assert(isInterestingReg(def));
-        webs[i]->rreg = def->getReg();
-        int u = operand2web[def];
-        for (int j = 0; j < nregs; j++)
-        {
-            if (j == Reg2WebIdx(webs[i]->rreg))
-                continue;
-            adjMtx[u][j] = 1;
-            adjMtx[j][u] = 1;
-        }
-    }
-
     for (auto &bb : func->getBlocks())
     {
         auto livenow = bb->getLiveOut();
+        std::map<MachineOperand, int> condCnt;
         for (auto inst = bb->getInsts().rbegin(); inst != bb->getInsts().rend(); inst++)
         {
             auto defs = (*inst)->getDef();
@@ -508,7 +361,25 @@ void RegisterAllocation::buildAdjMatrix()
                         adjMtx[v][u] = 1;
                     }
                 }
-                if ((*inst)->getCond() == MachineInstruction::NONE)
+                bool flag = true;
+                if ((*inst)->getCond() != MachineInstruction::NONE)
+                {
+                    if (du_chains[*def].size() != 1)
+                        flag = false;
+                    else
+                    {
+                        auto du = *du_chains[*def].begin();
+                        if (du.defs.size() > 1 && (!condCnt.count(**du.defs.begin()) || condCnt[**du.defs.begin()] < du.defs.size() - 1))
+                        {
+                            flag = false;
+                            if (!condCnt.count(**du.defs.begin()))
+                                condCnt[**du.defs.begin()] = 0;
+                            else
+                                condCnt[**du.defs.begin()]++;
+                        }
+                    }
+                }
+                if (flag)
                 {
                     auto &kill = func->getAllUses()[*def];
                     std::set<MachineOperand *> res;
@@ -525,6 +396,7 @@ void RegisterAllocation::buildAdjMatrix()
 // build the adjacency list representation of the inteference graph
 void RegisterAllocation::buildAdjLists()
 {
+    adjList.clear();
     adjList.resize(adjMtx.size(), std::set<int>());
 
     for (size_t u = 0; u < adjMtx.size(); u++)
@@ -558,7 +430,7 @@ void RegisterAllocation::computeSpillCosts()
 
     for (auto &bb : func->getBlocks())
     {
-        // double factor = pow(4, loop_depth[bb]); // TODO：加if-else深度、调loop_depth
+        // double factor = pow(4, loop_depth[bb]);
         // double factor = 10 * loop_depth[bb];
         double factor = 1.f;
         for (auto &inst : bb->getInsts())
@@ -571,22 +443,22 @@ void RegisterAllocation::computeSpillCosts()
                 int w = operand2web[def];
 
                 if (isImmWeb(webs[w]))
-                    webs[w]->spillCost -= factor * 200;
+                    webs[w]->spillCost -= factor * adjList[w].size();
 
-                webs[w]->spillCost += factor * 2;
+                webs[w]->spillCost += factor * 20;
 
                 if (inst->isMov())
-                    webs[w]->spillCost -= factor;
+                    webs[w]->spillCost -= factor * 10;
             }
             for (auto &use : inst->getUse())
             {
                 if (!operand2web.count(use))
                     continue;
                 int w = operand2web[use];
-                webs[w]->spillCost += factor * 4;
+                webs[w]->spillCost += factor * 40;
 
                 if (inst->isMov())
-                    webs[w]->spillCost -= factor;
+                    webs[w]->spillCost -= factor * 10;
             }
         }
     }
@@ -606,16 +478,16 @@ void RegisterAllocation::adjustIG(int i)
 void RegisterAllocation::pruneGraph()
 {
     pruneStack.clear();
-    for (size_t i = 0; i < adjList.size(); i++)
+    for (size_t i = nregs; i < adjList.size(); i++)
         if (adjList[i].size() == 0)
             pruneStack.push_back(i);
     bool success = true;
     while (success)
     {
         success = false;
-        for (size_t i = 0; i < adjList.size(); i++)
+        for (size_t i = nregs; i < adjList.size(); i++)
         {
-            if (adjList[i].size() > 0 && adjList[i].size() < (size_t)nregs && webs[i]->rreg == -1)
+            if (adjList[i].size() > 0 && adjList[i].size() < (size_t)nregs)
             {
                 success = true;
                 pruneStack.push_back(i);
@@ -623,18 +495,18 @@ void RegisterAllocation::pruneGraph()
             }
         }
     }
-    while (pruneStack.size() < adjList.size())
+    while (pruneStack.size() < adjList.size() - nregs)
     {
         double minSpillCost = __DBL_MAX__;
         int spillnode = -1;
-        for (size_t i = 0; i < adjList.size(); i++)
+        for (size_t i = nregs; i < adjList.size(); i++)
         {
             int deg = adjList[i].size();
             if (deg == 0)
                 continue;
-            if (webs[i]->spillCost / deg < minSpillCost)
+            if (webs[i]->spillCost / (deg * deg) < minSpillCost)
             {
-                minSpillCost = webs[i]->spillCost / deg;
+                minSpillCost = webs[i]->spillCost / (deg * deg);
                 spillnode = i;
             }
         }
@@ -652,7 +524,7 @@ bool RegisterAllocation::regCoalesce()
     {
         for (auto &inst : bb->getInsts())
         {
-            if (!(inst->isMov() || inst->isVmov() || inst->isZext()) || inst->isMovShift() || inst->getCond() != MachineInstruction::NONE)
+            if (!(inst->isMov() || inst->isVmov() || inst->isZext()) || inst->getUse().size() != 1 || inst->getDef().size() != 1 || inst->getCond() != MachineInstruction::NONE)
                 continue;
             MachineOperand *dst = *inst->getDef().begin();
             MachineOperand *src = *inst->getUse().begin();
@@ -662,7 +534,7 @@ bool RegisterAllocation::regCoalesce()
                 continue;
             if (operand2web.find(src) == operand2web.end())
                 continue;
-            if ((dst->isReg() && !isInterestingReg(dst)) || (src->isReg() && !isInterestingReg(src)))
+            if (dst->isReg() || (src->isReg() && !isInterestingReg(src)))
                 continue;
             int u = operand2web[dst];
             int v = operand2web[src];
@@ -679,7 +551,7 @@ bool RegisterAllocation::regCoalesce()
                     webs[v]->uses.insert(new_version);
                     for (int i = 0; i < parent->getUse().size(); i++)
                     {
-                        if (*parent->getUse()[i] == *use)
+                        if (parent->getUse()[i] == use)
                         {
                             parent->getUse()[i] = new_version;
                             parent->getUse()[i]->setParent(parent);
@@ -694,7 +566,7 @@ bool RegisterAllocation::regCoalesce()
                     webs[v]->defs.insert(new_version);
                     for (int i = 0; i < parent->getDef().size(); i++)
                     {
-                        if (*parent->getDef()[i] == *def)
+                        if (parent->getDef()[i] == def)
                         {
                             parent->getDef()[i] = new_version;
                             parent->getDef()[i]->setParent(parent);
@@ -723,6 +595,7 @@ bool RegisterAllocation::assignRegs()
         int color = minColor(w);
         if (color < 0)
         {
+            assert(webs[w]->rreg == -1);
             success = false;
             webs[w]->spill = true;
         }
@@ -753,7 +626,7 @@ void RegisterAllocation::modifyCode()
         auto func_se = dynamic_cast<IdentifierSymbolEntry *>(func->getSymPtr());
         for (auto [reg, tp] : func_se->getOccupiedRegs())
         {
-            if (reg == web->rreg && tp->isInt())
+            if (reg == web->rreg && ((tp->isFloat() && is_float) || (tp->isInt() && !is_float)))
             {
                 save = false;
                 break;
@@ -763,7 +636,7 @@ void RegisterAllocation::modifyCode()
         {
             for (auto param : func_se->getParamsSe())
             {
-                if (param->getParamNo() == web->rreg && (param->getType()->isInt() || param->getType()->isPTR()))
+                if (param->getParamNo() == web->rreg && ((is_float && param->getType()->isFloat()) || (!is_float && (param->getType()->isInt() || param->getType()->isPTR()))))
                 {
                     save = false;
                     break;
@@ -771,10 +644,10 @@ void RegisterAllocation::modifyCode()
             }
         }
         auto retType = dynamic_cast<FunctionType *>(func_se->getType())->getRetType();
-        if (web->rreg == 0 && retType->isInt())
+        if (web->rreg == 0 && ((!is_float && retType->isInt()) || (is_float && retType->isFloat())))
             save = false;
         if (save)
-            func->addSavedRegs(web->rreg, false);
+            func->addSavedRegs(web->rreg, is_float);
     }
 }
 

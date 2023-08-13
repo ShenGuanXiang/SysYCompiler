@@ -59,8 +59,8 @@ private:
     std::vector<std::set<int>> adjList;
     std::vector<std::set<int>> rmvList;
     int minColor(int);
-    bool makeDuChains();
-    bool makeWebs();
+    void makeDuChains();
+    void makeWebs();
     void buildAdjMatrix();
     void buildAdjLists();
     void computeSpillCosts();

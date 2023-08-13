@@ -111,6 +111,7 @@ int main(int argc, char *argv[])
     if (optimize)
     {
         for (int i = 0; i < 1; i++)
+        for (int i = 0; i < 1; i++)
         {
             Mem2Reg m2r(unit);
             m2r.pass();
@@ -173,8 +174,11 @@ int main(int argc, char *argv[])
             RegisterAllocation registerAllocation(mUnit);
             registerAllocation.pass();
         }
-        LinearScan linearScan(mUnit);
-        linearScan.pass();
+        else
+        {
+            LinearScan linearScan(mUnit);
+            linearScan.pass();
+        }
         if (optimize)
         {
             // TODO: 汇编代码优化
