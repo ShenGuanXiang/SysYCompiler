@@ -15,6 +15,7 @@ class Helper{
     std::unordered_map<BasicBlock*,int> loop_depth;
     std::set<BasicBlock*>bb_visited;
 public:
+    BasicBlock* entry;
     std::unordered_map<Instruction*,bool> visited;
     std::unordered_map<BasicBlock*,Instruction*> append_points;
     std::unordered_map<BasicBlock*,Instruction*> prepend_points;
@@ -29,7 +30,6 @@ public:
         return inst->isPHI() || inst->isRet() || inst->isCond() || inst->isUncond() || inst->isStore() || inst->isLoad() 
         || inst->isCall() || inst->isCmp();
     }
-    // TODO：抛出异常的指令不能向前移动
 };
 
 class GlobalCodeMotion{
@@ -37,7 +37,8 @@ class GlobalCodeMotion{
     Helper h;
 
     std::unordered_map<Instruction*,BasicBlock*> schedule_block;
-    std::unordered_map<std::string,Operand*> htable;
+
+    std::set<Instruction*> prepend;
 
     void gvn(Function* func);
 

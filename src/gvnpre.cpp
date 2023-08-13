@@ -23,7 +23,9 @@ static void printset(Exprset set)
     else
     {
         for (auto e : set.getExprs())
-            logf("%s\t", e.tostr().c_str());
+        {
+            logf("(%s:%s)\t", lookup(e)->toStr().c_str(), e.tostr().c_str());
+        }
         logf("\n");
     }
 
@@ -62,7 +64,7 @@ static unsigned getInstOp(Instruction *inst)
     }
 }
 
-Instruction *GVNPRE::genInst(Operand *dst, unsigned op, std::vector<Operand *> leaders)
+Instruction *GVNPRE_FUNC::genInst(Operand *dst, unsigned op, std::vector<Operand *> leaders)
 {
     Instruction *inst;
     switch (op)
@@ -95,7 +97,7 @@ Instruction *GVNPRE::genInst(Operand *dst, unsigned op, std::vector<Operand *> l
     return inst;
 }
 
-Instruction *GVNPRE::genInst(Operand *dst, unsigned op, std::map<BasicBlock *, Operand *> phiargs)
+Instruction *GVNPRE_FUNC::genInst(Operand *dst, unsigned op, std::map<BasicBlock *, Operand *> phiargs)
 {
     PhiInstruction *inst = new PhiInstruction(dst, false);
     for (auto pair : phiargs)
@@ -107,7 +109,7 @@ Instruction *GVNPRE::genInst(Operand *dst, unsigned op, std::map<BasicBlock *, O
     return (Instruction *)inst;
 }
 
-Exprset GVNPRE::phi_trans(Exprset set, BasicBlock *from, BasicBlock *to)
+Exprset GVNPRE_FUNC::phi_trans(Exprset set, BasicBlock *from, BasicBlock *to)
 {
     // convert set to array in topological order
     const std::vector<Expr> &toplist = set.topological_sort();
@@ -169,7 +171,7 @@ Exprset GVNPRE::phi_trans(Exprset set, BasicBlock *from, BasicBlock *to)
     return newset;
 }
 
-Expr GVNPRE::phi_trans(Expr expr, BasicBlock *from, BasicBlock *to)
+Expr GVNPRE_FUNC::phi_trans(Expr expr, BasicBlock *from, BasicBlock *to)
 {
     std::unordered_map<ValueNr, ValueNr> &cur_cache = trans_cache[{from->getNo(), to->getNo()}];
     // add tag to further speedup
@@ -249,7 +251,7 @@ Expr GVNPRE::phi_trans(Expr expr, BasicBlock *from, BasicBlock *to)
     return expr;
 }
 
-void GVNPRE::clean(Exprset &set)
+void GVNPRE_FUNC::clean(Exprset &set)
 {
     // it seems that we don't need maintain 'kill' set ?
     // logf("before cleaning:\n");
@@ -263,6 +265,8 @@ void GVNPRE::clean(Exprset &set)
             continue;
         for (auto item : e.getOperands())
         {
+            if (item->getEntry()->isConstant() || item->getEntry()->isVariable())
+                continue;
             if (!valset.count(lookup(item)))
             {
                 set.erase(e);
@@ -274,7 +278,7 @@ void GVNPRE::clean(Exprset &set)
     // TODO : could the dag be separated into several parts?
 }
 
-Operand *GVNPRE::gen_fresh_tmep(Expr e)
+Operand *GVNPRE_FUNC::gen_fresh_tmep(Expr e)
 {
     // gen new temp as e's type
     ValueNr val = lookup(e);
@@ -282,7 +286,7 @@ Operand *GVNPRE::gen_fresh_tmep(Expr e)
     return new Operand(new TemporarySymbolEntry(val->getEntry()->getType(), SymbolTable::getLabel()));
 }
 
-void GVNPRE::rmcEdge(Function *func)
+void GVNPRE_FUNC::rmcEdge(Function *func)
 {
     // remove critical edge with function
     // bfs edge in cfg
@@ -360,7 +364,7 @@ void GVNPRE::rmcEdge(Function *func)
     }
 }
 
-void GVNPRE::addGval(Function *func)
+void GVNPRE_FUNC::addGval(Function *func)
 {
     // htable for each function, so clear it
     //  add global value to htable
@@ -391,7 +395,7 @@ void GVNPRE::addGval(Function *func)
     }
 }
 
-void GVNPRE::buildDomTree(Function *func)
+void GVNPRE_FUNC::buildDomTree(Function *func)
 {
     func->ComputeDom();
     for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
@@ -413,54 +417,7 @@ void GVNPRE::buildDomTree(Function *func)
     }
 }
 
-void GVNPRE::gvnpre(Function *func)
-{
-    addGval(func);
-    rmcEdge(func);
-    buildDomTree(func);
-    buildSets(func);
-    buildAntic(func);
-    for (auto [expr, val] : htable)
-    {
-        logf("(%s,value:%s)\n", expr.tostr().c_str(), val->toStr().c_str());
-    }
-    for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
-    {
-        BasicBlock *bb = *it_bb;
-        logf("bb%d:\n", bb->getNo());
-        logf("avail_out:\n");
-        printset(avail_out[bb]);
-        logf("antic_in:\n");
-        printset(antic_in[bb]);
-        logf("\n");
-    }
-    logf("perform insertion\n");
-    insert(func);
-
-    for (auto [expr, val] : htable)
-    {
-        logf("(%s,value:%s)\n", expr.tostr().c_str(), val->toStr().c_str());
-    }
-    // for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
-    // {
-    //     BasicBlock *bb = *it_bb;
-    //     logf("bb%d:\n", bb->getNo());
-    //     logf("avail_out:\n");
-    //     printset(avail_out[bb]);
-    //     logf("leader:\n");
-    //     for(auto e : avail_out[bb]){
-    //         auto leader = avail_out[bb].find_leader(lookup(e));
-    //         logf("(%s,value:%s,leader:%s)\n",e.tostr().c_str(),lookup(e)->toStr().c_str(),leader->toStr().c_str());
-    //     }
-    //     logf("antic_in:\n");
-    //     printset(antic_in[bb]);
-    //     logf("\n");
-    // }
-    elminate(func);
-    // fprintf(stderr, "[GVNPRE]:done.\n");
-}
-
-void GVNPRE::buildSets(Function *func)
+void GVNPRE_FUNC::buildSets(Function *func)
 {
     // bfs domtree,from entry
     std::queue<BasicBlock *> q;
@@ -513,6 +470,8 @@ void GVNPRE::buildSets(Function *func)
                 if (htable.find(e) == htable.end())
                 {
                     htable[e] = dst;
+                    if (e.getOpcode() == ExprOp::ADD || e.getOpcode() == ExprOp::MUL)
+                        htable[Expr(e.getOpcode(), {e.getOperands()[1], e.getOperands()[0]})] = dst;
                 }
                 htable[dst] = htable[e];
                 for (Operand *operand : temps)
@@ -536,7 +495,7 @@ void GVNPRE::buildSets(Function *func)
     }
 }
 
-void GVNPRE::buildAntic(Function *func)
+void GVNPRE_FUNC::buildAntic(Function *func)
 {
     bool changed = true;
     int iter = 0;
@@ -595,7 +554,7 @@ void GVNPRE::buildAntic(Function *func)
             // logf("antic_in[bb%d]:\n", bb->getNo());
             // printset(antic_in[bb]);
             // logf("S:\n");
-            // printset(S);
+            // printset(_antic_out);
 
             for (const auto &e : S)
             {
@@ -618,11 +577,10 @@ void GVNPRE::buildAntic(Function *func)
     // fprintf(stderr, "[GVNPRE]:build antic iterate over %d times\n", iter);
 }
 
-void GVNPRE::insert(Function *func)
+void GVNPRE_FUNC::insert(Function *func)
 {
     bool new_stuff = true;
     int iter = 0;
-    int expr_cnt = 0, phi_cnt = 0;
     while (new_stuff)
     {
         iter++;
@@ -643,14 +601,6 @@ void GVNPRE::insert(Function *func)
             // new_sets[bb].clear();
             // TODO: find good time to clear new_sets
             BasicBlock *dom = bb->getIDom();
-
-            logf("visiting bb%d,pred:\n", bb->getNo());
-            for (auto pred_it = bb->pred_begin(); pred_it != bb->pred_end(); pred_it++)
-            {
-                auto pred = *pred_it;
-                logf("bb%d ", pred->getNo());
-            }
-            logf(" %d in total\n", bb->getNumOfPred());
 
             // if(dom){
             //     // new_sets[bb].clear();
@@ -708,7 +658,6 @@ void GVNPRE::insert(Function *func)
                             for (auto item : avail)
                                 logf("bb%d: %s\n", item.first->getNo(), item.second.tostr().c_str());
 
-                            // bool new_expr = false;
                             bool insert_phi = false;
                             for (auto pred_it = bb->pred_begin(); pred_it != bb->pred_end(); pred_it++)
                             {
@@ -722,7 +671,6 @@ void GVNPRE::insert(Function *func)
                                     std::vector<Operand *> leaders;
                                     for (auto item : avail_e.getOperands())
                                     {
-                                        logf("%s\n", item->toStr().c_str());
                                         Operand *leader = avail_out[pred].find_leader(lookup(item));
                                         if (!leader)
                                         {
@@ -771,7 +719,9 @@ void GVNPRE::insert(Function *func)
                                 Operand *t = gen_fresh_tmep(e);
                                 htable[t] = lookup(e);
                                 logf("insert phi %s, val is %s\n", t->toStr().c_str(), lookup(e)->toStr().c_str());
-                                avail_out[bb].insert(t);
+                                avail_out[bb].vrplc(t);
+                                // avail_out[bb].insert(t);
+
                                 std::map<BasicBlock *, Operand *> args;
                                 for (auto pair : avail)
                                 {
@@ -816,10 +766,9 @@ void GVNPRE::insert(Function *func)
         //     new_sets[bb].clear();
         // }
     }
-    // fprintf(stderr, "[GVNPRE]:insert iterate over %d times,insert %d expressions, %d phis\n", iter, expr_cnt, phi_cnt);
 }
 
-void GVNPRE::elminate(Function *func)
+void GVNPRE_FUNC::elminate(Function *func)
 {
     std::vector<Instruction *> torm;
     for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
@@ -827,10 +776,10 @@ void GVNPRE::elminate(Function *func)
         auto bb = *bb_it;
 
         // speed up find_leader:
-        for (auto e : avail_out[bb])
-        {
-            avail_out[bb].leader_map[lookup(e)] = e.getOperands()[0];
-        }
+        // for (auto e : avail_out[bb])
+        // {
+        //     avail_out[bb].leader_map[lookup(e)] = e.getOperands()[0];
+        // }
 
         for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
         {
@@ -840,16 +789,16 @@ void GVNPRE::elminate(Function *func)
             {
                 Operand *dst = inst->getDef();
                 Operand *leader = avail_out[bb].find_leader(lookup(dst));
+                // logf("value of %s is %s, leader is %s\n", dst->toStr().c_str(), lookup(dst)->toStr().c_str(), leader->toStr().c_str());
                 if (leader != dst)
                 {
-                    logf("value of %s is %s, leader is %s\n", dst->toStr().c_str(), lookup(dst)->toStr().c_str(), leader->toStr().c_str());
                     inst->replaceAllUsesWith(leader);
                     torm.push_back(inst);
                 }
             }
         }
     }
-    // fprintf(stderr, "[GVNPRE]:eliminate %d instructions\n", (int)torm.size());
+    erase_cnt = torm.size();
     for (auto i : torm)
     {
         // i->output();
@@ -859,19 +808,31 @@ void GVNPRE::elminate(Function *func)
     }
 }
 
-void GVNPRE::pass()
+void GVNPRE_FUNC::pass()
 {
-    trans_cache.clear();
-    for (auto func_it = unit->begin(); func_it != unit->end(); func_it++)
+    addGval(func);
+    rmcEdge(func);
+    buildDomTree(func);
+    buildSets(func);
+    buildAntic(func);
+    for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
     {
-        gvnpre(*func_it);
-        domtree.clear();
-        htable.clear();
-        // htable must be clear here, because some expr can be used in multiple functions
-        // causing some function use local value number of other functions
+        BasicBlock *bb = *it_bb;
+        logf("bb%d:\n", bb->getNo());
+        logf("avail_out:\n");
+        printset(avail_out[bb]);
+        logf("antic_in:\n");
+        printset(antic_in[bb]);
+        logf("\n");
     }
-    SimplifyCFG scfg(unit);
-    scfg.pass();
+    logf("perform insertion\n");
+
+    insert(func);
+    elminate(func);
+
+    // fprintf(stderr, "[GVNPRE]:insert %d exprs,%d phis,erase %d exprs in func %s.\n", expr_cnt, phi_cnt, erase_cnt, func->getSymPtr()->toStr().c_str());
+    if (expr_cnt != 0 && erase_cnt == 0)
+        assert(0);
 }
 
 std::vector<Expr> Exprset::topological_sort()
@@ -943,4 +904,19 @@ std::vector<Expr> Exprset::topological_sort()
 
     changed = false;
     return topological_seq;
+}
+
+void GVNPRE::pass()
+{
+    for (auto func_it = unit->begin(); func_it != unit->end(); func_it++)
+    {
+        GVNPRE_FUNC pre(*func_it);
+        pre.pass();
+        htable.clear();
+        trans_cache.clear();
+        // htable must be clear here, because some expr can be used in multiple functions
+        // causing some function use local value number of other functions
+    }
+    SimplifyCFG scfg(unit);
+    scfg.pass();
 }

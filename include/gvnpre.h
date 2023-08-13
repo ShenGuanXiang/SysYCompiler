@@ -173,17 +173,13 @@ public:
         if (val->getEntry()->isConstant() || val->getEntry()->isVariable())
             return val;
 
-        // for speed up
-        if (leader_map.count(val))
-            return leader_map[val];
-
         if (!val || val2exprs.count(val) == 0)
             return nullptr;
-        // return nullptr;
-        for (const auto &e : val2exprs[val])
-        {
-            if (e.getOpcode() == ExprOp::TEMP )
-                return e.getOperands()[0];
+        assert(val2exprs.count(val)<=1);
+        if(val2exprs.count(val)){
+            auto e = *val2exprs[val].begin();
+            // assert(e.getOpcode()==ExprOp::TEMP);
+            return e.getOperands()[0];
         }
         return nullptr;
     }
@@ -209,11 +205,18 @@ public:
 
 // #define DEBUG_GVNPRE
 
-// typedef std::vector<std::pair<Operand*,std::string>> Exprset;
 
-class GVNPRE
+class GVNPRE{
+    Unit* unit;
+public:
+    GVNPRE(Unit* unit):unit(unit){}
+    void pass();
+};
+
+class GVNPRE_FUNC
 {
-    Unit *unit;
+    int expr_cnt, phi_cnt, erase_cnt;
+    Function *func;
 
     std::unordered_map<BasicBlock *, std::vector<BasicBlock *>> domtree;
 
@@ -238,14 +241,13 @@ class GVNPRE
     void addGval(Function *func);
     void buildDomTree(Function *func);
 
-    void gvnpre(Function *func);
     void buildSets(Function *func);
     void buildAntic(Function *func);
     void insert(Function *func);
     void elminate(Function *func);
 
 public:
-    GVNPRE(Unit *u) : unit(u) {}
+    GVNPRE_FUNC(Function* f) : func(f) {expr_cnt = phi_cnt = erase_cnt = 0;}
     void pass();
 };
 

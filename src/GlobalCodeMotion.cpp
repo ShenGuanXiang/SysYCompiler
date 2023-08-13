@@ -21,7 +21,7 @@ void GlobalCodeMotion::schedule_early(Instruction *inst)
     if (h.visited[inst])
         return;
     h.visited[inst] = true;
-    BasicBlock *root = inst->getParent()->getParent()->getEntry();
+    BasicBlock *root = h.entry;
     schedule_block[inst] = root;
     for (const auto input : inst->getUses())
     {
@@ -104,7 +104,11 @@ void GlobalCodeMotion::schedule_late(Instruction *inst)
     // }
     // 向后调度也会变慢，只保留能够循环外提的调度
     // if(h.get_loop_depth(best) < h.get_loop_depth(inst->getParent()))
-    schedule_block[inst] = best;
+    if (best->getNo() != schedule_block[inst]->getNo())
+    {
+        schedule_block[inst] = best;
+        prepend.insert(inst);
+    }
 }
 
 void GlobalCodeMotion::move(Instruction *inst)
@@ -124,14 +128,16 @@ void GlobalCodeMotion::move(Instruction *inst)
     if (src == dst)
         return;
     src->remove(inst);
-    if (h.get_dom_depth(src) < h.get_dom_depth(dst))
-    {
+    if (prepend.count(inst))
         dst->insertBefore(inst, h.prepend_points[dst]);
-    }
     else
-    {
         dst->insertBefore(inst, h.append_points[dst]);
-    }
+    // if(h.get_dom_depth(src) < h.get_dom_depth(dst)){
+    //     dst->insertBefore(inst,h.prepend_points[dst]);
+    // }
+    // else{
+    //     dst->insertBefore(inst,h.append_points[dst]);
+    // }
     // fprintf(stderr,"[gcm...]move%s:%d->%d\n",inst->getDef()->toStr().c_str(),src->getNo(),dst->getNo());
     move_count++;
     if (inst->isLoad())
@@ -145,9 +151,9 @@ void GlobalCodeMotion::pass()
         Function *func = *func_it;
         pass(func);
     }
-    // fprintf(stderr,"[GCM]: %u instructions moved, %u of them are LOAD\n",move_count,load_count);
-    SimplifyCFG scfg(unit);
-    scfg.pass();
+    // fprintf(stderr, "[GCM]: %u instructions moved, %u of them are LOAD\n", move_count, load_count);
+    SimplifyCFG sc(unit);
+    sc.pass();
 }
 
 void GlobalCodeMotion::pass(Function *func)
@@ -307,6 +313,7 @@ void Helper::compute_info(Function *func)
     func->ComputeDom();
     // 计算支配树貌似有bug，有时候入口也会有支配者
     func->getEntry()->getIDom() = nullptr;
+    entry = func->getEntry();
     std::unordered_map<BasicBlock *, std::vector<BasicBlock *>> dom_tree;
     for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
     {
@@ -330,13 +337,15 @@ void Helper::compute_info(Function *func)
     }
 
     // print dom tree
-    //  for(auto p: dom_tree){
-    //      fprintf(stderr,"bb%d:",p.first->getNo());
-    //      for(auto child:p.second){
-    //          fprintf(stderr,"bb%d ",child->getNo());
-    //      }
-    //      fprintf(stderr,"\n");
-    //  }
+    for (auto p : dom_tree)
+    {
+        fprintf(stderr, "bb%d:", p.first->getNo());
+        for (auto child : p.second)
+        {
+            fprintf(stderr, "bb%d ", child->getNo());
+        }
+        fprintf(stderr, "\n");
+    }
 
     // 计算循环深度
     LoopAnalyzer la;

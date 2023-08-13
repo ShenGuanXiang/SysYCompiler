@@ -161,8 +161,8 @@ void ComSubExprElim::dvnt(BasicBlock *bb)
         }
         else
         {
-            //注意这个lvn只用于gcm，gcm不能将faulting instruction（DIV）
-            //向前移动，因此这里也不能消除
+            // 注意这个lvn只用于gcm，gcm不能将faulting instruction（DIV）
+            // 向前移动，因此这里也不能消除
             if (htable.count(instString) && instString.substr(0, 3) != "DIV" && instString.substr(0, 3) != "MOD")
             {
                 auto src = htable[instString];
@@ -234,7 +234,7 @@ void ComSubExprElim::pass1(BasicBlock *bb)
         else
         {
             if (htable.count(instString) &&
-             instString.substr(0,3)!="DIV" && instString.substr(0,3)!="MOD")
+                instString.substr(0, 3) != "DIV" && instString.substr(0, 3) != "MOD")
             {
                 if (instString.substr(0, 3) == "PHI")
                     continue; // we cannot elminate phi here
@@ -242,7 +242,7 @@ void ComSubExprElim::pass1(BasicBlock *bb)
                 torm.push_back(cur_inst);
                 htable[dst->toStr()] = src;
                 cur_inst->replaceAllUsesWith(src);
-                fprintf(stderr, "[GVN]:%s->%s\n", dst->toStr().c_str(), src->toStr().c_str());
+                // fprintf(stderr, "[GVN]:%s->%s\n", dst->toStr().c_str(), src->toStr().c_str());
             }
             else
             {
