@@ -213,24 +213,19 @@ void Function::ComputeDom()
     {
         std::set<BasicBlock *> visited;
         std::queue<BasicBlock *> q;
-        std::map<BasicBlock *, bool> is_visited;
-        for (auto bb : getBlockList())
-            is_visited[bb] = false;
         if (getEntry() != removed_bb)
         {
             visited.insert(getEntry());
-            is_visited[getEntry()] = true;
             q.push(getEntry());
             while (!q.empty())
             {
                 BasicBlock *cur = q.front();
                 q.pop();
                 for (auto succ = cur->succ_begin(); succ != cur->succ_end(); succ++)
-                    if (*succ != removed_bb && !is_visited[*succ])
+                    if (*succ != removed_bb && !visited.count(*succ))
                     {
                         q.push(*succ);
                         visited.insert(*succ);
-                        is_visited[*succ] = true;
                     }
             }
         }

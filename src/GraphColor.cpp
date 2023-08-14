@@ -10,7 +10,7 @@
 
 // TODO：加if-else深度、调loop_depth、+live_range
 
-static bool debug1 = 1;
+static bool debug1 = 0;
 
 static std::set<MachineInstruction *> freeInsts; // def not use & coalesced mov insts
 

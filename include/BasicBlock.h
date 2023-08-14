@@ -21,11 +21,9 @@ private:
     std::set<BasicBlock *> DomFrontiers;
 
     // DCE
-    bool DCE_marked = false;
     std::set<BasicBlock *> RSDoms;
     BasicBlock *RiDom = nullptr;
     std::set<BasicBlock *> RDF;
-
 
 public:
     BasicBlock(Function *);
@@ -67,7 +65,6 @@ public:
     std::set<BasicBlock *> &getRDF();
     void CleanSucc();
     int getNumofInstr();
-
 };
 
 #endif

@@ -710,7 +710,7 @@ void SparseCondConstProp::constFold(Function *func)
     for (auto &block : func->getBlockList())
         for (auto inst = block->begin(); inst != block->end(); inst = inst->getNext())
         {
-            if (!inst->isCritical() && !inst->isCond() && !inst->isRet() && !inst->isStore() && !inst->isUncond() && inst->getDef()->usersNum() == 0)
+            if (!inst->isCall() && !inst->isCond() && !inst->isRet() && !inst->isStore() && !inst->isUncond() && inst->getDef()->usersNum() == 0)
             {
                 inst->getParent()->remove(inst);
                 freeInsts.push_back(inst);

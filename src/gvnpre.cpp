@@ -22,8 +22,9 @@ static void printset(Exprset set)
         logf("empty\n");
     else
     {
-        for (auto e : set.getExprs()){
-            logf("(%s:%s)\t",lookup(e)->toStr().c_str(), e.tostr().c_str());
+        for (auto e : set.getExprs())
+        {
+            logf("(%s:%s)\t", lookup(e)->toStr().c_str(), e.tostr().c_str());
         }
         logf("\n");
     }
@@ -264,7 +265,7 @@ void GVNPRE_FUNC::clean(Exprset &set)
             continue;
         for (auto item : e.getOperands())
         {
-            if(item->getEntry()->isConstant() || item->getEntry()->isVariable())
+            if (item->getEntry()->isConstant() || item->getEntry()->isVariable())
                 continue;
             if (!valset.count(lookup(item)))
             {
@@ -458,7 +459,7 @@ void GVNPRE_FUNC::buildSets(Function *func)
                     {
                         const auto &symentry = temp->getEntry();
                         // global, parameter, constant is available anywhere instinctly
-                        fprintf(stderr,"%s\n",symentry->toStr().c_str());
+                        fprintf(stderr, "%s\n", symentry->toStr().c_str());
                         assert(symentry->isConstant() || symentry->isVariable());
                         // add a new value number
                         htable[temp] = temp;
@@ -469,8 +470,8 @@ void GVNPRE_FUNC::buildSets(Function *func)
                 if (htable.find(e) == htable.end())
                 {
                     htable[e] = dst;
-                    if(e.getOpcode()==ExprOp::ADD || e.getOpcode()==ExprOp::MUL)
-                        htable[Expr(e.getOpcode(),{e.getOperands()[1],e.getOperands()[0]})] = dst;
+                    if (e.getOpcode() == ExprOp::ADD || e.getOpcode() == ExprOp::MUL)
+                        htable[Expr(e.getOpcode(), {e.getOperands()[1], e.getOperands()[0]})] = dst;
                 }
                 htable[dst] = htable[e];
                 for (Operand *operand : temps)
@@ -561,7 +562,6 @@ void GVNPRE_FUNC::buildAntic(Function *func)
                     antic_in[bb].vinsert(e);
             }
 
-
             clean(antic_in[bb]);
             // logf("after clean:\nantic_in[bb%d]:\n", bb->getNo());
             // printset(antic_in[bb]);
@@ -574,7 +574,7 @@ void GVNPRE_FUNC::buildAntic(Function *func)
                     q.push(*succ_it);
         }
     }
-    fprintf(stderr, "[GVNPRE]:build antic iterate over %d times\n", iter);
+    // fprintf(stderr, "[GVNPRE]:build antic iterate over %d times\n", iter);
 }
 
 void GVNPRE_FUNC::insert(Function *func)
@@ -602,8 +602,6 @@ void GVNPRE_FUNC::insert(Function *func)
             // TODO: find good time to clear new_sets
             BasicBlock *dom = bb->getIDom();
 
-
-
             // if(dom){
             //     // new_sets[bb].clear();
             //     logf("bb%d inherit from bb%d\n",bb->getNo(), dom->getNo());
@@ -622,7 +620,7 @@ void GVNPRE_FUNC::insert(Function *func)
                     { // v1 op v2 etc.
                         if (avail_out[dom].find_leader(lookup(e)))
                             continue;
-                        
+
                         logf("%s\n", e.tostr().c_str());
 
                         std::unordered_map<BasicBlock *, Expr> avail;
@@ -633,7 +631,7 @@ void GVNPRE_FUNC::insert(Function *func)
                             auto pred = *pred_it;
                             // TODO: optimize 'phi_trans' to avoid calulating the whole set
                             Expr trans_e = phi_trans(e, pred, bb);
-                            logf("%s->%s\n",e.tostr().c_str(),trans_e.tostr().c_str());
+                            logf("%s->%s\n", e.tostr().c_str(), trans_e.tostr().c_str());
                             ValueNr trans_val = lookup(trans_e);
                             if (Operand *temp_leader = avail_out[pred].find_leader(trans_val))
                             {
@@ -653,7 +651,6 @@ void GVNPRE_FUNC::insert(Function *func)
                         }
                         if (first_s)
                             delete first_s;
-
 
                         if (!all_same && by_some)
                         {
@@ -724,7 +721,7 @@ void GVNPRE_FUNC::insert(Function *func)
                                 logf("insert phi %s, val is %s\n", t->toStr().c_str(), lookup(e)->toStr().c_str());
                                 avail_out[bb].vrplc(t);
                                 // avail_out[bb].insert(t);
-                                
+
                                 std::map<BasicBlock *, Operand *> args;
                                 for (auto pair : avail)
                                 {
@@ -812,7 +809,7 @@ void GVNPRE_FUNC::elminate(Function *func)
 }
 
 void GVNPRE_FUNC::pass()
-{    
+{
     addGval(func);
     rmcEdge(func);
     buildDomTree(func);
@@ -833,11 +830,9 @@ void GVNPRE_FUNC::pass()
     insert(func);
     elminate(func);
 
-    fprintf(stderr,"[GVNPRE]:insert %d exprs,%d phis,erase %d exprs in func %s.\n",expr_cnt,phi_cnt,erase_cnt
-    ,func->getSymPtr()->toStr().c_str());
-    if(expr_cnt!=0 && erase_cnt==0)
+    // fprintf(stderr, "[GVNPRE]:insert %d exprs,%d phis,erase %d exprs in func %s.\n", expr_cnt, phi_cnt, erase_cnt, func->getSymPtr()->toStr().c_str());
+    if (expr_cnt != 0 && erase_cnt == 0)
         assert(0);
-
 }
 
 std::vector<Expr> Exprset::topological_sort()
@@ -912,7 +907,7 @@ std::vector<Expr> Exprset::topological_sort()
 }
 
 void GVNPRE::pass()
-{ 
+{
     for (auto func_it = unit->begin(); func_it != unit->end(); func_it++)
     {
         GVNPRE_FUNC pre(*func_it);

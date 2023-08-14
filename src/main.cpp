@@ -110,20 +110,6 @@ int main(int argc, char *argv[])
 
     if (optimize)
     {
-        {
-            Mem2Reg m2r(unit);
-            m2r.pass();
-            AutoInliner autoinliner(unit);
-            autoinliner.pass(); // 函数自动内联
-            AlgSimplify alsim(unit);
-            alsim.pass(); // 代数化简
-            GVNPRE gvnpre(unit);
-            gvnpre.pass(); // 部分冗余消除&循环不变外提
-            GlobalCodeMotion gcm(unit);
-            gcm.pass(); // 全局代码移动
-            DeadCodeElim dce(unit);
-            dce.pass(); // 死代码删除
-        } 
         for (int i = 0; i < 3; i++)
         {
             Mem2Reg m2r(unit);
@@ -135,17 +121,17 @@ int main(int argc, char *argv[])
             AutoInliner autoinliner(unit);
             autoinliner.pass(); // 函数自动内联
             // // TODO:其它中间代码优化
-            AlgSimplify alsim(unit);
-            alsim.pass(); // 代数化简
-            // // SparseCondConstProp sccp(unit);
-            // // sccp.pass(); // 常量传播
-            // // MemoryOpt memopt(unit);
-            // // memopt.pass(); // 访存优化
+            // AlgSimplify alsim(unit);
+            // alsim.pass(); // 代数化简
+            // SparseCondConstProp sccp(unit);
+            // sccp.pass(); // 常量传播
+            // MemoryOpt memopt(unit);
+            // memopt.pass(); // 访存优化
             GVNPRE gvnpre(unit);
             gvnpre.pass(); // 部分冗余消除&循环不变外提
             GlobalCodeMotion gcm(unit);
             gcm.pass(); // 全局代码移动
-            // // 循环展开
+            // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
             // LoopSimplify ls(unit);
