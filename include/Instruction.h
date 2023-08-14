@@ -26,6 +26,7 @@ public:
     bool isGep() const { return instType == GEP; };
     bool isBinary() const { return instType == BINARY; };
     bool isCmp() const { return instType == CMP; };
+    bool isDummy() const { return instType == -1; };
     void setParent(BasicBlock *);
     void setNext(Instruction *);
     void setPrev(Instruction *);

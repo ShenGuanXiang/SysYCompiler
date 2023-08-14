@@ -38,12 +38,14 @@ class GlobalCodeMotion{
 
     std::unordered_map<Instruction*,BasicBlock*> schedule_block;
 
-    std::set<Instruction*> prepend;
+    std::set<Instruction*> late;
 
     void gvn(Function* func);
 
     void schedule_early(Instruction* inst);
     void schedule_late(Instruction* inst);
+    void move_early(Instruction* inst);
+    void move_late(Instruction* inst);
     void move(Instruction* inst);
     void pass(Function* func);
     

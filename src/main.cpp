@@ -110,6 +110,20 @@ int main(int argc, char *argv[])
 
     if (optimize)
     {
+        {
+            Mem2Reg m2r(unit);
+            m2r.pass();
+            AutoInliner autoinliner(unit);
+            autoinliner.pass(); // 函数自动内联
+            AlgSimplify alsim(unit);
+            alsim.pass(); // 代数化简
+            GVNPRE gvnpre(unit);
+            gvnpre.pass(); // 部分冗余消除&循环不变外提
+            GlobalCodeMotion gcm(unit);
+            gcm.pass(); // 全局代码移动
+            DeadCodeElim dce(unit);
+            dce.pass(); // 死代码删除
+        } 
         for (int i = 0; i < 3; i++)
         {
             Mem2Reg m2r(unit);
