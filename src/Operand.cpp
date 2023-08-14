@@ -93,6 +93,36 @@ void IdentifierSymbolEntry::decl_code()
             fprintf(yyout, "  br i1 %%t_23, label %%B_18, label %%B_14\n");
             fprintf(yyout, "}\n");
         }
+        else if (name == "__create_threads")
+        {
+            // TODO: LLVM for threadFuncs 
+
+        }
+        else if (name == "__join_threads")
+        {
+            // TODO: LLVM for threadFuncs 
+            
+        }
+        else if (name == "__bind_core")
+        {
+            // TODO: LLVM for threadFuncs 
+            
+        }
+        else if (name == "__lock")
+        {
+            // TODO: LLVM for threadFuncs 
+            
+        }
+        else if (name == "__unlock")
+        {
+            // TODO: LLVM for threadFuncs 
+            
+        }
+        else if (name == "__barrier")
+        {
+            // TODO: LLVM for threadFuncs 
+            
+        }
         else
         {
             fprintf(yyout, "declare %s @%s(",

@@ -327,6 +327,7 @@ MachineOperand::MachineOperand(int tp, double val, Type *valType)
     this->valType = tp == MachineOperand::IMM ? Var2Const(valType) : valType;
     this->parent = nullptr;
     newMachineOperands.push_back(this);
+    isAddrForThreadsFunc = 0;
 }
 
 MachineOperand::MachineOperand(std::string label)
@@ -338,6 +339,7 @@ MachineOperand::MachineOperand(std::string label)
     this->valType = TypeSystem::intType;
     this->parent = nullptr;
     newMachineOperands.push_back(this);
+    isAddrForThreadsFunc = 0;
 }
 
 bool MachineOperand::operator==(const MachineOperand &a) const
@@ -838,6 +840,22 @@ LoadMInstruction::LoadMInstruction(MachineBlock *p,
 
 void LoadMInstruction::output()
 {
+    if(this->use_list[0]->isAddrForThreadsFunc)
+    {
+        fprintf(yyout, "\tmovw");
+        printCond();
+        fprintf(yyout, " ");
+        this->def_list[0]->output();
+        fprintf(yyout, ", #:lower16:%s\n", this->use_list[0]->addrForThreadsFunc.c_str());
+
+        fprintf(yyout, "\tmovt");
+        printCond();
+        fprintf(yyout, " ");
+        this->def_list[0]->output();
+        fprintf(yyout, ", #:upper16:%s\n", this->use_list[0]->addrForThreadsFunc.c_str());
+        return;
+    }
+
     // 强度削弱：小的立即数用MOV/MVN优化一下，arm汇编器会自动做?
     if ((this->use_list.size() == 1) && this->use_list[0]->isImm())
     {
@@ -1945,7 +1963,18 @@ void MachineUnit::printGlobalDecl()
                 }
             }
         }
-        else if (var->getName() != "_mulmod")
+        else if(var->getName().substr(0, 7) == "_mutex_" || var->getName().substr(0, 9) == "_barrier_")
+        {
+// .align
+// _m6global03a03a11barrier_BB3:
+//     .space 4
+            fprintf(yyout, ".align\n");
+            fprintf(yyout, "%s:\n", var->toStr().c_str());
+            fprintf(yyout, "\t.space 4\n", var->toStr().c_str());
+        }   
+        
+        else if (var->getName() != "_mulmod" 
+        && var->getName() != "__create_threads" && var->getName() != "__join_threads" && var->getName() != "__bind_core" && var->getName() != "__lock" && var->getName() != "__unlock" && var->getName() != "__barrier")
         {
             fprintf(yyout, "\t.global %s\n", var->toStr().c_str());
             fprintf(yyout, "\t.align 4\n");
@@ -1991,6 +2020,30 @@ void MachineUnit::output()
             fprintf(yyout, "\tpop {fp, lr}\n");
             fprintf(yyout, "\tbx lr\n\n");
         }
+        if (var->getName() == "__create_threads")
+        {
+            this->printThreadFuncs(0);
+        }
+        if (var->getName() == "__join_threads")
+        {
+            this->printThreadFuncs(1);
+        }
+        if (var->getName() == "__bind_core")
+        {
+            this->printThreadFuncs(2);
+        }
+        if (var->getName() == "__lock")
+        {
+            this->printThreadFuncs(3);
+        }
+        if (var->getName() == "__unlock")
+        {
+            this->printThreadFuncs(4);
+        }
+        if (var->getName() == "__barrier")
+        {
+            this->printThreadFuncs(5);
+        }        
     }
     for (auto iter : func_list)
     {
@@ -2006,11 +2059,160 @@ void MachineUnit::output()
         printBridge();
 }
 
+void MachineUnit::printThreadFuncs(int num)
+{
+//     fprintf(yyout, R"(.global main
+// .section .text
+
+    switch (num)
+    {
+    case 0:
+        fprintf(yyout, R"(
+
+SYS_clone = 120
+CLONE_VM = 256
+SIGCHLD = 17
+__create_threads:
+	vmov s28, r4
+	vmov s29, r5
+	vmov s30, r6
+	vmov s31, r7
+    mov r0, #(CLONE_VM | SIGCHLD)
+    mov r1, sp
+    mov r2, #0
+    mov r3, #0
+    mov r4, #0
+    mov r6, #0
+    mov r7, #SYS_clone
+    swi #0
+    vmov r4, s28
+    vmov r5, s29
+    vmov r6, s30
+    vmov r7, s31
+    bx lr
+)");
+        break;
+    
+    case 1:
+        fprintf(yyout, R"(
+
+SYS_waitid = 280
+SYS_exit = 1
+P_ALL = 0
+WEXITED = 4
+__join_threads:
+    dsb
+	isb
+	sub sp, sp, #16
+    cmp r0, #0
+	bne .L01
+	vmov s28, r4
+	vmov s29, r5
+	vmov s30, r6
+	vmov s31, r7
+    mov r0, #-1
+    mov r1, #0
+    mov r2, #0
+    mov r3, #WEXITED
+    mov r7, #SYS_waitid
+    swi #0
+    vmov r4, s28
+    vmov r5, s29
+    vmov r6, s30
+    vmov r7, s31
+    add sp, sp, #16
+    bx lr
+.L01:
+    mov r0, #0
+    mov r7, #SYS_exit
+    swi #0
+)");
+        break;
+
+    case 2:
+fprintf(yyout, R"(
+
+SYS_sched_setaffinity = 241
+__bind_core:
+	vmov s28, r4
+	vmov s29, r5
+	vmov s30, r6
+	vmov s31, r7
+	sub sp, sp, #1024
+	add r2, sp, r0, LSL #2
+	str r1, [r2,#0]
+	mov r0, #0
+	mov r1, #4
+	mov r7, #SYS_sched_setaffinity
+	swi #0
+	add sp, sp, #1024
+    vmov r4, s28
+    vmov r5, s29
+    vmov r6, s30
+    vmov r7, s31
+    bx lr
+)");
+        break;
+
+    case 3:
+        fprintf(yyout, R"(
+__lock:
+    ldrex r1, [r0]
+	cmp r1, #1
+	beq __lock
+	mov r1, #1
+	strex r2, r1, [r0]
+	cmp r2, #0
+	bne __lock
+	dmb
+	bx lr
+)");
+        break;
+
+    case 4:
+        fprintf(yyout, R"(
+
+__unlock:
+    dmb
+	mov r1, #0
+	str r1, [r0]
+	bx lr
+)");
+        break;
+
+    case 5:
+        fprintf(yyout, R"(
+
+__barrier:
+	ldrex r3, [r0]
+	cmp r3, #0
+	moveq r3, r1
+	sub r3, r3, #1
+	strex r2, r3, [r0]
+	cmp r2, #0
+	bne __barrier
+	dmb
+.L03:
+	ldr r1, [r0]
+	cmp r1, #0
+	bne .L03
+	bx lr
+)");
+        break;
+
+    default:
+        break;
+    }
+}
+
+
 void MachineUnit::printBridge()
 {
     for (auto sym_ptr : global_var_list)
     {
-        if (sym_ptr->getName() != "_mulmod")
+        if (sym_ptr->getName() != "_mulmod"
+        && sym_ptr->getName() != "__create_threads" && sym_ptr->getName() != "__join_threads" && sym_ptr->getName() != "__bind_core" && sym_ptr->getName() != "__lock" && sym_ptr->getName() != "__unlock"  && sym_ptr->getName() != "__barrier"
+        && sym_ptr->getName().substr(0,7) != "_mutex_" && sym_ptr->getName().substr(0,9) != "_barrier_")
         {
             fprintf(yyout, "addr_%d_%s:\n", LtorgNo, sym_ptr->toStr().c_str());
             fprintf(yyout, "\t.word %s\n", sym_ptr->toStr().c_str());

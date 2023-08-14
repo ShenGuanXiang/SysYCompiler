@@ -46,6 +46,8 @@ public:
         REG,
         LABEL
     };
+    bool isAddrForThreadsFunc;
+    std::string addrForThreadsFunc;
     MachineOperand(int tp, double val, Type *valType = TypeSystem::intType);
     MachineOperand(std::string label);
     bool operator==(const MachineOperand &) const;
@@ -530,6 +532,7 @@ public:
     void removeFunc(MachineFunction *func) { func_list.erase(std::find(func_list.begin(), func_list.end(), func)); };
     void insertGlobalVar(IdentifierSymbolEntry *sym_ptr) { global_var_list.push_back(sym_ptr); };
     void printGlobalDecl();
+    void printThreadFuncs(int num);
     void printBridge();
     int getLtorgNo() { return LtorgNo; };
     void output();

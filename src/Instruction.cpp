@@ -440,6 +440,48 @@ FuncCallInstruction::FuncCallInstruction(Operand *dst, std::vector<Operand *> pa
                 return;
         this->getParent()->getParent()->getParent()->insertDecl(func_se);
     }
+    if (funcse->getName() == "__create_threads")
+    {
+        for (auto decl : this->getParent()->getParent()->getParent()->getDeclList())
+            if (decl->getType()->isFunc() && decl->getName() == "__create_threads")
+                return;
+        this->getParent()->getParent()->getParent()->insertDecl(func_se);
+    }
+    if (funcse->getName() == "__join_threads")
+    {
+        for (auto decl : this->getParent()->getParent()->getParent()->getDeclList())
+            if (decl->getType()->isFunc() && decl->getName() == "__join_threads")
+                return;
+        this->getParent()->getParent()->getParent()->insertDecl(func_se);
+    }
+    if (funcse->getName() == "__bind_core")
+    {
+        for (auto decl : this->getParent()->getParent()->getParent()->getDeclList())
+            if (decl->getType()->isFunc() && decl->getName() == "__bind_core")
+                return;
+        this->getParent()->getParent()->getParent()->insertDecl(func_se);
+    }
+    if (funcse->getName() == "__lock")
+    {
+        for (auto decl : this->getParent()->getParent()->getParent()->getDeclList())
+            if (decl->getType()->isFunc() && decl->getName() == "__lock")
+                return;
+        this->getParent()->getParent()->getParent()->insertDecl(func_se);
+    }
+    if (funcse->getName() == "__unlock")
+    {
+        for (auto decl : this->getParent()->getParent()->getParent()->getDeclList())
+            if (decl->getType()->isFunc() && decl->getName() == "__unlock")
+                return;
+        this->getParent()->getParent()->getParent()->insertDecl(func_se);
+    }
+    if (funcse->getName() == "__barrier")
+    {
+        for (auto decl : this->getParent()->getParent()->getParent()->getDeclList())
+            if (decl->getType()->isFunc() && decl->getName() == "__barrier")
+                return;
+        this->getParent()->getParent()->getParent()->insertDecl(func_se);
+    }
 }
 
 void FuncCallInstruction::output() const
@@ -451,6 +493,36 @@ void FuncCallInstruction::output() const
         fprintf(yyout, "  call void @llvm.memset.p0.i32(i8* %%t%d, i8 %d, i32 %d, i1 0)\n", internal_label, (unsigned char)use_list[1]->getEntry()->getValue(), (int)use_list[2]->getEntry()->getValue());  // call void @llvm.memset.p0.i32(i8* %t35, i8 0, i32 20, i1 0)
         fprintf(stderr, "  %%t%d = bitcast %s %s to i8*\n", internal_label, use_list[0]->getType()->toStr().c_str(), use_list[0]->toStr().c_str());                                                         // %t35 = bitcast [5 x i32]* %t34 to i8*
         fprintf(stderr, "  call void @llvm.memset.p0.i32(i8* %%t%d, i8 %d, i32 %d, i1 0)\n", internal_label, (unsigned char)use_list[1]->getEntry()->getValue(), (int)use_list[2]->getEntry()->getValue()); // call void @llvm.memset.p0.i32(i8* %t35, i8 0, i32 20, i1 0)
+        return;
+    }
+    if (func_se->getName() == "__create_threads")
+    {
+        // TODO: LLVM for threadFuncs 
+        return;
+    }
+    if (func_se->getName() == "__join_threads")
+    {
+        // TODO: LLVM for threadFuncs 
+        return;
+    }
+    if (func_se->getName() == "__bind_core")
+    {
+        // TODO: LLVM for threadFuncs 
+        return;
+    }
+    if (func_se->getName() == "__lock")
+    {
+        // TODO: LLVM for threadFuncs 
+        return;
+    }
+    if (func_se->getName() == "__unlock")
+    {
+        // TODO: LLVM for threadFuncs 
+        return;
+    }
+    if (func_se->getName() == "__barrier")
+    {
+        // TODO: LLVM for threadFuncs 
         return;
     }
     std::string dst = def_list[0]->toStr();
@@ -1137,6 +1209,33 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
         dst = new MachineOperand(MachineOperand::REG, 2);
         BL->addUse(dst);
         cur_inst = new LoadMInstruction(cur_block, dst, genMachineOperand(use_list[2]));
+        cur_block->insertBack(cur_inst);
+    }
+    else if (func_se->getName() == "__lock" || func_se->getName() == "__unlock")
+    {
+
+        auto arg = genMachineOperand(use_list[0]);
+        auto dst = new MachineOperand(MachineOperand::REG, 0, arg->getValType());
+        BL->addUse(new MachineOperand(*dst));
+        arg->isAddrForThreadsFunc = 1;
+        arg->addrForThreadsFunc = use_list[0]->getEntry()->toStr();
+        cur_inst = new LoadMInstruction(cur_block, dst, arg);
+        cur_block->insertBack(cur_inst);
+    }
+    else if (func_se->getName() == "__barrier")
+    {
+        auto arg = genMachineOperand(use_list[0]);
+        auto dst = new MachineOperand(MachineOperand::REG, 0, arg->getValType());
+        BL->addUse(new MachineOperand(*dst));
+        arg->isAddrForThreadsFunc = 1;
+        arg->addrForThreadsFunc = use_list[0]->getEntry()->toStr();
+        cur_inst = new LoadMInstruction(cur_block, dst, arg);
+        cur_block->insertBack(cur_inst);
+
+        auto arg1 = genMachineOperand(use_list[1]);
+        auto dst1 = new MachineOperand(MachineOperand::REG, 1, arg->getValType());
+        BL->addUse(new MachineOperand(*dst1));
+        cur_inst = new LoadMInstruction(cur_block, dst1, arg1);
         cur_block->insertBack(cur_inst);
     }
     else
