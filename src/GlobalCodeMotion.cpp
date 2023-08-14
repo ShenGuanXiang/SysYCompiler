@@ -336,16 +336,16 @@ void Helper::compute_info(Function *func)
         }
     }
 
-    // print dom tree
-    for (auto p : dom_tree)
-    {
-        fprintf(stderr, "bb%d:", p.first->getNo());
-        for (auto child : p.second)
-        {
-            fprintf(stderr, "bb%d ", child->getNo());
-        }
-        fprintf(stderr, "\n");
-    }
+    // // print dom tree
+    // for (auto p : dom_tree)
+    // {
+    //     fprintf(stderr, "bb%d:", p.first->getNo());
+    //     for (auto child : p.second)
+    //     {
+    //         fprintf(stderr, "bb%d ", child->getNo());
+    //     }
+    //     fprintf(stderr, "\n");
+    // }
 
     // 计算循环深度
     LoopAnalyzer la;
