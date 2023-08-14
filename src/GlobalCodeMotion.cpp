@@ -1,6 +1,5 @@
 #include "GlobalCodeMotion.h"
 #include "LoopUnroll.h"
-#include "SimplifyCFG.h"
 
 void GlobalCodeMotion::gvn(Function *func)
 {
@@ -39,14 +38,6 @@ void GlobalCodeMotion::schedule_early(Instruction *inst)
             }
         }
     }
-    // 如果深度不变，则没必要向前调度
-    // 但如果是因为lvn被消除，则需要重新调度
-    //  if(h.get_loop_depth(schedule_block[inst]) == h.get_loop_depth(inst->getParent())){
-    //      schedule_block[inst] = inst->getParent();
-    //  }
-    //  if(schedule_block[inst]->getNo() == inst->getParent()->getParent()->getEntry()->getNo()){
-    //      schedule_block[inst] = inst->getParent();
-    //  }
 }
 
 void GlobalCodeMotion::schedule_late(Instruction *inst)
@@ -57,7 +48,6 @@ void GlobalCodeMotion::schedule_late(Instruction *inst)
     BasicBlock *lca = nullptr;
     if (inst->hasNoDef())
         return;
-    // fprintf(stderr,"find use lca:%s\n",inst->getDef()->toStr().c_str());
     const auto &uses_list = inst->getDef()->getUses();
     for (const auto use_inst : uses_list)
     {
@@ -107,8 +97,57 @@ void GlobalCodeMotion::schedule_late(Instruction *inst)
     if (best->getNo() != schedule_block[inst]->getNo())
     {
         schedule_block[inst] = best;
-        prepend.insert(inst);
+        late.insert(inst);
     }
+}
+
+void GlobalCodeMotion::move_early(Instruction *inst)
+{
+    if (h.visited[inst])
+        return;
+    h.visited[inst] = true;
+    for (const auto input : inst->getUses())
+    {
+        if (input->getEntry()->isConstant() || input->getEntry()->isVariable())
+            continue;
+        Instruction *input_inst = input->getDef();
+        move_early(input_inst);
+    }
+    BasicBlock *src = inst->getParent();
+    BasicBlock *dst = schedule_block[inst];
+    if (src == dst)
+        return;
+    if (late.count(inst))
+        return;
+    src->remove(inst);
+    dst->insertBefore(inst, h.append_points[dst]);
+    move_count++;
+    if (inst->isLoad())
+        load_count++;
+}
+
+void GlobalCodeMotion::move_late(Instruction *inst)
+{
+    if (h.visited[inst])
+        return;
+    h.visited[inst] = true;
+    if (!inst->hasNoDef())
+    {
+        const auto &uses_list = inst->getDef()->getUses();
+        for (const auto use_inst : uses_list)
+            move_late(use_inst);
+    }
+    BasicBlock *src = inst->getParent();
+    BasicBlock *dst = schedule_block[inst];
+    if (src == dst)
+        return;
+    if (!late.count(inst))
+        return;
+    src->remove(inst);
+    dst->insertAfter(inst, h.prepend_points[dst]);
+    move_count++;
+    if (inst->isLoad())
+        load_count++;
 }
 
 void GlobalCodeMotion::move(Instruction *inst)
@@ -128,7 +167,7 @@ void GlobalCodeMotion::move(Instruction *inst)
     if (src == dst)
         return;
     src->remove(inst);
-    if (prepend.count(inst))
+    if (late.count(inst))
         dst->insertBefore(inst, h.prepend_points[dst]);
     else
         dst->insertBefore(inst, h.append_points[dst]);
@@ -151,9 +190,7 @@ void GlobalCodeMotion::pass()
         Function *func = *func_it;
         pass(func);
     }
-    // fprintf(stderr, "[GCM]: %u instructions moved, %u of them are LOAD\n", move_count, load_count);
-    SimplifyCFG sc(unit);
-    sc.pass();
+    fprintf(stderr, "[GCM]: %u instructions moved, %u of them are LOAD\n", move_count, load_count);
 }
 
 void GlobalCodeMotion::pass(Function *func)
@@ -164,7 +201,8 @@ void GlobalCodeMotion::pass(Function *func)
 
     // pin instructions
     std::set<Instruction *> pinned_insts;
-    std::set<Instruction *> faulting;
+    std::set<Instruction *> pinned_without_faulting;
+
     for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
     {
         BasicBlock *bb = *bb_it;
@@ -173,6 +211,7 @@ void GlobalCodeMotion::pass(Function *func)
             schedule_block[inst] = inst->getParent();
             if (h.is_pinned(inst))
             {
+                pinned_without_faulting.insert(inst);
                 pinned_insts.insert(inst);
             }
             else if (inst->isBinary())
@@ -180,7 +219,6 @@ void GlobalCodeMotion::pass(Function *func)
                 auto opcpde = dynamic_cast<BinaryInstruction *>(inst)->getOpcode();
                 if (opcpde == BinaryInstruction::DIV || opcpde == BinaryInstruction::MOD)
                 {
-                    faulting.insert(inst);
                     pinned_insts.insert(inst);
                     // div instruction cannont be hoisted forward
                 }
@@ -224,31 +262,14 @@ void GlobalCodeMotion::pass(Function *func)
         assert(p.first);
     }
 
-    // for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
-    //     BasicBlock* bb = *bb_it;
-    //     for(auto inst = bb->begin();inst!=bb->end();inst=inst->getNext()){
-    //         schedule_block[inst] = inst->getParent();
-    //     }
-    // }
-    // print_schedule();
-
     // div instruction can be hoisted backward
-    std::set<Instruction *> tmp;
-    for (auto i : faulting)
-    {
-        schedule_block[i] = i->getParent();
-    }
-    std::set_difference(pinned_insts.begin(), pinned_insts.end(), faulting.begin(), faulting.end(), std::inserter(tmp, tmp.begin()));
-    pinned_insts.clear();
-    pinned_insts = tmp;
-
-    // schedule late
+    //  schedule late
     h.clear_visited(func);
-    for (auto pinned : pinned_insts)
+    for (auto pinned : pinned_without_faulting)
     {
         h.visited[pinned] = true;
     }
-    for (auto pinned : pinned_insts)
+    for (auto pinned : pinned_without_faulting)
     {
         if (pinned->hasNoDef())
             continue;
@@ -265,22 +286,28 @@ void GlobalCodeMotion::pass(Function *func)
     {
         h.visited[pinned] = true;
     }
-    for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
+    for (auto inst : pinned_insts)
     {
-        BasicBlock *bb = *bb_it;
-        for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
+        for (const auto input : inst->getUses())
         {
-            if (h.is_pinned(inst))
-            {
-                for (const auto input : inst->getUses())
-                {
-                    if (input->getEntry()->isConstant() || input->getEntry()->isVariable())
-                        continue;
-                    Instruction *input_inst = input->getDef();
-                    move(input_inst);
-                }
-            }
+            if (input->getEntry()->isConstant() || input->getEntry()->isVariable())
+                continue;
+            Instruction *input_inst = input->getDef();
+            move_early(input_inst);
         }
+    }
+    h.clear_visited(func);
+    for (auto pinned : pinned_without_faulting)
+    {
+        h.visited[pinned] = true;
+    }
+    for (auto inst : pinned_without_faulting)
+    {
+        if (inst->hasNoDef())
+            continue;
+        const auto &uses_list = inst->getDef()->getUses();
+        for (const auto use_inst : uses_list)
+            move_late(use_inst);
     }
 }
 
@@ -288,8 +315,12 @@ void GlobalCodeMotion::print_schedule()
 {
     for (auto p : schedule_block)
     {
-        p.first->output();
-        fprintf(stderr, "schedule block: %d\n", p.second->getNo());
+        if (p.first->hasNoDef())
+            continue;
+        Operand *dst = p.first->getDef();
+        if (p.first->getParent() != p.second)
+            fprintf(stderr, "move %s from %d to %d, late:%d\n",
+                    dst->toStr().c_str(), p.first->getParent()->getNo(), p.second->getNo(), late.count(p.first));
     }
 }
 
@@ -336,16 +367,16 @@ void Helper::compute_info(Function *func)
         }
     }
 
-    // // print dom tree
-    // for (auto p : dom_tree)
-    // {
-    //     fprintf(stderr, "bb%d:", p.first->getNo());
-    //     for (auto child : p.second)
-    //     {
-    //         fprintf(stderr, "bb%d ", child->getNo());
-    //     }
-    //     fprintf(stderr, "\n");
-    // }
+    // print dom tree
+    for (auto p : dom_tree)
+    {
+        fprintf(stderr, "bb%d:", p.first->getNo());
+        for (auto child : p.second)
+        {
+            fprintf(stderr, "bb%d ", child->getNo());
+        }
+        fprintf(stderr, "\n");
+    }
 
     // 计算循环深度
     LoopAnalyzer la;
@@ -369,17 +400,21 @@ void Helper::compute_info(Function *func)
     // }
 
     // 计算插入点
+    // prepend_points: the last phi or dummy
+    // append_points: the first control instruction
     for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
     {
         BasicBlock *bb = *bb_it;
-        Instruction *i = bb->begin();
-        while (i->isPHI())
+        Instruction *i = bb->end(); // dummy head
+        assert(i->getNext() != i);  // basic block is not empty
+
+        while (i->getNext()->isPHI())
             i = i->getNext();
         prepend_points[bb] = i;
-        i = bb->end()->getPrev();
-        while (i->isRet() || i->isCmp() || i->isCond() || i->isUncond())
+        i = bb->end();
+        while (i->getPrev()->isRet() || i->getPrev()->isCmp() || i->getPrev()->isCond() || i->getPrev()->isUncond())
             i = i->getPrev();
-        append_points[bb] = i->getNext();
+        append_points[bb] = i;
     }
 }
 

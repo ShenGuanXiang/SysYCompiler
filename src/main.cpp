@@ -112,30 +112,30 @@ int main(int argc, char *argv[])
     {
         for (int i = 0; i < 4; i++)
         {
-            // Mem2Reg m2r(unit);
-            // m2r.pass();
-            // ComSubExprElim cse(unit);
-            // cse.pass3(); // 公共子表达式消除
-            // PureFunc pf(unit);
-            // pf.pass(); // 纯函数清理
-            // AutoInliner autoinliner(unit);
-            // autoinliner.pass(); // 函数自动内联
-            // // TODO:其它中间代码优化
-            // AlgSimplify alsim(unit);
-            // alsim.pass(); // 代数化简
-            // SparseCondConstProp sccp(unit);
-            // sccp.pass(); // 常量传播
-            // MemoryOpt memopt(unit);
-            // memopt.pass(); // 访存优化
-            // GVNPRE gvnpre(unit);
-            // gvnpre.pass(); // 部分冗余消除&循环不变外提
-            // // GlobalCodeMotion gcm(unit);
-            // // gcm.pass(); // 全局代码移动
-            // // 循环展开
-            // DeadCodeElim dce(unit);
-            // dce.pass(); // 死代码删除
-            // LoopSimplify ls(unit);
-            // ls.pass(); // scalar evolution
+            Mem2Reg m2r(unit);
+            m2r.pass();
+            ComSubExprElim cse(unit);
+            cse.pass3(); // 公共子表达式消除
+            PureFunc pf(unit);
+            pf.pass(); // 纯函数清理
+            AutoInliner autoinliner(unit);
+            autoinliner.pass(); // 函数自动内联
+            // TODO:其它中间代码优化
+            AlgSimplify alsim(unit);
+            alsim.pass(); // 代数化简
+            SparseCondConstProp sccp(unit);
+            sccp.pass(); // 常量传播
+            MemoryOpt memopt(unit);
+            memopt.pass(); // 访存优化
+            GVNPRE gvnpre(unit);
+            gvnpre.pass(); // 部分冗余消除&循环不变外提
+            // GlobalCodeMotion gcm(unit);
+            // gcm.pass(); // 全局代码移动
+            // 循环展开
+            DeadCodeElim dce(unit);
+            dce.pass(); // 死代码删除
+            LoopSimplify ls(unit);
+            ls.pass(); // scalar evolution
         }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)
@@ -155,16 +155,16 @@ int main(int argc, char *argv[])
             ComSubExprElimASM cseasm(mUnit);
             cseasm.pass(); // 后端cse
 
-            // StrengthReduction sr(mUnit);
-            // sr.pass(); // 强度削弱
+            StrengthReduction sr(mUnit);
+            sr.pass(); // 强度削弱
 
-            // cseasm.pass();
+            cseasm.pass();
 
-            // PeepholeOptimization ph(mUnit);
-            // ph.pass(); // 窥孔优化
+            PeepholeOptimization ph(mUnit);
+            ph.pass(); // 窥孔优化
 
-            // MachineDeadCodeElim mdce(mUnit);
-            // mdce.pass(true); // 死代码消除
+            MachineDeadCodeElim mdce(mUnit);
+            mdce.pass(true); // 死代码消除
             // 指令调度
         }
         if (optimize)
@@ -177,18 +177,18 @@ int main(int argc, char *argv[])
             LinearScan linearScan(mUnit);
             linearScan.pass();
         }
-        // if (optimize)
-        // {
-        //     // TODO: 汇编代码优化
-        //     ComSubExprElimASM cseasm(mUnit);
-        //     cseasm.pass(); // 公共子表达式删除
-        //     PeepholeOptimization ph(mUnit);
-        //     ph.pass(); // 窥孔优化
-        //     MachineDeadCodeElim mdce(mUnit);
-        //     mdce.pass(true); // 死代码消除
-        //     Straighten st(mUnit);
-        //     st.pass(); // 控制流优化 straighten
-        // }
+        if (optimize)
+        {
+            // TODO: 汇编代码优化
+            ComSubExprElimASM cseasm(mUnit);
+            cseasm.pass(); // 公共子表达式删除
+            PeepholeOptimization ph(mUnit);
+            ph.pass(); // 窥孔优化
+            MachineDeadCodeElim mdce(mUnit);
+            mdce.pass(true); // 死代码消除
+            Straighten st(mUnit);
+            st.pass(); // 控制流优化 straighten
+        }
         fprintf(stderr, "asm generated\n");
         mUnit->output();
         fprintf(stderr, "asm output ok\n");
