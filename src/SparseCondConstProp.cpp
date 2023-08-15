@@ -94,7 +94,7 @@ void SparseCondConstProp::pass(Function *func)
                         if (dynamic_cast<PointerType *>(ope->getType())->getValType()->isConst())
                             status_map[ope] = CONST;
                         else
-                            status_map[ope] = NAC; // TODO : 副作用优化
+                            status_map[ope] = NAC;
                     }
                     else if (ope->getType()->isARRAY())
                     {

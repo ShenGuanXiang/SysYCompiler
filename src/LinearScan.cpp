@@ -37,6 +37,11 @@ void LinearScan::pass()
             else // spill vregs that can't be mapped to real regs
                 genSpillCode();
         } while (!success);
+        if (func->getSavedRRegs().size() == 1 && func->AllocSpace(0) >= 1028)
+            func->addSavedRegs(1);
+        // 更新additional args的偏移
+        for (auto offset : func->getAdditionalArgsOffset())
+            offset->setVal(offset->getVal() + 4 * (func->getSavedSRegs().size() + func->getSavedRRegs().size()));
     }
     for (auto inst : freeInsts)
         delete inst;

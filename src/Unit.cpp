@@ -50,10 +50,6 @@ void Unit::genMachineCode(MachineUnit *munit)
             munit->insertGlobalVar(decl);
         }
     }
-    for(auto decl : decl_threadFunc_list)
-    {
-        munit->insertGlobalVar(decl);
-    }
     for (auto &func : func_list)
         func->genMachineCode(builder);
     delete builder;

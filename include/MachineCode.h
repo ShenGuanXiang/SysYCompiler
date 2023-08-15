@@ -47,7 +47,6 @@ public:
         LABEL
     };
     bool isAddrForThreadsFunc;
-    std::string addrForThreadsFunc;
     MachineOperand(int tp, double val, Type *valType = TypeSystem::intType);
     MachineOperand(std::string label);
     bool operator==(const MachineOperand &) const;
@@ -181,7 +180,7 @@ public:
                       std::vector<MachineOperand *> defs, std::vector<MachineOperand *> uses,
                       int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class BinaryMInstruction : public MachineInstruction
@@ -210,7 +209,7 @@ public:
                        MachineOperand *shifter = nullptr,
                        int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class LoadMInstruction : public MachineInstruction
@@ -227,7 +226,7 @@ public:
                      int op = -1, MachineOperand *shifter = nullptr,
                      int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class StoreMInstruction : public MachineInstruction
@@ -244,7 +243,7 @@ public:
                       int op = -1, MachineOperand *shifter = nullptr,
                       int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class MovMInstruction : public MachineInstruction
@@ -265,7 +264,7 @@ public:
                     MachineOperand *shifter = nullptr,
                     int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class BranchMInstruction : public MachineInstruction
@@ -281,7 +280,7 @@ public:
                        MachineOperand *dst,
                        int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class CmpMInstruction : public MachineInstruction
@@ -291,7 +290,7 @@ public:
                     MachineOperand *src1, MachineOperand *src2,
                     int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class StackMInstruction : public MachineInstruction
@@ -309,7 +308,7 @@ public:
                       std::vector<MachineOperand *> src,
                       int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class ZextMInstruction : public MachineInstruction
@@ -319,7 +318,7 @@ public:
                      MachineOperand *dst, MachineOperand *src,
                      int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class VcvtMInstruction : public MachineInstruction
@@ -336,7 +335,7 @@ public:
                      MachineOperand *src,
                      int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class VmrsMInstruction : public MachineInstruction
@@ -344,7 +343,7 @@ class VmrsMInstruction : public MachineInstruction
 public:
     VmrsMInstruction(MachineBlock *p);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 // class SmullMInstruction : public MachineInstruction
@@ -375,7 +374,7 @@ public:
                      MachineOperand *src3,
                      int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 // class VMLASMInstruction : public MachineInstruction

@@ -45,7 +45,6 @@ Type *ExprNode::getType()
 {
     if (symbolEntry->getType()->isPTR())
     {
-        // TODO :
         return ((PointerType *)symbolEntry->getType())->getValType();
     }
     else
@@ -816,7 +815,7 @@ void InitNode::genCode()
         auto val = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0)),
              len = new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 4 * vec_val.size()));
         auto memset_func = new FunctionType(TypeSystem::voidType, std::vector<Type *>{nullptr});
-        new FuncCallInstruction(new Operand(new TemporarySymbolEntry(new IntType(8), SymbolTable::getLabel())),
+        new FuncCallInstruction(new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel())),
                                 std::vector<Operand *>{arrayAddr, val, len},
                                 new IdentifierSymbolEntry(memset_func, "memset", 0),
                                 builder->getInsertBB());

@@ -125,6 +125,11 @@ void RegisterAllocation::pass()
             nregs = nregs == 14 ? 28 : 14;
             is_float ^= 1;
         }
+        if (func->getSavedRRegs().size() == 1 && func->AllocSpace(0) >= 1028)
+            func->addSavedRegs(1);
+        // 更新additional args的偏移
+        for (auto offset : func->getAdditionalArgsOffset())
+            offset->setVal(offset->getVal() + 4 * (func->getSavedSRegs().size() + func->getSavedRRegs().size()));
         if (debug1)
             fprintf(stderr, "\n pass %s\n", dynamic_cast<IdentifierSymbolEntry *>(f->getSymPtr())->getName().c_str());
     }

@@ -497,32 +497,32 @@ void FuncCallInstruction::output() const
     }
     if (func_se->getName() == "__create_threads")
     {
-        // TODO: LLVM for threadFuncs 
+        // TODO: LLVM for threadFuncs
         return;
     }
     if (func_se->getName() == "__join_threads")
     {
-        // TODO: LLVM for threadFuncs 
+        // TODO: LLVM for threadFuncs
         return;
     }
     if (func_se->getName() == "__bind_core")
     {
-        // TODO: LLVM for threadFuncs 
+        // TODO: LLVM for threadFuncs
         return;
     }
     if (func_se->getName() == "__lock")
     {
-        // TODO: LLVM for threadFuncs 
+        // TODO: LLVM for threadFuncs
         return;
     }
     if (func_se->getName() == "__unlock")
     {
-        // TODO: LLVM for threadFuncs 
+        // TODO: LLVM for threadFuncs
         return;
     }
     if (func_se->getName() == "__barrier")
     {
-        // TODO: LLVM for threadFuncs 
+        // TODO: LLVM for threadFuncs
         return;
     }
     std::string dst = def_list[0]->toStr();
@@ -693,7 +693,7 @@ MachineOperand *Instruction::genMachineOperand(Operand *ope)
         if (id_se->getType()->isConst() && !id_se->getType()->isARRAY()) // 常量折叠
             mope = new MachineOperand(MachineOperand::IMM, se->getValue(), type);
         else if (id_se->isGlobal())
-            mope = new MachineOperand(id_se->toStr().c_str());
+            mope = new MachineOperand(id_se->toStr());
         else if (id_se->isParam())
         {
             int paramNo = id_se->getParamNo();
@@ -1203,22 +1203,20 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
         }
         cur_block->insertBack(cur_inst);
         dst = new MachineOperand(MachineOperand::REG, 1);
-        BL->addUse(dst);
+        BL->addUse(new MachineOperand(*dst));
         cur_inst = new MovMInstruction(cur_block, MovMInstruction::MOV, dst, genMachineOperand(use_list[1]));
         cur_block->insertBack(cur_inst);
         dst = new MachineOperand(MachineOperand::REG, 2);
-        BL->addUse(dst);
+        BL->addUse(new MachineOperand(*dst));
         cur_inst = new LoadMInstruction(cur_block, dst, genMachineOperand(use_list[2]));
         cur_block->insertBack(cur_inst);
     }
     else if (func_se->getName() == "__lock" || func_se->getName() == "__unlock")
     {
-
         auto arg = genMachineOperand(use_list[0]);
         auto dst = new MachineOperand(MachineOperand::REG, 0, arg->getValType());
         BL->addUse(new MachineOperand(*dst));
         arg->isAddrForThreadsFunc = 1;
-        arg->addrForThreadsFunc = use_list[0]->getEntry()->toStr();
         cur_inst = new LoadMInstruction(cur_block, dst, arg);
         cur_block->insertBack(cur_inst);
     }
@@ -1228,7 +1226,6 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
         auto dst = new MachineOperand(MachineOperand::REG, 0, arg->getValType());
         BL->addUse(new MachineOperand(*dst));
         arg->isAddrForThreadsFunc = 1;
-        arg->addrForThreadsFunc = use_list[0]->getEntry()->toStr();
         cur_inst = new LoadMInstruction(cur_block, dst, arg);
         cur_block->insertBack(cur_inst);
 

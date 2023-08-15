@@ -128,7 +128,6 @@ std::string PointerType::toStr()
 
 bool isIllegalOpType(Type *type)
 {
-    // TODO : array type
     bool ret = (!type->isInt()) && (!type->isConstInt()) && (!type->isFloat()) && (!type->isConstFloat());
     // 类型检查3：不合理运算数类型
     if (ret)
@@ -194,7 +193,7 @@ Type *Var2Const(Type *type)
     if (type == TypeSystem::floatType)
         return TypeSystem::constFloatType;
 
-    //add to make gvnpre on gep past test
+    // add to make gvnpre on gep past test
     if (type->isPTR())
         return TypeSystem::constIntType;
     assert(type->isConstInt() || type->isConstFloat() || type->isPTR());
