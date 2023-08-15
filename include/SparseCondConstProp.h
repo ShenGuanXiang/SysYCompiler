@@ -16,7 +16,7 @@ private:
 
     Unit *unit;
     std::map<Operand *, int> status_map;
-    std::map<Operand *, double> value_map;
+    std::map<Operand *, float> value_map;
     std::set<std::pair<BasicBlock *, BasicBlock *>> marked;
     std::vector<std::pair<BasicBlock *, BasicBlock *>> cfg_worklist;
     std::vector<Instruction *> ssa_worklist;
