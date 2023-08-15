@@ -474,7 +474,7 @@ private:
     std::set<int> saved_sregs;
     SymbolEntry *sym_ptr;
     MachineBlock *entry;
-    std::vector<MachineOperand *> additional_args_offset;
+    std::set<MachineOperand *> additional_args_offset;
     bool largeStack;
     std::map<MachineOperand, std::set<MachineOperand *>> all_uses;
 
@@ -504,8 +504,8 @@ public:
     std::vector<MachineOperand *> getSavedSRegs();
     MachineUnit *getParent() { return parent; };
     SymbolEntry *getSymPtr() { return sym_ptr; };
-    void addAdditionalArgsOffset(MachineOperand *param) { additional_args_offset.push_back(param); };
-    std::vector<MachineOperand *> getAdditionalArgsOffset() { return additional_args_offset; };
+    void addAdditionalArgsOffset(MachineOperand *param) { additional_args_offset.insert(param); };
+    std::set<MachineOperand *> getAdditionalArgsOffset() { return additional_args_offset; };
     MachineBlock *getEntry() { return entry; };
     void setEntry(MachineBlock *entry) { this->entry = entry; };
     void AnalyzeLiveVariable();

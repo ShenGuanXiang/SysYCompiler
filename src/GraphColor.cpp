@@ -10,19 +10,17 @@
 
 // TODO：加if-else深度、调loop_depth
 
-static bool debug1 = 1;
+static bool debug1 = 0;
 
 static std::set<MachineInstruction *> freeInsts; // def not use & coalesced mov insts
 
-static bool is_float = true;
-
-static bool isRightType(MachineOperand *op)
+bool RegisterAllocation::isRightType(MachineOperand *op)
 {
     return ((op->getValType()->isInt() && !is_float) || (op->getValType()->isFloat() && is_float));
 }
 
 // real reg -> 0 ~ nreg
-static inline int Reg2WebIdx(int Reg)
+int RegisterAllocation::Reg2WebIdx(int Reg)
 {
     if (is_float)
     {
@@ -33,7 +31,7 @@ static inline int Reg2WebIdx(int Reg)
 }
 
 // 0 ~ nreg -> real reg
-static inline int WebIdx2Reg(int Idx)
+int RegisterAllocation::WebIdx2Reg(int Idx)
 {
     if (is_float)
     {
@@ -42,23 +40,24 @@ static inline int WebIdx2Reg(int Idx)
     return Idx == 13 ? 14 : Idx;
 }
 
-static inline bool isInterestingReg(MachineOperand *op)
+bool RegisterAllocation::isInterestingReg(MachineOperand *op)
 {
     return op->isReg() && isRightType(op) && Reg2WebIdx(op->getReg()) != -1;
 }
 
-static bool isImmWeb(Web *web)
+bool RegisterAllocation::isImmWeb(Web *web)
 {
     if (web->defs.size() != 1 || web->uses.size() == 1)
         return false;
     auto minst = (*web->defs.begin())->getParent();
-    return (minst->isMov() || minst->isLoad()) && minst->getUse().size() == 1 && minst->getUse()[0]->isImm() && minst->getUse()[0]->getValType()->isInt();
+    return (minst->isMov() || minst->isLoad()) && minst->getUse().size() == 1 && minst->getUse()[0]->isImm() && minst->getUse()[0]->getValType()->isInt() && !func->getAdditionalArgsOffset().count(minst->getUse()[0]);
 }
 
 RegisterAllocation::RegisterAllocation(MachineUnit *unit)
 {
     this->unit = unit;
     nregs = 28;
+    is_float = true;
 }
 
 void RegisterAllocation::pass()
@@ -66,7 +65,7 @@ void RegisterAllocation::pass()
     for (auto &f : unit->getFuncs())
     {
         func = f;
-        for (int i = 0; i < 2; i++)
+        for (int k = 0; k < 2; k++)
         {
             bool success = false;
             while (!success)

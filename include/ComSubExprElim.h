@@ -19,6 +19,7 @@ class ComSubExprElim
     std::unordered_map<BasicBlock *, std::vector<BasicBlock *>> domtree;
 
     std::string getIdentity(Instruction *inst);
+
 public:
     ComSubExprElim(Unit *unit) : unit(unit){};
     ComSubExprElim() {}
@@ -27,7 +28,7 @@ public:
     void dvnt(BasicBlock *bb);
     void pass3();
     void pass2(Function *func) {}
-    void pass1(BasicBlock* bb);
+    void pass1(BasicBlock *bb);
     // pass1 is implemented using LVN, but negelect the block boundaries, used in gcm
     // pass2 is implemented using SVN, i.e. optimize within extended blocks (tree shape), to be implemented
     // pass3 is implemented using DVNT, dominator-based
@@ -48,8 +49,11 @@ class ComSubExprElimASM
     std::set<MachineOperand> redef;
 
     std::set<MachineInstruction *> freeInsts;
+
+    bool after_regAlloc;
+
 public:
-    ComSubExprElimASM(MachineUnit *munit) : munit(munit){};
+    ComSubExprElimASM(MachineUnit *munit, bool after_regAlloc = false) : munit(munit), after_regAlloc(after_regAlloc){};
     void findredef(MachineBlock *bb);
     void dumpTable();
     void computeDomTree(MachineFunction *func);

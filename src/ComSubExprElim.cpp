@@ -293,6 +293,10 @@ std::string ComSubExprElimASM::getOpString(MachineInstruction *minst, bool lvn)
     if (minst->getDef().empty() || minst->getDef().size() > 1)
         return instString;
 
+    for (auto use : minst->getUse())
+        if (minst->getParent()->getParent()->getAdditionalArgsOffset().count(use) && !after_regAlloc)
+            return instString;
+
     if (!lvn)
     {
         // 忽略带有条件的指令，这种指令不能被消除，但是其操作数应该被替换

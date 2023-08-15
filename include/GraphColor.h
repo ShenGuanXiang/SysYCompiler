@@ -46,20 +46,22 @@ public:
         }
     };
 
+    MachineFunction *func;
+    std::map<MachineOperand, std::set<DU>> du_chains;
+    bool is_float;
+
+    void makeDuChains();
+
 private:
     MachineUnit *unit;
     int nregs;
     std::vector<int> pruneStack;
-    MachineFunction *func;
-    // std::map<MachineOperand *, std::set<MachineOperand *>> du_chains;
-    std::map<MachineOperand, std::set<DU>> du_chains;
     std::vector<Web *> webs;
     std::map<MachineOperand *, int> operand2web;
     std::vector<std::vector<bool>> adjMtx;
     std::vector<std::set<int>> adjList;
     std::vector<std::set<int>> rmvList;
     int minColor(int);
-    void makeDuChains();
     void makeWebs();
     void buildAdjMatrix();
     void buildAdjLists();
@@ -70,6 +72,11 @@ private:
     bool assignRegs();
     void modifyCode();
     void genSpillCode();
+    bool isRightType(MachineOperand *);
+    int Reg2WebIdx(int);
+    int WebIdx2Reg(int);
+    bool isInterestingReg(MachineOperand *);
+    bool isImmWeb(Web *);
 
 public:
     RegisterAllocation(MachineUnit *);

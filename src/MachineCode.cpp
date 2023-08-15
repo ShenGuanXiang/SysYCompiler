@@ -1372,14 +1372,17 @@ void StackMInstruction::output()
     case POP:
     {
         auto first_iter_times = use_list.size() % 16;
-        fprintf(yyout, "%s", op_str.c_str());
-        this->use_list[use_list.size() - first_iter_times]->output();
-        for (size_t i = use_list.size() - first_iter_times + 1; i < use_list.size(); i++)
+        if (first_iter_times != 0)
         {
-            fprintf(yyout, ", ");
-            this->use_list[i]->output();
+            fprintf(yyout, "%s", op_str.c_str());
+            this->use_list[use_list.size() - first_iter_times]->output();
+            for (size_t i = use_list.size() - first_iter_times + 1; i < use_list.size(); i++)
+            {
+                fprintf(yyout, ", ");
+                this->use_list[i]->output();
+            }
+            fprintf(yyout, "}\n");
         }
-        fprintf(yyout, "}\n");
 
         int i = use_list.size() - first_iter_times - 16;
         while (i >= 0)

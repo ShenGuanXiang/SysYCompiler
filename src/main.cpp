@@ -129,8 +129,8 @@ int main(int argc, char *argv[])
             memopt.pass(); // 访存优化
             GVNPRE gvnpre(unit);
             gvnpre.pass(); // 部分冗余消除&循环不变外提
-            // GlobalCodeMotion gcm(unit);
-            // gcm.pass(); // 全局代码移动
+            GlobalCodeMotion gcm(unit);
+            gcm.pass(); // 全局代码移动
             // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
         if (optimize)
         {
             // TODO: 汇编代码优化
-            ComSubExprElimASM cseasm(mUnit);
+            ComSubExprElimASM cseasm(mUnit, true);
             cseasm.pass(); // 公共子表达式删除
             PeepholeOptimization ph(mUnit);
             ph.pass(); // 窥孔优化

@@ -1,5 +1,6 @@
 #include "GlobalCodeMotion.h"
 #include "LoopUnroll.h"
+#include "SimplifyCFG.h"
 
 void GlobalCodeMotion::gvn(Function *func)
 {
@@ -190,7 +191,9 @@ void GlobalCodeMotion::pass()
         Function *func = *func_it;
         pass(func);
     }
-    fprintf(stderr, "[GCM]: %u instructions moved, %u of them are LOAD\n", move_count, load_count);
+    // fprintf(stderr, "[GCM]: %u instructions moved, %u of them are LOAD\n", move_count, load_count);
+    SimplifyCFG sc(unit);
+    sc.pass();
 }
 
 void GlobalCodeMotion::pass(Function *func)
@@ -320,7 +323,7 @@ void GlobalCodeMotion::print_schedule()
         Operand *dst = p.first->getDef();
         if (p.first->getParent() != p.second)
             fprintf(stderr, "move %s from %d to %d, late:%d\n",
-                    dst->toStr().c_str(), p.first->getParent()->getNo(), p.second->getNo(), late.count(p.first));
+                    dst->toStr().c_str(), p.first->getParent()->getNo(), p.second->getNo(), (int)late.count(p.first));
     }
 }
 
@@ -367,16 +370,16 @@ void Helper::compute_info(Function *func)
         }
     }
 
-    // print dom tree
-    for (auto p : dom_tree)
-    {
-        fprintf(stderr, "bb%d:", p.first->getNo());
-        for (auto child : p.second)
-        {
-            fprintf(stderr, "bb%d ", child->getNo());
-        }
-        fprintf(stderr, "\n");
-    }
+    // // print dom tree
+    // for (auto p : dom_tree)
+    // {
+    //     fprintf(stderr, "bb%d:", p.first->getNo());
+    //     for (auto child : p.second)
+    //     {
+    //         fprintf(stderr, "bb%d ", child->getNo());
+    //     }
+    //     fprintf(stderr, "\n");
+    // }
 
     // 计算循环深度
     LoopAnalyzer la;
