@@ -1,14 +1,16 @@
 #include "GlobalCodeMotion.h"
 #include "LoopUnroll.h"
+#include "SimplifyCFG.h"
 
 void GlobalCodeMotion::gvn(Function *func)
 {
     // construct reverse post order
-    std::stack<BasicBlock*> rpo;
-    h.post_order(func->getEntry(),rpo);
+    std::stack<BasicBlock *> rpo;
+    h.post_order(func->getEntry(), rpo);
     ComSubExprElim cse;
-    while(!rpo.empty()){
-        BasicBlock* bb = rpo.top();
+    while (!rpo.empty())
+    {
+        BasicBlock *bb = rpo.top();
         rpo.pop();
         cse.pass1(bb);
     }
@@ -16,18 +18,23 @@ void GlobalCodeMotion::gvn(Function *func)
 
 void GlobalCodeMotion::schedule_early(Instruction *inst)
 {
-    if(h.visited[inst]) return;
+    if (h.visited[inst])
+        return;
     h.visited[inst] = true;
-    BasicBlock* root = h.entry;
+    BasicBlock *root = h.entry;
     schedule_block[inst] = root;
-    for(const auto input : inst->getUses()){
-        if(input->getEntry()->isConstant() || input->getEntry()->isVariable()) {
+    for (const auto input : inst->getUses())
+    {
+        if (input->getEntry()->isConstant() || input->getEntry()->isVariable())
+        {
             continue;
         }
-        else {
-            Instruction* input_inst = input->getDef();
+        else
+        {
+            Instruction *input_inst = input->getDef();
             schedule_early(input_inst);
-            if(h.get_dom_depth(schedule_block[input_inst]) > h.get_dom_depth(schedule_block[inst])){
+            if (h.get_dom_depth(schedule_block[input_inst]) > h.get_dom_depth(schedule_block[inst]))
+            {
                 schedule_block[inst] = schedule_block[input_inst];
             }
         }
@@ -36,41 +43,49 @@ void GlobalCodeMotion::schedule_early(Instruction *inst)
 
 void GlobalCodeMotion::schedule_late(Instruction *inst)
 {
-    if(h.visited[inst]) return;
-    h.visited[inst] = true;
-    BasicBlock* lca = nullptr;
-    if(inst->hasNoDef())
+    if (h.visited[inst])
         return;
-    const auto& uses_list = inst->getDef()->getUses();
-    for(const auto use_inst : uses_list){
+    h.visited[inst] = true;
+    BasicBlock *lca = nullptr;
+    if (inst->hasNoDef())
+        return;
+    const auto &uses_list = inst->getDef()->getUses();
+    for (const auto use_inst : uses_list)
+    {
         schedule_late(use_inst);
-        BasicBlock* use = schedule_block[use_inst];
-        if(use_inst->isPHI()){
-            PhiInstruction* phi = dynamic_cast<PhiInstruction*>(use_inst);
-            //there can be multiple edge that use inst
-            std::vector<BasicBlock*> preds;
-            for(auto p:phi->getSrcs()){
-                if(p.second == inst->getDef()){
+        BasicBlock *use = schedule_block[use_inst];
+        if (use_inst->isPHI())
+        {
+            PhiInstruction *phi = dynamic_cast<PhiInstruction *>(use_inst);
+            // there can be multiple edge that use inst
+            std::vector<BasicBlock *> preds;
+            for (auto p : phi->getSrcs())
+            {
+                if (p.second == inst->getDef())
+                {
                     preds.push_back(p.first);
                 }
             }
             use = preds[0];
-            for(size_t i=1;i<preds.size();i++){
-                use = h.find_lca(use,preds[i]);
+            for (size_t i = 1; i < preds.size(); i++)
+            {
+                use = h.find_lca(use, preds[i]);
             }
         }
-        lca = h.find_lca(lca,use);
+        lca = h.find_lca(lca, use);
     }
-    if(uses_list.empty())
+    if (uses_list.empty())
         lca = schedule_block[inst];
-    BasicBlock* best = lca;
+    BasicBlock *best = lca;
     // fprintf(stderr,"[gcm]:lca is %d\n",lca->getNo());
     // if(lca->getNo()!=schedule_block[inst]->getNo()){
     //     fprintf(stderr,"[gcm]%s:%d-%d->%d\n",inst->getDef()->toStr().c_str(),lca->getNo(),inst->getParent()->getNo(),schedule_block[inst]->getNo());
     //     fprintf(stderr,"------------------interesting----------------------\n");
     // }
-    while(lca != schedule_block[inst]->getIDom()){
-        if(h.get_loop_depth(lca) < h.get_loop_depth(best)){
+    while (lca != schedule_block[inst]->getIDom())
+    {
+        if (h.get_loop_depth(lca) < h.get_loop_depth(best))
+        {
             best = lca;
         }
         lca = lca->getIDom();
@@ -80,7 +95,8 @@ void GlobalCodeMotion::schedule_late(Instruction *inst)
     // }
     // 向后调度也会变慢，只保留能够循环外提的调度
     // if(h.get_loop_depth(best) < h.get_loop_depth(inst->getParent()))
-    if(best->getNo() != schedule_block[inst]->getNo()){
+    if (best->getNo() != schedule_block[inst]->getNo())
+    {
         schedule_block[inst] = best;
         late.insert(inst);
     }
@@ -88,63 +104,74 @@ void GlobalCodeMotion::schedule_late(Instruction *inst)
 
 void GlobalCodeMotion::move_early(Instruction *inst)
 {
-    if(h.visited[inst]) return;
+    if (h.visited[inst])
+        return;
     h.visited[inst] = true;
-    for(const auto input : inst->getUses()){
-        if(input->getEntry()->isConstant() || input->getEntry()->isVariable()) 
+    for (const auto input : inst->getUses())
+    {
+        if (input->getEntry()->isConstant() || input->getEntry()->isVariable())
             continue;
-        Instruction* input_inst = input->getDef();
+        Instruction *input_inst = input->getDef();
         move_early(input_inst);
     }
-    BasicBlock* src = inst->getParent();
-    BasicBlock* dst = schedule_block[inst];
-    if(src == dst) return;
-    if(late.count(inst)) return;
+    BasicBlock *src = inst->getParent();
+    BasicBlock *dst = schedule_block[inst];
+    if (src == dst)
+        return;
+    if (late.count(inst))
+        return;
     src->remove(inst);
-    dst->insertBefore(inst,h.append_points[dst]);
+    dst->insertBefore(inst, h.append_points[dst]);
     move_count++;
-    if(inst->isLoad())
+    if (inst->isLoad())
         load_count++;
 }
 
 void GlobalCodeMotion::move_late(Instruction *inst)
 {
-    if(h.visited[inst]) return;
+    if (h.visited[inst])
+        return;
     h.visited[inst] = true;
-    if(!inst->hasNoDef()){
-        const auto& uses_list = inst->getDef()->getUses();
-        for(const auto use_inst : uses_list)
+    if (!inst->hasNoDef())
+    {
+        const auto &uses_list = inst->getDef()->getUses();
+        for (const auto use_inst : uses_list)
             move_late(use_inst);
     }
-    BasicBlock* src = inst->getParent();
-    BasicBlock* dst = schedule_block[inst];
-    if(src == dst) return;
-    if(!late.count(inst)) return;
+    BasicBlock *src = inst->getParent();
+    BasicBlock *dst = schedule_block[inst];
+    if (src == dst)
+        return;
+    if (!late.count(inst))
+        return;
     src->remove(inst);
-    dst->insertAfter(inst,h.prepend_points[dst]);
+    dst->insertAfter(inst, h.prepend_points[dst]);
     move_count++;
-    if(inst->isLoad())
+    if (inst->isLoad())
         load_count++;
 }
 
 void GlobalCodeMotion::move(Instruction *inst)
 {
-    if(h.visited[inst]) return;
+    if (h.visited[inst])
+        return;
     h.visited[inst] = true;
-    for(const auto input : inst->getUses()){
-        if(input->getEntry()->isConstant() || input->getEntry()->isVariable()) 
+    for (const auto input : inst->getUses())
+    {
+        if (input->getEntry()->isConstant() || input->getEntry()->isVariable())
             continue;
-        Instruction* input_inst = input->getDef();
+        Instruction *input_inst = input->getDef();
         move(input_inst);
     }
-    BasicBlock* src = inst->getParent();
-    BasicBlock* dst = schedule_block[inst];
-    if(src == dst) return;
+    BasicBlock *src = inst->getParent();
+    BasicBlock *dst = schedule_block[inst];
+    if (src == dst)
+        return;
     src->remove(inst);
-    if(late.count(inst))
-        dst->insertBefore(inst,h.prepend_points[dst]);
+    if (late.count(inst))
+        dst->insertBefore(inst, h.prepend_points[dst]);
     else
-        dst->insertBefore(inst,h.append_points[dst]);
+        dst->insertBefore(inst, h.append_points[dst]);
     // if(h.get_dom_depth(src) < h.get_dom_depth(dst)){
     //     dst->insertBefore(inst,h.prepend_points[dst]);
     // }
@@ -153,17 +180,20 @@ void GlobalCodeMotion::move(Instruction *inst)
     // }
     // fprintf(stderr,"[gcm...]move%s:%d->%d\n",inst->getDef()->toStr().c_str(),src->getNo(),dst->getNo());
     move_count++;
-    if(inst->isLoad())
+    if (inst->isLoad())
         load_count++;
 }
 
 void GlobalCodeMotion::pass()
 {
-    for(auto func_it = unit->begin();func_it!=unit->end();func_it++){
-        Function* func = *func_it;
+    for (auto func_it = unit->begin(); func_it != unit->end(); func_it++)
+    {
+        Function *func = *func_it;
         pass(func);
     }
-    fprintf(stderr,"[GCM]: %u instructions moved, %u of them are LOAD\n",move_count,load_count);
+    // fprintf(stderr, "[GCM]: %u instructions moved, %u of them are LOAD\n", move_count, load_count);
+    SimplifyCFG sc(unit);
+    sc.pass();
 }
 
 void GlobalCodeMotion::pass(Function *func)
@@ -173,117 +203,139 @@ void GlobalCodeMotion::pass(Function *func)
     h.compute_info(func);
 
     // pin instructions
-    std::set<Instruction*> pinned_insts;
-    std::set<Instruction*> pinned_without_faulting;
+    std::set<Instruction *> pinned_insts;
+    std::set<Instruction *> pinned_without_faulting;
 
-    for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
-        BasicBlock* bb = *bb_it;
-        for(auto inst = bb->begin();inst!=bb->end();inst=inst->getNext()){
+    for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
+    {
+        BasicBlock *bb = *bb_it;
+        for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
+        {
             schedule_block[inst] = inst->getParent();
-            if(h.is_pinned(inst)){
+            if (h.is_pinned(inst))
+            {
                 pinned_without_faulting.insert(inst);
                 pinned_insts.insert(inst);
             }
-            else if(inst->isBinary()){
-                auto opcpde = dynamic_cast<BinaryInstruction*>(inst)->getOpcode();
-                if(opcpde==BinaryInstruction::DIV || opcpde==BinaryInstruction::MOD){
+            else if (inst->isBinary())
+            {
+                auto opcpde = dynamic_cast<BinaryInstruction *>(inst)->getOpcode();
+                if (opcpde == BinaryInstruction::DIV || opcpde == BinaryInstruction::MOD)
+                {
                     pinned_insts.insert(inst);
                     // div instruction cannont be hoisted forward
                 }
             }
         }
     }
-    
+
     // schedule early
     h.clear_visited(func);
-    for(auto pinned : pinned_insts){
+    for (auto pinned : pinned_insts)
+    {
         h.visited[pinned] = true;
     }
-    for(auto pinned : pinned_insts){
-        for(const auto input : pinned->getUses()){
-            if(input->getEntry()->isConstant() || input->getEntry()->isVariable()) 
+    for (auto pinned : pinned_insts)
+    {
+        for (const auto input : pinned->getUses())
+        {
+            if (input->getEntry()->isConstant() || input->getEntry()->isVariable())
                 continue;
-            Instruction* input_inst = input->getDef();
+            Instruction *input_inst = input->getDef();
             schedule_early(input_inst);
         }
     }
 
     // sanity check
     // pin指令的block貌似是0？
-    for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
-        BasicBlock* bb = *bb_it;
-        for(auto inst = bb->begin();inst!=bb->end();inst=inst->getNext()){
-            if(!schedule_block.count(inst)){
+    for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
+    {
+        BasicBlock *bb = *bb_it;
+        for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
+        {
+            if (!schedule_block.count(inst))
+            {
                 inst->output();
                 assert(schedule_block.count(inst));
             }
         }
     }
-    for(auto p : schedule_block){
+    for (auto p : schedule_block)
+    {
         assert(p.first);
     }
 
-    //div instruction can be hoisted backward
-    // schedule late
+    // div instruction can be hoisted backward
+    //  schedule late
     h.clear_visited(func);
-    for(auto pinned : pinned_without_faulting){
+    for (auto pinned : pinned_without_faulting)
+    {
         h.visited[pinned] = true;
     }
-    for(auto pinned : pinned_without_faulting){
-        if(pinned->hasNoDef())
+    for (auto pinned : pinned_without_faulting)
+    {
+        if (pinned->hasNoDef())
             continue;
-        const auto& uses_list = pinned->getDef()->getUses();
-        for(const auto use_inst : uses_list){
+        const auto &uses_list = pinned->getDef()->getUses();
+        for (const auto use_inst : uses_list)
+        {
             schedule_late(use_inst);
         }
     }
-    
 
     // move
     h.clear_visited(func);
-    for(auto pinned : pinned_insts){
+    for (auto pinned : pinned_insts)
+    {
         h.visited[pinned] = true;
     }
-    for(auto inst : pinned_insts){
-        for(const auto input : inst->getUses()){
-            if(input->getEntry()->isConstant() || input->getEntry()->isVariable()) 
+    for (auto inst : pinned_insts)
+    {
+        for (const auto input : inst->getUses())
+        {
+            if (input->getEntry()->isConstant() || input->getEntry()->isVariable())
                 continue;
-            Instruction* input_inst = input->getDef();
+            Instruction *input_inst = input->getDef();
             move_early(input_inst);
         }
     }
     h.clear_visited(func);
-    for(auto pinned : pinned_without_faulting){
+    for (auto pinned : pinned_without_faulting)
+    {
         h.visited[pinned] = true;
     }
-    for(auto inst : pinned_without_faulting){
-        if(inst->hasNoDef())
+    for (auto inst : pinned_without_faulting)
+    {
+        if (inst->hasNoDef())
             continue;
-        const auto& uses_list = inst->getDef()->getUses();
-        for(const auto use_inst : uses_list)
+        const auto &uses_list = inst->getDef()->getUses();
+        for (const auto use_inst : uses_list)
             move_late(use_inst);
     }
 }
 
 void GlobalCodeMotion::print_schedule()
 {
-    for(auto p : schedule_block){
-        if(p.first->hasNoDef())
+    for (auto p : schedule_block)
+    {
+        if (p.first->hasNoDef())
             continue;
-        Operand* dst = p.first->getDef();
-        if(p.first->getParent() != p.second)
-            fprintf(stderr,"move %s from %d to %d, late:%d\n",
-            dst->toStr().c_str(),p.first->getParent()->getNo(),p.second->getNo(),late.count(p.first));
+        Operand *dst = p.first->getDef();
+        if (p.first->getParent() != p.second)
+            fprintf(stderr, "move %s from %d to %d, late:%d\n",
+                    dst->toStr().c_str(), p.first->getParent()->getNo(), p.second->getNo(), (int)late.count(p.first));
     }
 }
 
 void Helper::post_order(BasicBlock *bb, std::stack<BasicBlock *> &s)
 {
-    if(bb_visited.count(bb)) return;
+    if (bb_visited.count(bb))
+        return;
     bb_visited.insert(bb);
-    for(auto succ_it = bb->succ_begin();succ_it!=bb->succ_end();succ_it++){
-        BasicBlock* succ = *succ_it;
-        post_order(succ,s);
+    for (auto succ_it = bb->succ_begin(); succ_it != bb->succ_end(); succ_it++)
+    {
+        BasicBlock *succ = *succ_it;
+        post_order(succ, s);
     }
     s.push(bb);
 }
@@ -296,47 +348,56 @@ void Helper::compute_info(Function *func)
     // 计算支配树貌似有bug，有时候入口也会有支配者
     func->getEntry()->getIDom() = nullptr;
     entry = func->getEntry();
-    std::unordered_map<BasicBlock*,std::vector<BasicBlock*>> dom_tree;
-    for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
-        BasicBlock* bb = *bb_it;
-        if(bb->getIDom() == nullptr) continue;
+    std::unordered_map<BasicBlock *, std::vector<BasicBlock *>> dom_tree;
+    for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
+    {
+        BasicBlock *bb = *bb_it;
+        if (bb->getIDom() == nullptr)
+            continue;
         dom_tree[bb->getIDom()].push_back(bb);
     }
-    std::queue<BasicBlock*> q;
+    std::queue<BasicBlock *> q;
     q.push(func->getEntry());
     dom_depth[func->getEntry()] = 0;
-    while(!q.empty()){
-        BasicBlock* bb = q.front();
+    while (!q.empty())
+    {
+        BasicBlock *bb = q.front();
         q.pop();
-        for(auto child:dom_tree[bb]){
+        for (auto child : dom_tree[bb])
+        {
             dom_depth[child] = dom_depth[bb] + 1;
             q.push(child);
         }
     }
 
-    //print dom tree
-    for(auto p: dom_tree){
-        fprintf(stderr,"bb%d:",p.first->getNo());
-        for(auto child:p.second){
-            fprintf(stderr,"bb%d ",child->getNo());
-        }
-        fprintf(stderr,"\n");
-    }
+    // // print dom tree
+    // for (auto p : dom_tree)
+    // {
+    //     fprintf(stderr, "bb%d:", p.first->getNo());
+    //     for (auto child : p.second)
+    //     {
+    //         fprintf(stderr, "bb%d ", child->getNo());
+    //     }
+    //     fprintf(stderr, "\n");
+    // }
 
     // 计算循环深度
     LoopAnalyzer la;
     // la.Analyze(func);
     la.FindLoops(func);
-    for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
-        BasicBlock* bb = *bb_it;
+    for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
+    {
+        BasicBlock *bb = *bb_it;
         loop_depth[bb] = 0;
     }
-    for(auto loop:la.getLoops()){
-        for(auto bb:loop->GetLoop()->GetBasicBlock()){
-            loop_depth[bb] = std::max(loop->GetLoop()->GetDepth(),loop_depth[bb]);
+    for (auto loop : la.getLoops())
+    {
+        for (auto bb : loop->GetLoop()->GetBasicBlock())
+        {
+            loop_depth[bb] = std::max(loop->GetLoop()->GetDepth(), loop_depth[bb]);
         }
     }
-    
+
     // for(auto p : loop_depth){
     //     fprintf(stderr,"[gcm]bb%d:depth %d\n",p.first->getNo(),p.second);
     // }
@@ -344,16 +405,17 @@ void Helper::compute_info(Function *func)
     // 计算插入点
     // prepend_points: the last phi or dummy
     // append_points: the first control instruction
-    for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
-        BasicBlock* bb = *bb_it;
-        Instruction* i = bb->end(); // dummy head
-        assert(i->getNext()!=i); // basic block is not empty
+    for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
+    {
+        BasicBlock *bb = *bb_it;
+        Instruction *i = bb->end(); // dummy head
+        assert(i->getNext() != i);  // basic block is not empty
 
-        while(i->getNext()->isPHI())
+        while (i->getNext()->isPHI())
             i = i->getNext();
         prepend_points[bb] = i;
-        i=bb->end();
-        while(i->getPrev()->isRet() || i->getPrev()->isCmp() || i->getPrev()->isCond() || i->getPrev()->isUncond())
+        i = bb->end();
+        while (i->getPrev()->isRet() || i->getPrev()->isCmp() || i->getPrev()->isCond() || i->getPrev()->isUncond())
             i = i->getPrev();
         append_points[bb] = i;
     }
@@ -362,24 +424,27 @@ void Helper::compute_info(Function *func)
 void Helper::clear_visited(Function *func)
 {
     visited.clear();
-    for(auto bb_it = func->begin();bb_it!=func->end();bb_it++){
-        BasicBlock* bb = *bb_it;
-        for(auto inst = bb->begin();inst!=bb->end();inst=inst->getNext()){
+    for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
+    {
+        BasicBlock *bb = *bb_it;
+        for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
+        {
             visited[inst] = false;
         }
-    }    
+    }
 }
-
 
 BasicBlock *Helper::find_lca(BasicBlock *a, BasicBlock *b)
 {
-    if(a == nullptr) return b;
+    if (a == nullptr)
+        return b;
     // fprintf(stderr,"(%d,%d)=",a?a->getNo():-1,b?b->getNo():-1);
-    while(get_dom_depth(a) > get_dom_depth(b))
+    while (get_dom_depth(a) > get_dom_depth(b))
         a = a->getIDom();
-    while(get_dom_depth(b) > get_dom_depth(a))
+    while (get_dom_depth(b) > get_dom_depth(a))
         b = b->getIDom();
-    while(a != b){
+    while (a != b)
+    {
         a = a->getIDom();
         b = b->getIDom();
     }

@@ -1,5 +1,6 @@
 #include "PeepholeOptimization.h"
 #include "DeadCodeElim.h"
+#include "GraphColor.h"
 
 static std::vector<MachineInstruction *> freeInsts;
 
@@ -37,6 +38,12 @@ void PeepholeOptimization::op1()
     for (auto func_iter = unit->begin(); func_iter != unit->end(); func_iter++)
     {
         auto func = *func_iter;
+
+        RegisterAllocation ra_helper(unit);
+        ra_helper.func = func;
+        ra_helper.is_float = false;
+        ra_helper.makeDuChains();
+
         for (auto block_iter = func->begin(); block_iter != func->end(); block_iter++)
         {
             auto block = *block_iter;
@@ -318,32 +325,20 @@ void PeepholeOptimization::op1()
                             // 交换顺序
                             else if (*mul_dst == *rn || *mul_dst == *rm)
                             {
-                                // 特例：添加mov(多余的mov会在寄存器分配删除)
                                 if (*rd == *rn || *rd == *rm)
                                 {
-                                    auto new_rn = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
-                                    auto new_rm = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
-                                    auto new_ra = new MachineOperand(MachineOperand::VREG, SymbolTable::getLabel());
-                                    auto mov_rn = new MovMInstruction(block, MovMInstruction::MOV, new_rn, rn);
-                                    auto mov_rm = new MovMInstruction(block, MovMInstruction::MOV, new_rm, rm);
-                                    auto mov_ra = new MovMInstruction(block, MovMInstruction::MOV, new_ra, ra);
+                                    if (ra_helper.du_chains.count(*mul_dst) == 1 && (*ra_helper.du_chains[*mul_dst].begin()).defs.size() == 1 && (*ra_helper.du_chains[*mul_dst].begin()).uses.size() == 1)
+                                    {
 
-                                    new_rn = new MachineOperand(*new_rn);
-                                    new_rm = new MachineOperand(*new_rm);
-                                    new_ra = new MachineOperand(*new_ra);
-                                    auto fused_inst = new MLASMInstruction(block, MLASMInstruction::MLA, rd, new_rn, new_rm, new_ra);
+                                        auto fused_inst = new MLASMInstruction(block, MLASMInstruction::MLA, rd, rn, rm, ra);
 
-                                    // mov
-                                    // mul
-                                    // mla
-                                    block->insertBefore(curr_inst, mov_rn);
-                                    block->insertBefore(curr_inst, mov_rm);
-                                    block->insertBefore(curr_inst, mov_ra);
-
-                                    block->insertBefore(next_inst, fused_inst);
-                                    block->removeInst(next_inst);
-                                    freeInsts.push_back(next_inst);
-                                    // *next_inst_iter = fused_inst;
+                                        block->insertBefore(next_inst, fused_inst);
+                                        block->removeInst(curr_inst);
+                                        freeInsts.push_back(curr_inst);
+                                        block->removeInst(next_inst);
+                                        freeInsts.push_back(next_inst);
+                                        // *next_inst_iter = fused_inst;
+                                    }
                                 }
                                 else
                                 {
@@ -578,7 +573,16 @@ void PeepholeOptimization::op2()
                 {
                     auto binary_def = curr_inst->getDef()[0];
                     auto mov_src = next_inst->getUse()[0];
-                    if (*binary_def == *mov_src && next_inst->getCond() == MachineInstruction::NONE)
+
+                    bool flag = true;
+                    for (auto use : curr_inst->getUse())
+                        if (*use == *binary_def)
+                        {
+                            flag = false;
+                            break;
+                        }
+
+                    if (flag && *binary_def == *mov_src && next_inst->getCond() == MachineInstruction::NONE)
                     {
                         auto binary_src1 = curr_inst->getUse()[0];
                         auto binary_src2 = curr_inst->getUse()[1];
@@ -596,7 +600,16 @@ void PeepholeOptimization::op2()
                 {
                     auto binary_def = curr_inst->getDef()[0];
                     auto mov_src = next_inst->getUse()[0];
-                    if (*binary_def == *mov_src && next_inst->getCond() == MachineInstruction::NONE)
+
+                    bool flag = true;
+                    for (auto use : curr_inst->getUse())
+                        if (*use == *binary_def)
+                        {
+                            flag = false;
+                            break;
+                        }
+
+                    if (flag && *binary_def == *mov_src && next_inst->getCond() == MachineInstruction::NONE)
                     {
                         auto binary_src1 = curr_inst->getUse()[0];
                         auto binary_src2 = curr_inst->getUse()[1];

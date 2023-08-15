@@ -46,6 +46,7 @@ public:
         REG,
         LABEL
     };
+    bool isAddrForThreadsFunc;
     MachineOperand(int tp, double val, Type *valType = TypeSystem::intType);
     MachineOperand(std::string label);
     bool operator==(const MachineOperand &) const;
@@ -179,7 +180,7 @@ public:
                       std::vector<MachineOperand *> defs, std::vector<MachineOperand *> uses,
                       int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class BinaryMInstruction : public MachineInstruction
@@ -208,7 +209,7 @@ public:
                        MachineOperand *shifter = nullptr,
                        int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class LoadMInstruction : public MachineInstruction
@@ -225,7 +226,7 @@ public:
                      int op = -1, MachineOperand *shifter = nullptr,
                      int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class StoreMInstruction : public MachineInstruction
@@ -242,7 +243,7 @@ public:
                       int op = -1, MachineOperand *shifter = nullptr,
                       int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class MovMInstruction : public MachineInstruction
@@ -263,7 +264,7 @@ public:
                     MachineOperand *shifter = nullptr,
                     int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class BranchMInstruction : public MachineInstruction
@@ -279,7 +280,7 @@ public:
                        MachineOperand *dst,
                        int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class CmpMInstruction : public MachineInstruction
@@ -289,7 +290,7 @@ public:
                     MachineOperand *src1, MachineOperand *src2,
                     int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class StackMInstruction : public MachineInstruction
@@ -307,7 +308,7 @@ public:
                       std::vector<MachineOperand *> src,
                       int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class ZextMInstruction : public MachineInstruction
@@ -317,7 +318,7 @@ public:
                      MachineOperand *dst, MachineOperand *src,
                      int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class VcvtMInstruction : public MachineInstruction
@@ -334,7 +335,7 @@ public:
                      MachineOperand *src,
                      int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 class VmrsMInstruction : public MachineInstruction
@@ -342,7 +343,7 @@ class VmrsMInstruction : public MachineInstruction
 public:
     VmrsMInstruction(MachineBlock *p);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 // class SmullMInstruction : public MachineInstruction
@@ -373,7 +374,7 @@ public:
                      MachineOperand *src3,
                      int cond = MachineInstruction::NONE);
     void output();
-    MachineInstruction* deepCopy();
+    MachineInstruction *deepCopy();
 };
 
 // class VMLASMInstruction : public MachineInstruction
@@ -472,7 +473,7 @@ private:
     std::set<int> saved_sregs;
     SymbolEntry *sym_ptr;
     MachineBlock *entry;
-    std::vector<MachineOperand *> additional_args_offset;
+    std::set<MachineOperand *> additional_args_offset;
     bool largeStack;
     std::map<MachineOperand, std::set<MachineOperand *>> all_uses;
 
@@ -502,8 +503,8 @@ public:
     std::vector<MachineOperand *> getSavedSRegs();
     MachineUnit *getParent() { return parent; };
     SymbolEntry *getSymPtr() { return sym_ptr; };
-    void addAdditionalArgsOffset(MachineOperand *param) { additional_args_offset.push_back(param); };
-    std::vector<MachineOperand *> getAdditionalArgsOffset() { return additional_args_offset; };
+    void addAdditionalArgsOffset(MachineOperand *param) { additional_args_offset.insert(param); };
+    std::set<MachineOperand *> getAdditionalArgsOffset() { return additional_args_offset; };
     MachineBlock *getEntry() { return entry; };
     void setEntry(MachineBlock *entry) { this->entry = entry; };
     void AnalyzeLiveVariable();
@@ -530,6 +531,7 @@ public:
     void removeFunc(MachineFunction *func) { func_list.erase(std::find(func_list.begin(), func_list.end(), func)); };
     void insertGlobalVar(IdentifierSymbolEntry *sym_ptr) { global_var_list.push_back(sym_ptr); };
     void printGlobalDecl();
+    void printThreadFuncs(int num);
     void printBridge();
     int getLtorgNo() { return LtorgNo; };
     void output();

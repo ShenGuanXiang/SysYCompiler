@@ -271,7 +271,8 @@ void ComSubExprElimASM::computeDomTree(MachineFunction *func)
     for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
     {
         MachineBlock *bb = *it_bb;
-        domtree[bb->getIDom()].push_back(bb);
+        if (bb != func->getEntry())
+            domtree[bb->getIDom()].push_back(bb);
     }
 
     // print domtree
@@ -291,6 +292,10 @@ std::string ComSubExprElimASM::getOpString(MachineInstruction *minst, bool lvn)
     std::string instString = "";
     if (minst->getDef().empty() || minst->getDef().size() > 1)
         return instString;
+
+    for (auto use : minst->getUse())
+        if (minst->getParent()->getParent()->getAdditionalArgsOffset().count(use) && !after_regAlloc)
+            return instString;
 
     if (!lvn)
     {
@@ -548,7 +553,8 @@ void ComSubExprElimASM::lvn(MachineBlock *bb)
             unsigned long long instval = inst2val[inst_str];
             if (val2ops[instval].empty())
                 continue;
-            auto src = *val2ops[instval].begin();
+            auto src = new MachineOperand(**val2ops[instval].begin());
+            dst = new MachineOperand(*dst);
             // new mov & delete
             torm.push_back(minst);
             MachineInstruction *mov;

@@ -79,7 +79,13 @@ std::vector<std::string> lib_funcs{
     "memset",
     "_sysy_starttime",
     "_sysy_stoptime",
-    "_mulmod"};
+    "_mulmod",
+    "__create_threads",
+    "__join_threads",
+    "__bind_core",
+    "__lock",
+    "__unlock",
+    "__barrier"};
 
 bool IdentifierSymbolEntry::isLibFunc()
 {
@@ -136,6 +142,18 @@ IdentifierSymbolEntry::IdentifierSymbolEntry(Type *type, std::string name, int s
             occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
             occupiedRegs.insert(std::make_pair(3, TypeSystem::intType));
+        }
+        else if (name == "__create_threads" || name == "__join_threads" || name == "__bind_core" || name == "__lock" || name == "__unlock" || name == "__barrier")
+        {
+            // 暂不确定 TODO：所有改变的寄存器
+            occupiedRegs.insert(std::make_pair(0, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(1, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(2, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(3, TypeSystem::intType));
+            occupiedRegs.insert(std::make_pair(28, TypeSystem::floatType));
+            occupiedRegs.insert(std::make_pair(29, TypeSystem::floatType));
+            occupiedRegs.insert(std::make_pair(30, TypeSystem::floatType));
+            occupiedRegs.insert(std::make_pair(31, TypeSystem::floatType));
         }
         else
             assert(0);

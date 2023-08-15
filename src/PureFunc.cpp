@@ -461,7 +461,7 @@ void replaceLoadByNearestLoad(BasicBlock *bb)
 
 void PureFunc::pass()
 {
-    funcElim();
+    funcElim(); // 无用返回值设为0
     pureFuncs.clear();
     func2read.clear();
     bb2dirtyse.clear();

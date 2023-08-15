@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
             pf.pass(); // 纯函数清理
             AutoInliner autoinliner(unit);
             autoinliner.pass(); // 函数自动内联
-            // // TODO:其它中间代码优化
+            // TODO:其它中间代码优化
             AlgSimplify alsim(unit);
             alsim.pass(); // 代数化简
             SparseCondConstProp sccp(unit);
@@ -143,6 +143,7 @@ int main(int argc, char *argv[])
             unit->output();
             fprintf(stderr, "opt ir output ok\n");
         }
+        // 多线程
         ElimPHI ep(unit);
         ep.pass();
     }
@@ -152,8 +153,6 @@ int main(int argc, char *argv[])
         if (optimize)
         {
             // TODO: 汇编代码优化
-            MachineDeadCodeElim mdce(mUnit);
-
             ComSubExprElimASM cseasm(mUnit);
             cseasm.pass(); // 后端cse
 
@@ -165,6 +164,7 @@ int main(int argc, char *argv[])
             PeepholeOptimization ph(mUnit);
             ph.pass(); // 窥孔优化
 
+            MachineDeadCodeElim mdce(mUnit);
             mdce.pass(true); // 死代码消除
             // 指令调度
         }
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
         if (optimize)
         {
             // TODO: 汇编代码优化
-            ComSubExprElimASM cseasm(mUnit);
+            ComSubExprElimASM cseasm(mUnit, true);
             cseasm.pass(); // 公共子表达式删除
             PeepholeOptimization ph(mUnit);
             ph.pass(); // 窥孔优化

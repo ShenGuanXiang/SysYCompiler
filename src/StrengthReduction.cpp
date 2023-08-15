@@ -98,6 +98,8 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
         // 存值，只处理无条件赋值&(SSA||当前块定义)的情况
         if (inst->isLoad())
         {
+            if (bb->getParent()->getAdditionalArgsOffset().count(inst->getUse()[0]))
+                continue;
             // 暂不考虑一次load多个寄存器的情况
             if (inst->getUse().size() == 1 && inst->getDef()[0]->getValType()->isInt() &&
                 inst->getCond() == MachineInstruction::NONE && inst->getUse()[0]->isImm())
@@ -123,6 +125,8 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
         }
         else if (inst->isMov() || inst->isVmov())
         {
+            if (bb->getParent()->getAdditionalArgsOffset().count(inst->getUse()[0]))
+                continue;
             // 暂不考虑带移位的情况
             if (inst->getDef()[0]->getValType()->isInt() && op2val.count(*inst->getUse()[0]) && isSignedShifterOperandVal(op2val[*inst->getUse()[0]]))
             {

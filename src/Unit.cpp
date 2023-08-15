@@ -44,7 +44,8 @@ void Unit::genMachineCode(MachineUnit *munit)
             if (!decl->getType()->isConst() || decl->getType()->isARRAY())
                 munit->insertGlobalVar(decl);
         }
-        else if (decl->isLibFunc() && decl->getName() == "_mulmod")
+        else if (decl->isLibFunc() && (decl->getName() == "_mulmod" 
+        || decl->getName() == "__create_threads" || decl->getName() == "__join_threads" || decl->getName() == "__bind_core" || decl->getName() == "__lock" || decl->getName() == "__unlock" || decl->getName() == "__barrier"))
         {
             munit->insertGlobalVar(decl);
         }

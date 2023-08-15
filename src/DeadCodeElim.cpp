@@ -89,7 +89,7 @@ void DeadCodeElim::pass()
     sc.pass();
 
     // 检查dce效果
-    for (auto f : fs)
+    for (auto f : unit->getFuncList())
     {
         for (auto bb : f->getBlockList())
         {
@@ -350,6 +350,8 @@ bool DeadCodeElim::deadInstrEliminate(Function *f)
                     (*bb)->CleanSucc();
                     (*bb)->addSucc(npd);
                     npd->addPred(*bb);
+                    deadInsts.push_back(instr);
+                    break;
                 }
                 if (!instr->isUncond())
                     deadInsts.push_back(instr);
@@ -362,6 +364,15 @@ bool DeadCodeElim::deadInstrEliminate(Function *f)
         // inst->output();
         delete inst;
     }
+    // std::vector<BasicBlock *> deadBBs;
+    // for (auto bb : f->getBlockList())
+    //     if (!bbDCEMarked[bb])
+    //         deadBBs.push_back(bb);
+    // for (auto bb : deadBBs)
+    // {
+    //     change = true;
+    //     delete bb;
+    // }
     return change;
 }
 

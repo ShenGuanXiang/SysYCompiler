@@ -8,21 +8,19 @@
 
 // static const double __DBL_MAX__ = 10000000000;
 
-// TODO：加if-else深度、调loop_depth、+live_range
+// TODO：加if-else深度、调loop_depth
 
 static bool debug1 = 0;
 
 static std::set<MachineInstruction *> freeInsts; // def not use & coalesced mov insts
 
-static bool is_float = false;
-
-static bool isRightType(MachineOperand *op)
+bool RegisterAllocation::isRightType(MachineOperand *op)
 {
     return ((op->getValType()->isInt() && !is_float) || (op->getValType()->isFloat() && is_float));
 }
 
 // real reg -> 0 ~ nreg
-static inline int Reg2WebIdx(int Reg)
+int RegisterAllocation::Reg2WebIdx(int Reg)
 {
     if (is_float)
     {
@@ -33,7 +31,7 @@ static inline int Reg2WebIdx(int Reg)
 }
 
 // 0 ~ nreg -> real reg
-static inline int WebIdx2Reg(int Idx)
+int RegisterAllocation::WebIdx2Reg(int Idx)
 {
     if (is_float)
     {
@@ -42,32 +40,33 @@ static inline int WebIdx2Reg(int Idx)
     return Idx == 13 ? 14 : Idx;
 }
 
-static inline bool isInterestingReg(MachineOperand *op)
+bool RegisterAllocation::isInterestingReg(MachineOperand *op)
 {
     return op->isReg() && isRightType(op) && Reg2WebIdx(op->getReg()) != -1;
 }
 
-static bool isImmWeb(Web *web)
+bool RegisterAllocation::isImmWeb(Web *web)
 {
     if (web->defs.size() != 1 || web->uses.size() == 1)
         return false;
     auto minst = (*web->defs.begin())->getParent();
-    return (minst->isMov() || minst->isLoad()) && minst->getUse().size() == 1 && minst->getUse()[0]->isImm() && minst->getUse()[0]->getValType()->isInt();
+    return (minst->isMov() || minst->isLoad()) && minst->getUse().size() == 1 && minst->getUse()[0]->isImm() && minst->getUse()[0]->getValType()->isInt() && !func->getAdditionalArgsOffset().count(minst->getUse()[0]);
 }
 
 RegisterAllocation::RegisterAllocation(MachineUnit *unit)
 {
     this->unit = unit;
-    nregs = 14;
+    nregs = 28;
+    is_float = true;
 }
 
 void RegisterAllocation::pass()
 {
-    for (int i = 0; i < 2; i++)
+    for (auto &f : unit->getFuncs())
     {
-        for (auto &f : unit->getFuncs())
+        func = f;
+        for (int k = 0; k < 2; k++)
         {
-            func = f;
             bool success = false;
             while (!success)
             {
@@ -94,14 +93,10 @@ void RegisterAllocation::pass()
                 // 计算符号寄存器溢出到内存和从内存恢复的开销
                 computeSpillCosts();
                 if (debug1)
-                {
-                    for (int i = nregs; i < webs.size(); i++)
-                    {
-                        webs[i]->Print();
-                    }
-                }
-                if (debug1)
                     fprintf(stderr, "computeSpillCosts\n");
+                if (debug1)
+                    for (int i = nregs; i < webs.size(); i++)
+                        webs[i]->Print();
                 //
                 pruneGraph();
                 if (debug1)
@@ -111,12 +106,8 @@ void RegisterAllocation::pass()
                 if (debug1)
                     fprintf(stderr, "assignRegs\n");
                 if (debug1)
-                {
                     for (int i = nregs; i < webs.size(); i++)
-                    {
                         webs[i]->Print();
-                    }
-                }
                 if (success)
                     // 将颜色替换为真实寄存器
                     modifyCode();
@@ -128,23 +119,19 @@ void RegisterAllocation::pass()
                         fprintf(stderr, "genSpillCode\n");
                 }
                 if (debug1)
-                {
                     for (int i = nregs; i < webs.size(); i++)
-                    {
                         webs[i]->Print();
-                    }
-                }
             }
-
-            if (debug1)
-                fprintf(stderr, "\n pass %s\n", dynamic_cast<IdentifierSymbolEntry *>(f->getSymPtr())->getName().c_str());
+            nregs = nregs == 14 ? 28 : 14;
+            is_float ^= 1;
         }
-        nregs = 28;
-        is_float = true;
-
-        for (auto web : webs)
-            delete web;
-        webs.clear();
+        if (func->getSavedRRegs().size() == 1 && func->AllocSpace(0) >= 1028)
+            func->addSavedRegs(1);
+        // 更新additional args的偏移
+        for (auto offset : func->getAdditionalArgsOffset())
+            offset->setVal(offset->getVal() + 4 * (func->getSavedSRegs().size() + func->getSavedRRegs().size()));
+        if (debug1)
+            fprintf(stderr, "\n pass %s\n", dynamic_cast<IdentifierSymbolEntry *>(f->getSymPtr())->getName().c_str());
     }
 
     for (auto inst : freeInsts)
@@ -279,6 +266,8 @@ void RegisterAllocation::makeDuChains()
 void RegisterAllocation::makeWebs()
 {
     makeDuChains();
+    for (auto web : webs)
+        delete web;
     webs.clear();
     operand2web.clear();
 
@@ -303,10 +292,9 @@ void RegisterAllocation::makeWebs()
             }
             else
             {
-                // sreg = -1, rreg = -1, spillCost = 0
-                Web *web = new Web({du.defs, du.uses, false, 0, -1, -1, -1});
+                // sreg = idx, rreg = -1, spillCost = 0
+                Web *web = new Web({du.defs, du.uses, false, 0, idx, -1, -1});
                 webs.push_back(web);
-                web->sreg = idx;
                 for (auto &def : web->defs)
                     operand2web[def] = idx;
                 for (auto &use : web->uses)
@@ -373,7 +361,7 @@ void RegisterAllocation::buildAdjMatrix()
                         {
                             flag = false;
                             if (!condCnt.count(**du.defs.begin()))
-                                condCnt[**du.defs.begin()] = 0;
+                                condCnt[**du.defs.begin()] = 1;
                             else
                                 condCnt[**du.defs.begin()]++;
                         }
@@ -428,6 +416,8 @@ void RegisterAllocation::computeSpillCosts()
     //     }
     // }
 
+    int inst_no = 0;
+
     for (auto &bb : func->getBlocks())
     {
         // double factor = pow(4, loop_depth[bb]);
@@ -435,6 +425,7 @@ void RegisterAllocation::computeSpillCosts()
         double factor = 1.f;
         for (auto &inst : bb->getInsts())
         {
+            inst->setNo(inst_no++);
             auto defs = inst->getDef();
             for (auto &def : defs)
             {
@@ -461,6 +452,32 @@ void RegisterAllocation::computeSpillCosts()
                     webs[w]->spillCost -= factor * 10;
             }
         }
+    }
+
+    for (int i = nregs; i < (int)webs.size(); i++)
+    {
+        auto web = webs[i];
+        bool short_live_range = true;
+        auto bb = (*web->defs.begin())->getParent()->getParent();
+        for (auto def : web->defs)
+        {
+            if (def->getParent()->getParent() != bb || abs(def->getParent()->getNo() - (*web->defs.begin())->getParent()->getNo()) > 5)
+            {
+                short_live_range = false;
+                break;
+            }
+        }
+        for (auto use : web->uses)
+        {
+            if (use->getParent()->getParent() != bb || abs(use->getParent()->getNo() - (*web->defs.begin())->getParent()->getNo()) > 5)
+            {
+                short_live_range = false;
+                break;
+            }
+        }
+
+        if (short_live_range)
+            webs[i]->spillCost = __DBL_MAX__ / 4;
     }
 }
 
@@ -538,6 +555,8 @@ bool RegisterAllocation::regCoalesce()
                 continue;
             int u = operand2web[dst];
             int v = operand2web[src];
+            if (webs[u]->defs.size() > 1)
+                continue;
             if (!adjMtx[u][v])
             {
                 flag = true;
@@ -549,7 +568,7 @@ bool RegisterAllocation::regCoalesce()
                     MachineOperand *new_version = new MachineOperand(*src);
                     operand2web[new_version] = v;
                     webs[v]->uses.insert(new_version);
-                    for (int i = 0; i < parent->getUse().size(); i++)
+                    for (size_t i = 0; i < parent->getUse().size(); i++)
                     {
                         if (parent->getUse()[i] == use)
                         {
@@ -564,7 +583,7 @@ bool RegisterAllocation::regCoalesce()
                     MachineOperand *new_version = new MachineOperand(*src);
                     operand2web[new_version] = v;
                     webs[v]->defs.insert(new_version);
-                    for (int i = 0; i < parent->getDef().size(); i++)
+                    for (size_t i = 0; i < parent->getDef().size(); i++)
                     {
                         if (parent->getDef()[i] == def)
                         {
@@ -657,6 +676,8 @@ void RegisterAllocation::genSpillCode()
     {
         if (!web->spill)
             continue;
+        if (debug1)
+            web->Print();
         // 保存常数的寄存器单独讨论
         if (isImmWeb(web))
         {

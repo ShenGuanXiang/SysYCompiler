@@ -1,3 +1,58 @@
+# 线程库函数调用代码（在AST中调用）
+
+```C++
+auto ct_func = new FunctionType(TypeSystem::intType, std::vector<Type *>{nullptr});
+new FuncCallInstruction(new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel())),
+                        std::vector<Operand *>{},
+                        new IdentifierSymbolEntry(ct_func, "__create_threads", 0),
+                        builder->getInsertBB());
+
+auto jt_func = new FunctionType(TypeSystem::voidType, std::vector<Type *>{TypeSystem::intType});
+new FuncCallInstruction(new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel())),
+                        // 如果参数为 0，执行系统调用 SYS_exit 来退出线程。不为 0 则会执行系统调用 SYS_waitid 来等待并回收线程资源。
+                        std::vector<Operand *>{new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0))}, // 或者 1
+                        new IdentifierSymbolEntry(jt_func, "__join_threads", 0),
+                        builder->getInsertBB());
+
+auto bc_func = new FunctionType(TypeSystem::voidType, std::vector<Type *>{TypeSystem::intType, TypeSystem::intType});
+new FuncCallInstruction(new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel())),
+                        std::vector<Operand *>{new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 0)), new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, (1 << 4) - 1))},
+                        new IdentifierSymbolEntry(jt_func, "__bind_core", 0),
+                        builder->getInsertBB());
+
+
+auto lc_func = new FunctionType(TypeSystem::voidType, std::vector<Type *>{TypeSystem::intType});
+auto _mutex = new IdentifierSymbolEntry(TypeSystem::intType, "_mutex_" + std::to_string(builder->getInsertBB()->getNo()), 0); // 或许name前面还需要加点啥，遇到了再说
+SymbolEntry *addr_se_mu = new IdentifierSymbolEntry(*_mutex);
+addr_se_mu->setType(new PointerType(_mutex->getType()));
+auto addr_mu = new Operand(addr_se_mu);
+_mutex->setAddr(addr_mu);
+auto lock_inst = new FuncCallInstruction(new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel())),
+                        std::vector<Operand *>{new Operand(_mutex)},
+                        new IdentifierSymbolEntry(lc_func, "__lock", 0),
+                        builder->getInsertBB());
+lock_inst->getParent()->getParent()->getParent()->insertDecl(_mutex);
+
+new FuncCallInstruction(new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel())),
+                        std::vector<Operand *>{new Operand(_mutex)},
+                        new IdentifierSymbolEntry(lc_func, "__unlock", 0),
+                        builder->getInsertBB());
+
+
+auto ba_func = new FunctionType(TypeSystem::voidType, std::vector<Type *>{TypeSystem::intType, TypeSystem::intType});
+auto _barrier = new IdentifierSymbolEntry(TypeSystem::intType, "_barrier_" + std::to_string(builder->getInsertBB()->getNo()), 0); // 或许name前面还需要加点啥，遇到了再说
+SymbolEntry *addr_se_ba = new IdentifierSymbolEntry(*_barrier);
+addr_se_ba->setType(new PointerType(_barrier->getType()));
+auto addr_ba = new Operand(addr_se_ba);
+_barrier->setAddr(addr_ba);
+auto ba_inst = new FuncCallInstruction(new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel())),
+                        std::vector<Operand *>{new Operand(_barrier), new Operand(new ConstantSymbolEntry(TypeSystem::constIntType, 3 /*这个数字根据具体需要更改*/)) }, 
+                        new IdentifierSymbolEntry(ba_func, "__barrier", 0),
+                        builder->getInsertBB());
+ba_inst->getParent()->getParent()->getParent()->insertDecl(_barrier);
+```
+
+
 # 已完成
 
 ## Inliner
@@ -173,7 +228,7 @@
       str r4, [r6, r3, lsl #2]     
 
     - lsl r3, r2, #2
- 
+
       add r12, r5, r2, lsl #2
 
       ldr r3, [r5, r3] 
