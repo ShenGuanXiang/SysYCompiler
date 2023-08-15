@@ -926,18 +926,16 @@ void BinaryInstruction::genMachineCode(AsmBuilder *builder)
     {
         if (src1->isImm() && src1->getVal() == 0)
         {
-            if (src2->isImm() && src2->isIllegalShifterOperand())
-                cur_block->insertBack(new LoadMInstruction(cur_block, dst, src2));
-            else
-                cur_block->insertBack(new MovMInstruction(cur_block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src2));
+            if (src2->isImm())
+                src2 = cur_block->insertLoadImm(src2);
+            cur_block->insertBack(new MovMInstruction(cur_block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src2));
             return;
         }
         else if (src2->isImm() && src2->getVal() == 0)
         {
-            if (src1->isImm() && src1->isIllegalShifterOperand())
-                cur_block->insertBack(new LoadMInstruction(cur_block, dst, src1));
-            else
-                cur_block->insertBack(new MovMInstruction(cur_block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src1));
+            if (src1->isImm())
+                src1 = cur_block->insertLoadImm(src1);
+            cur_block->insertBack(new MovMInstruction(cur_block, dst->getValType()->isFloat() ? MovMInstruction::VMOV : MovMInstruction::MOV, dst, src1));
             return;
         }
     }

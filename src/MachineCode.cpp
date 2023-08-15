@@ -1968,9 +1968,9 @@ void MachineUnit::printGlobalDecl()
             // .align
             // _m6global03a03a11barrier_BB3:
             //     .space 4
-            fprintf(yyout, ".align\n");
+            fprintf(yyout, ".align 4\n");
             fprintf(yyout, "%s:\n", var->toStr().c_str());
-            fprintf(yyout, "\t.space 4\n");
+            fprintf(yyout, "\t.space 4\n"); // TODO
         }
 
         else if (var->getName() != "_mulmod" && var->getName() != "__create_threads" && var->getName() != "__join_threads" && var->getName() != "__bind_core" && var->getName() != "__lock" && var->getName() != "__unlock" && var->getName() != "__barrier")
