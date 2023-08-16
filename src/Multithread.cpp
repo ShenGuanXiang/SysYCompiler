@@ -1,4 +1,4 @@
-// #include "Multithread.h"
+#include "Multithread.h"
 // #include <algorithm>
 
 // static inline Operand* new_const_op(int val){
@@ -90,7 +90,7 @@
 //     const std::vector<BasicBlock*> preds;
 //     std::copy(loop.loop_header->pred_begin(),loop.loop_header->pred_end(),std::back_inserter(preds));
 //     BasicBlock* judge_bb = new BasicBlock(loop.loop_header->getParent());
-    
+
 // }
 // void Multithread::transform()
 // {
@@ -100,3 +100,59 @@
 //     // 3. copy loop code for each thread
 //     // 4. add multi thread branch
 // }
+
+bool analyzeIndVar(LoopInfo &loop)
+{
+    bool flag = true;
+
+    return flag;
+}
+
+// find all multithread able loops
+std::vector<LoopInfo> findLoopInfo(Function *func)
+{
+    LoopAnalyzer la_helper(func);
+    la_helper.analyze();
+    auto loopDepth = la_helper.getLoopDepth();
+
+    std::vector<LoopInfo> loops;
+
+    // for (auto loop_helper : la_helper.getLoops())
+    // {
+    //     LoopInfo loop;
+    //     loop.loop_blocks = loop_helper->GetLoop()->GetBasicBlock();
+    //     loop.loop_header = loop_helper->GetBody();
+    //     loop.loop_exiting_block = loop_helper->GetCond();
+
+    //     bool flag = true; // 是否可多线程
+
+    //     // 排除非最外层循环 TODO：从外到里找到第一层可并行的循环
+    //     if (!loop_helper->GetLoop()->isOuterLoop())
+    //     {
+    //         flag = false;
+    //     }
+
+    //     // 排除break
+    //     for (auto bb : loop.loop_blocks)
+    //     {
+    //         if (bb != loop.loop_exiting_block)
+    //         {
+    //             for (auto succ_it = bb->succ_begin(); succ_it != bb->succ_end(); succ_it++)
+    //             {
+    //                 if (!loop.loop_blocks.count(*succ_it))
+    //                 {
+    //                     flag = false;
+    //                     break;
+    //                 }
+    //             }
+    //         }
+    //     }
+
+    //     // 判断归纳变量是否唯一、变化形式并记录
+    //     flag &= analyzeIndVar(loop);
+
+    //     // 判断数据依赖
+    // }
+
+    return loops;
+}

@@ -151,7 +151,8 @@ bool SimpleLoop::dfs(Instruction *i, std::stack<Operand *> &path)
     }
     return false;
 }
-long long exgcd(int a, int b, long long &x, long long &y)
+
+static long long exgcd(int a, int b, long long &x, long long &y)
 {
     if (!b)
     {
@@ -163,14 +164,14 @@ long long exgcd(int a, int b, long long &x, long long &y)
     return res;
 }
 
-int inv2(int i, int mod)
+static int inv2(int i, int mod)
 {
     long long x, y;
     exgcd(i, mod, x, y);
     return (x % mod + mod) % mod;
 }
 
-bool areCoprime(int a, int b)
+static bool areCoprime(int a, int b)
 {
     return std::gcd(a, b) == 1;
 }

@@ -62,7 +62,10 @@ static Operand *copyOperand(Operand *ope)
     if (ope->getEntry()->getType()->isConst())
         return new Operand(new ConstantSymbolEntry(ope->getType(), ope->getEntry()->getValue()));
     else
+    {
+        assert(ope->getEntry()->isTemporary());
         return new Operand(new TemporarySymbolEntry(ope->getType(), SymbolTable::getLabel()));
+    }
 }
 
 // 在这里之判断是否是递归函数，如果是递归函数的话就不展开，日后可以在这个位置加一些对于可以内连的判断

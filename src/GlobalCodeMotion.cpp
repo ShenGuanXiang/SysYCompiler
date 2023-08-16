@@ -1,5 +1,5 @@
 #include "GlobalCodeMotion.h"
-#include "LoopUnroll.h"
+#include "LoopAnalyzer.h"
 #include "SimplifyCFG.h"
 
 void GlobalCodeMotion::gvn(Function *func)
@@ -382,21 +382,9 @@ void Helper::compute_info(Function *func)
     // }
 
     // 计算循环深度
-    LoopAnalyzer la;
-    // la.Analyze(func);
-    la.FindLoops(func);
-    for (auto bb_it = func->begin(); bb_it != func->end(); bb_it++)
-    {
-        BasicBlock *bb = *bb_it;
-        loop_depth[bb] = 0;
-    }
-    for (auto loop : la.getLoops())
-    {
-        for (auto bb : loop->GetLoop()->GetBasicBlock())
-        {
-            loop_depth[bb] = std::max(loop->GetLoop()->GetDepth(), loop_depth[bb]);
-        }
-    }
+    LoopAnalyzer la(func);
+    la.analyze();
+    loop_depth = la.getLoopDepth();
 
     // for (auto p : loop_depth)
     // {
