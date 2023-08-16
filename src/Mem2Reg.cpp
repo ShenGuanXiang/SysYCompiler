@@ -250,6 +250,8 @@ void Function::ComputeDom()
         assert(temp_IDoms.size() == 1 || (bb == getEntry() && temp_IDoms.size() == 0));
         if (bb != getEntry())
             bb->getIDom() = *temp_IDoms.begin();
+        else
+            bb->getIDom() = nullptr;
     }
     // for (auto bb : getBlockList())
     //     if (bb != getEntry())

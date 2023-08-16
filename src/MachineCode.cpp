@@ -2069,9 +2069,9 @@ WEXITED = 4
 __join_threads:
     dsb
 	isb
-	sub sp, sp, #16
     cmp r0, #0
 	bne .L01
+    sub sp, sp, #16
 	vmov s28, r4
 	vmov s29, r5
 	vmov s30, r6
