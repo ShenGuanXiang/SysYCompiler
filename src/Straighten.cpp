@@ -14,7 +14,7 @@ void Straighten::pass()
         {
             for (auto dst_bb : func->getBlocks())
             {
-                if (dst_bb->getSuccs().size() == 1 && dst_bb->getInsts().size() < max_bb_size)
+                if (dst_bb->getSuccs().size() == 1 && dst_bb->getInsts().size() < max_bb_size && dst_bb->getSuccs()[0]->getInsts().size() < max_bb_size)
                 {
                     change = true;
 

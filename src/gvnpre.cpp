@@ -830,7 +830,7 @@ void GVNPRE_FUNC::pass()
     insert(func);
     elminate(func);
 
-    // fprintf(stderr, "[GVNPRE]:insert %d exprs,%d phis,erase %d exprs in func %s.\n", expr_cnt, phi_cnt, erase_cnt, func->getSymPtr()->toStr().c_str());
+    fprintf(stderr, "[GVNPRE]:insert %d exprs,%d phis,erase %d exprs in func %s.\n", expr_cnt, phi_cnt, erase_cnt, func->getSymPtr()->toStr().c_str());
     if (expr_cnt != 0 && erase_cnt == 0)
         assert(0);
 }

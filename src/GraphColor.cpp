@@ -401,28 +401,32 @@ void RegisterAllocation::buildAdjLists()
 
 void RegisterAllocation::computeSpillCosts()
 {
-    // MLoopAnalyzer mla;
-    // mla.FindLoops(func);
-    // std::map<MachineBlock *, int> loop_depth;
+    MLoopAnalyzer mla;
+    mla.FindLoops(func);
+    std::map<MachineBlock *, int> loop_depth;
+    for (auto bb : func->getBlocks())
+    {
+        loop_depth[bb] = 0;
+    }
+    for (auto loop : mla.getLoops())
+    {
+        for (auto bb : loop->GetLoop()->GetBasicBlock())
+        {
+            loop_depth[bb] = std::max(loop->GetLoop()->GetDepth(), loop_depth[bb]);
+        }
+    }
     // for (auto bb : func->getBlocks())
     // {
-    //     loop_depth[bb] = 0;
-    // }
-    // for (auto loop : mla.getLoops())
-    // {
-    //     for (auto bb : loop->GetLoop()->GetBasicBlock())
-    //     {
-    //         loop_depth[bb] = std::max(loop->GetLoop()->GetDepth(), loop_depth[bb]);
-    //     }
+    //     fprintf(stderr, "loop_depth of bb %d is %d\n", bb->getNo(), loop_depth[bb]);
     // }
 
     int inst_no = 0;
 
     for (auto &bb : func->getBlocks())
     {
-        // double factor = pow(4, loop_depth[bb]);
+        double factor = pow(4, loop_depth[bb]);
         // double factor = 10 * loop_depth[bb];
-        double factor = 1.f;
+        // double factor = 1.f;
         for (auto &inst : bb->getInsts())
         {
             inst->setNo(inst_no++);
@@ -433,23 +437,18 @@ void RegisterAllocation::computeSpillCosts()
                     continue;
                 int w = operand2web[def];
 
-                if (isImmWeb(webs[w]))
-                    webs[w]->spillCost -= factor * adjList[w].size();
-
-                webs[w]->spillCost += factor * 20;
-
-                if (inst->isMov())
-                    webs[w]->spillCost -= factor * 10;
+                if (!isImmWeb(webs[w]))
+                    webs[w]->spillCost += factor * 16;
             }
             for (auto &use : inst->getUse())
             {
                 if (!operand2web.count(use))
                     continue;
                 int w = operand2web[use];
-                webs[w]->spillCost += factor * 40;
 
-                if (inst->isMov())
-                    webs[w]->spillCost -= factor * 10;
+                webs[w]->spillCost += factor * 16;
+                if (isImmWeb(webs[w]))
+                    webs[w]->spillCost -= factor * 8;
             }
         }
     }
@@ -545,7 +544,7 @@ bool RegisterAllocation::regCoalesce()
                 continue;
             MachineOperand *dst = *inst->getDef().begin();
             MachineOperand *src = *inst->getUse().begin();
-            if (!((dst->getValType()->isInt() && src->getValType()->isInt()) || (dst->getValType()->isFloat() && src->getValType()->isFloat())))
+            if (!((dst->getValType()->isInt() && src->getValType()->isInt()) || (dst->getValType()->isFloat() && src->getValType()->isFloat()) || (dst->getValType()->isFloat() && src->getValType()->isInt())))
                 continue;
             if (operand2web.find(dst) == operand2web.end())
                 continue;
@@ -557,6 +556,20 @@ bool RegisterAllocation::regCoalesce()
             int v = operand2web[src];
             if (webs[u]->defs.size() > 1)
                 continue;
+            if (dst->getValType()->isFloat() && src->getValType()->isInt())
+            {
+                bool replacable = true;
+                for (auto &use : webs[u]->uses)
+                {
+                    if (!(use->getParent()->isVmov() && use->getParent()->getUse().size() == 1))
+                    {
+                        replacable = false;
+                        break;
+                    }
+                }
+                if (!replacable)
+                    continue;
+            }
             if (!adjMtx[u][v])
             {
                 flag = true;

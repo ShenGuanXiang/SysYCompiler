@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
             MemoryOpt memopt(unit);
             memopt.pass(); // 访存优化
             GVNPRE gvnpre(unit);
-            gvnpre.pass(); // 部分冗余消除&循环不变外提
+            // gvnpre.pass(); // 部分冗余消除&循环不变外提
             GlobalCodeMotion gcm(unit);
             gcm.pass(); // 全局代码移动
             LoopUnroll lur(unit);

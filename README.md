@@ -296,8 +296,6 @@ ba_inst->getParent()->getParent()->getParent()->insertDecl(_barrier);
 
 # TODO
 
-## median2 opt llvm、sl1 RE
-
 ## 图着色寄存器分配
 
 添加浮点、更改spillcost
