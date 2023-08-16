@@ -257,7 +257,7 @@ void SimpleLoop::simplify()
         if (inductions[exit_var].modulo)
         {
             new FuncCallInstruction(tmp, std::vector<Operand *>{loop_time, inductions[exit_var].step, inductions[exit_var].modulo},
-                                    new IdentifierSymbolEntry(mulmod_type, "_mulmod", 0), body);
+                                    new IdentifierSymbolEntry(mulmod_type, "__mulmod", 0), body);
         }
         else
             new BinaryInstruction(BinaryInstruction::MUL, tmp, inductions[exit_var].step, loop_time, body);
@@ -348,11 +348,11 @@ void SimpleLoop::simplify()
 
                 Operand *tmp = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
                 new FuncCallInstruction(tmp, std::vector<Operand *>{loop_time, inv_op, inductions[exit_var].modulo},
-                                        new IdentifierSymbolEntry(mulmod_type, "_mulmod", 0), body);
+                                        new IdentifierSymbolEntry(mulmod_type, "__mulmod", 0), body);
 
                 Operand *tmp2 = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
                 new FuncCallInstruction(tmp2, std::vector<Operand *>{tmp, loop_time_plus_one_mod, inductions[exit_var].modulo},
-                                        new IdentifierSymbolEntry(mulmod_type, "_mulmod", 0), body);
+                                        new IdentifierSymbolEntry(mulmod_type, "__mulmod", 0), body);
 
                 Operand *base_mod = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
                 new BinaryInstruction(BinaryInstruction::MOD, base_mod, inductions[exit_var].base, inductions[exit_var].modulo, body);

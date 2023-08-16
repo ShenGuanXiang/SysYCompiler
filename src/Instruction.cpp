@@ -433,10 +433,10 @@ FuncCallInstruction::FuncCallInstruction(Operand *dst, std::vector<Operand *> pa
                 return;
         this->getParent()->getParent()->getParent()->insertDecl(func_se);
     }
-    if (funcse->getName() == "_mulmod")
+    if (funcse->getName() == "__mulmod")
     {
         for (auto decl : this->getParent()->getParent()->getParent()->getDeclList())
-            if (decl->getType()->isFunc() && decl->getName() == "_mulmod")
+            if (decl->getType()->isFunc() && decl->getName() == "__mulmod")
                 return;
         this->getParent()->getParent()->getParent()->insertDecl(func_se);
     }
@@ -1214,21 +1214,19 @@ void FuncCallInstruction::genMachineCode(AsmBuilder *builder)
         auto arg = genMachineOperand(use_list[0]);
         auto dst = new MachineOperand(MachineOperand::REG, 0, arg->getValType());
         BL->addUse(new MachineOperand(*dst));
-        arg->isAddrForThreadsFunc = 1;
         cur_inst = new LoadMInstruction(cur_block, dst, arg);
         cur_block->insertBack(cur_inst);
     }
     else if (func_se->getName() == "__barrier")
     {
-        auto arg = genMachineOperand(use_list[0]);
-        auto dst = new MachineOperand(MachineOperand::REG, 0, arg->getValType());
-        BL->addUse(new MachineOperand(*dst));
-        arg->isAddrForThreadsFunc = 1;
-        cur_inst = new LoadMInstruction(cur_block, dst, arg);
+        auto arg0 = genMachineOperand(use_list[0]);
+        auto dst0 = new MachineOperand(MachineOperand::REG, 0, arg0->getValType());
+        BL->addUse(new MachineOperand(*dst0));
+        cur_inst = new LoadMInstruction(cur_block, dst0, arg0);
         cur_block->insertBack(cur_inst);
 
         auto arg1 = genMachineOperand(use_list[1]);
-        auto dst1 = new MachineOperand(MachineOperand::REG, 1, arg->getValType());
+        auto dst1 = new MachineOperand(MachineOperand::REG, 1, arg1->getValType());
         BL->addUse(new MachineOperand(*dst1));
         cur_inst = new LoadMInstruction(cur_block, dst1, arg1);
         cur_block->insertBack(cur_inst);

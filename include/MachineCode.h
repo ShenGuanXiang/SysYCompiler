@@ -46,7 +46,6 @@ public:
         REG,
         LABEL
     };
-    bool isAddrForThreadsFunc;
     MachineOperand(int tp, double val, Type *valType = TypeSystem::intType);
     MachineOperand(std::string label);
     bool operator==(const MachineOperand &) const;

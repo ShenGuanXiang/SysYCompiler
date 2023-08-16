@@ -170,6 +170,8 @@ void Function::ComputeRiDom()
         }
         if (!exits.count(bb) && temp_RIDoms.size())
             bb->getRIdom() = *temp_RIDoms.begin();
+        else
+            bb->getRIdom() = nullptr;
     }
     // for (auto bb : getBlockList())
     //     if (!getExit().count(bb))
