@@ -9,11 +9,11 @@ static Operand *copyOperand(Operand *ope)
 }
 
 void Loop::PrintInfo() {
-    // for (auto b : bb)
-    //     fprintf(stderr, "BasicBlock[%d] ", b->getNo());
+    for (auto b : bb)
+        fprintf(stderr, "BasicBlock[%d] ", b->getNo());
     
-    // fprintf(stderr, "\nisInerloop: %d\n", InnerLoop);
-    // fprintf(stderr, "loopdepth: %d\n", loop_depth);
+    fprintf(stderr, "\nisInerloop: %d\n", InnerLoop);
+    fprintf(stderr, "loopdepth: %d\n", loop_depth);
 }
 
 Loop::Loop(std::set<BasicBlock*> origin_bb) {
@@ -23,11 +23,11 @@ Loop::Loop(std::set<BasicBlock*> origin_bb) {
 }
 
 void LoopStruct::PrintInfo() {
-    // fprintf(stderr, "The loopstruct contains basicblock: ");
-    // origin_loop->PrintInfo();
+    fprintf(stderr, "The loopstruct contains basicblock: ");
+    origin_loop->PrintInfo();
 
-    // fprintf(stderr, "cond bb is %d\n", loopstruct.first->getNo());
-    // fprintf(stderr, "body bb is %d\n", loopstruct.second->getNo());
+    fprintf(stderr, "cond bb is %d\n", loopstruct.first->getNo());
+    fprintf(stderr, "body bb is %d\n", loopstruct.second->getNo());
 }
 
 void LoopAnalyzer::Analyze(Function* f) {
@@ -74,19 +74,24 @@ std::set<BasicBlock*> LoopAnalyzer::computeNaturalLoop(BasicBlock* cond, BasicBl
         if (body != nullptr) loop.insert(body);
         q.push(body);
     }
+
+    auto func = cond->getParent();
+    func->ComputeRDom();
     while (!q.empty()) {
         auto t = q.front();
         q.pop();
-        for (auto b = t->succ_begin(); b != t->succ_end(); b ++ )
-            if (loop.find(*b) == loop.end())
+        for (auto b = t->succ_begin(); b != t->succ_end(); b ++ ) {
+            auto RDom = (*b)->getRSDoms();
+            if (loop.find(*b) == loop.end() && RDom.find(cond) != RDom.end())
             {
                 q.push(*b);
                 loop.insert(*b);
             }
+        }
     }
-    // for (auto l : loop)
-        // fprintf(stderr, "bb[%d] in loop\n", l->getNo());
-    // fprintf(stderr, "compute finish\n");
+    for (auto l : loop)
+        fprintf(stderr, "bb[%d] in loop\n", l->getNo());
+    fprintf(stderr, "compute finish\n");
     return loop;
 }
 
@@ -100,9 +105,9 @@ void LoopAnalyzer::computeLoopDepth() {
         Loops.insert(loopstruct);
         for (auto& b : loop->GetBasicBlock()) {
             loopDepth[b] ++;
-            // fprintf(stderr, "loop[%d] depth is %d\n", b->getNo(), loopDepth[b]);
+            fprintf(stderr, "loop[%d] depth is %d\n", b->getNo(), loopDepth[b]);
         }
-        // fprintf(stderr, "loop End\n");
+        fprintf(stderr, "loop End\n");
     }
 }
 
@@ -117,12 +122,7 @@ bool LoopAnalyzer::isSubset(std::set<BasicBlock*> t_son, std::set<BasicBlock*> t
 void LoopAnalyzer::FindLoops(Function* f) {
     Analyze(f);
     for (auto l : getLoops())
-    {
         l->GetLoop()->SetDepth(0x3fffffff);
-        // for (auto bb : l->GetLoop()->GetBasicBlock())
-        //     fprintf(stderr, "bb[%d]'s depth is %d\n", bb->getNo(),
-        //     getLoopDepth(bb));
-    }
 
     for (auto l : getLoops())
     {
@@ -221,6 +221,7 @@ std::set<MachineBlock*> MLoopAnalyzer::computeNaturalLoop(MachineBlock* cond, Ma
         if (body != nullptr) loop.insert(body);
         q.push(body);
     }
+
     while (!q.empty()) {
         auto t = q.front();
         q.pop();
@@ -298,68 +299,142 @@ void MLoopAnalyzer::PrintInfo(MachineFunction* f) {
 }
 
 void LoopUnroll::pass() {
+    auto cand = FindCandidateLoop();
+    fprintf(stderr, "loop be unrolled\n");
+    for (auto candidate : cand)
+        Unroll(candidate);
+    fprintf(stderr, "loop info finish\n");
+}
+
+/*
+    Find Candidate Loop, don't consider instrs that have FuncCall temporarily;
+*/
+std::vector<LoopStruct*> LoopUnroll::FindCandidateLoop() {
+    std::vector<LoopStruct*> Worklist;
     for (auto f : unit->getFuncList()) {
         analyzer.FindLoops(f);
-        Loops = analyzer.getLoops();
-        auto cand = FindCandidateLoop();
-        for (auto candidate : cand)
-            Unroll(candidate);
+        for(auto loop : analyzer.getLoops()){
+            BasicBlock* cond = loop->GetCond(), *body = loop->GetBody();
+            // bool HasFuncCall = false;
+            // for (auto bbinstr = loop->GetCond()->begin(); bbinstr != loop->GetCond()->end(); bbinstr = bbinstr->getNext())
+            //     if (bbinstr->isCall())
+            //     {
+            //         HasFuncCall = true;
+            //         break;
+            //     }
+            // if (HasFuncCall) continue;
+            LoopStruct* CandidateLoop = new LoopStruct(loop->GetLoop());
+            CandidateLoop->SetCond(cond);
+            CandidateLoop->SetBody(body);
+            assert(cond);
+            assert(body);
+            Worklist.push_back(CandidateLoop);
+        }
+    }
+    return Worklist;
+}
+
+BasicBlock* LoopUnroll::LastBasicBlock(Operand* op, BasicBlock* bb){
+    auto res_instr = op->getDef();
+    std::map<Instruction*, bool> visited;
+    std::queue<Operand*> q_operand;
+    visited[res_instr] = true;
+    q_operand.push(op);
+    while (!q_operand.empty()) {
+
     }
 }
 
-std::vector<LoopStruct*> LoopUnroll::FindCandidateLoop() {
-    // std::vector<LoopStruct*> Worklist;
-    // for (auto f : unit->getFuncList()) {
-    //     for(auto loop : analyzer.FindLoops(f)){
-
-    //         // find cond and body
-    //         BasicBlock* cond = nullptr, *body = nullptr;
-    //         for(auto bb : loop->getbbs()){
-    //             for(auto instr = bb->begin(); instr != bb->end()->getNext(); instr = instr->getNext()){
-    //                 if(instr->isCmp()){
-    //                     cond = bb;
-    //                     break;
-    //                 }
-    //             }
-    //             if(cond) break;
-    //         }
-
-    //         for(auto bb : loop->getbbs()){
-    //             if(bb != cond){
-    //                 body = bb;
-    //             }
-    //         }
-
-    //         LoopStruct* CandidateLoop = new LoopStruct(loop);
-    //         CandidateLoop->SetCond(cond);
-    //         CandidateLoop->SetBody(body);
-    //         Worklist.push_back(CandidateLoop);
-    //     }
-    // }
-
-    // for(auto CandidateLoop : Worklist){
-    //     bool HasCallInBody = false;
-    //     for(auto bodyinstr = CandidateLoop->getBody()->begin(); bodyinstr != CandidateLoop->getBody()->end()->getNext(); bodyinstr = bodyinstr->getNext()){
-    //         if(bodyinstr->isCall()){
-    //             HasCallInBody = true;
-    //             break;
-    //         }
-    //     }
-    //     if(HasCallInBody){
-    //         Exception("Candidate loop shall have no call in body");
-    //         continue;
-    //     }
-
-    //     bool CheckFlag = false;
-    //     for(auto bb = CandidateLoop->getCond()->succ_begin(); bb != CandidateLoop->getCond()->succ_end(); bb++){
-    //         CheckFlag = CheckFlag || (*bb == CandidateLoop->getBody());
-    //     }
-    //     if(!CheckFlag){
-    //         continue;
-    //     }
-    // }
+void LoopUnroll::InitLoopOp(Operand* begin, Operand* stride, Operand* end, Operand* op1, Operand* op2, BasicBlock* bb) {
+    auto Dom = bb->getSDoms();
+    if (op1->getType()->isConst())
+        end = op1, stride = op2;
+    else if (op2->getType()->isConst())
+        end = op2, stride = op1;
+    else {
+        // if both ops are not constant, just find the variable change in loop, if both, we do nothing
+        auto f1 = op1->getDef()->getParent(), f2 = op2->getDef()->getParent();
+        if (Dom.find(f1) != Dom.end() || Dom.find(f2) != Dom.end()) {
+            if (Dom.find(f1) != Dom.end() && Dom.find(f2) != Dom.end()) {
+                fprintf(stderr, "Todo: two loop variable\n");
+                return;
+            }
+            if (Dom.find(f1) != Dom.end()) stride = op1, end = op2;
+            else stride = op2, end = op1;
+        }
+        else assert(0);
+    }
+    if (end == nullptr || stride == nullptr) return;
+    /*
+        big problem, how to get beginop(phiInstruction)
+    */
+    Instruction* temp = stride->getDef();
+    fprintf(stderr, "stride def instr is %s]\n", temp->getDef()->toStr().c_str());
+    assert(temp && temp->isPHI());
+    // choose src_op outside loop
+    for (auto src : ((PhiInstruction*)temp)->getSrcs())
+        if (Dom.find(src.first) == Dom.end())
+            begin = src.second;
 }
 
-void LoopUnroll::Unroll(LoopStruct *)
+void LoopUnroll::Unroll(LoopStruct * loopstruct)
 {
+    loopstruct->PrintInfo();
+    int begin = -1, end = -1, stride = -1;
+    bool IsBeginCons, IsEndCons, IsStrideCons;
+    IsBeginCons = IsEndCons = IsStrideCons = false;
+    BasicBlock* cond = loopstruct->GetCond(), *body = loopstruct->GetBody();
+    CmpInstruction* cmp;
+    Operand* endOp = nullptr, *beginOp = nullptr, *strideOp = nullptr;
+
+    bool ifcmpInsMatch=true;
+    CmpInstruction* condCmp = nullptr;
+    CmpInstruction* bodyCmp = nullptr;
+    for(auto condinstr = loopstruct->GetCond()->begin(); condinstr != loopstruct->GetCond()->end(); condinstr = condinstr->getNext()){
+        if(condinstr->isCmp()){
+            condCmp=(CmpInstruction*) condinstr;
+            int opcode=condCmp->getOpcode();
+            switch (opcode)
+            {
+            case CmpInstruction::G:
+                break;
+            case CmpInstruction::GE:
+                break;
+            case CmpInstruction::L:
+                break;
+            case CmpInstruction::LE:
+                break;
+            default:
+                ifcmpInsMatch=false;
+                break;
+            }
+        }
+    }
+
+    if (!ifcmpInsMatch) {
+        fprintf(stderr, "can't do this type cmpInstr\n");
+        return;
+    }
+    for(auto bodyinstr = loopstruct->GetBody()->begin(); bodyinstr != loopstruct->GetBody()->end(); 
+                bodyinstr = bodyinstr->getNext()){
+        if(bodyinstr->isCmp()){
+            bodyinstr->getParent()->getParent()->ComputeDom();
+            bodyCmp = (CmpInstruction*) bodyinstr;
+            InitLoopOp(beginOp, strideOp, endOp, 
+                       bodyCmp->getUses()[0], bodyCmp->getUses()[1], bodyCmp->getParent());
+            fprintf(stderr, "[LoopUnroll]: begin{%s}, stride{%s}, end{%s}", beginOp->toStr().c_str(),
+                    strideOp->toStr().c_str(), endOp->toStr().c_str());
+            break;
+        }
+    }
+
+    if (beginOp == nullptr) return;
+
+    /* 
+        just unroll, fully unroll or vectorization
+        if all const
+            fully unroll
+        else
+            unroll part 
+    */
 }

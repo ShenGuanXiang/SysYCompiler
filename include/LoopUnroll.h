@@ -3,6 +3,7 @@
 
 #include "Unit.h"
 #include <queue>
+#include <stack>
 
 class Loop {
     // whole loop
@@ -146,6 +147,8 @@ public:
     void pass();
     std::vector<LoopStruct*> FindCandidateLoop();
     void Unroll(LoopStruct*);
+    void InitLoopOp(Operand* begin, Operand* stride, Operand* end, Operand* op1, Operand* op2, BasicBlock* bb);
+    BasicBlock* LastBasicBlock(Operand* instr, BasicBlock* bb);
 };
 
 
