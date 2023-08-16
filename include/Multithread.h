@@ -9,7 +9,7 @@ struct LoopInfo
     std::pair<Operand *, Operand *> indvar_range; //[first,second)
     std::vector<BasicBlock *> loop_blocks;
     BasicBlock *loop_header;
-    std::vector<BasicBlock *> loop_exiting_blocks;
+    BasicBlock *loop_exiting_block;
 };
 class Multithread
 {
