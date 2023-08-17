@@ -3,19 +3,20 @@
 #include "LoopSimplify.h"
 
 struct LoopInfo{
-    Induction indvar;
-    bool right_end_inclusive = false;
-    bool lt = true;
-    std::pair<Operand*,Operand*>indvar_range; //[first,second)
-    std::vector<BasicBlock*> loop_blocks;
-    BasicBlock* loop_header;
-    std::vector<BasicBlock*> loop_exiting_blocks;
+    Operand* indvar;
+    int cmpType;                                  // e.g. CmpInstruction::GE
+    std::pair<Operand *, Operand *> indvar_range; //[first,second), right end depends on cmpType
+    std::vector<BasicBlock *> loop_blocks;
+    BasicBlock *loop_header;
+    BasicBlock *loop_exiting_block;
 };
 class Multithread
 {
+    Unit* unit;
     int nr_threads = 4;
     LoopInfo loop;
-    void insert_opt_jump();
+    void insert_opt_jump(BasicBlock* new_header);
+    void compute_domtree();
 public:
     Multithread(); // auto find simple loop
     Multithread(LoopInfo loop_info):loop(loop_info){}
