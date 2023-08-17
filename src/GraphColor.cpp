@@ -1,14 +1,14 @@
 #include "GraphColor.h"
 #include "LiveVariableAnalysis.h"
 #include "LinearScan.h"
-#include "LoopUnroll.h"
+#include "LoopAnalyzer.h"
 #include <math.h>
 #include <algorithm>
 #include <stack>
 
 // static const double __DBL_MAX__ = 10000000000;
 
-// TODO：加if-else深度、调loop_depth
+// TODO：加if-else深度
 
 static bool debug1 = 0;
 
@@ -401,20 +401,9 @@ void RegisterAllocation::buildAdjLists()
 
 void RegisterAllocation::computeSpillCosts()
 {
-    MLoopAnalyzer mla;
-    mla.FindLoops(func);
-    std::map<MachineBlock *, int> loop_depth;
-    for (auto bb : func->getBlocks())
-    {
-        loop_depth[bb] = 0;
-    }
-    for (auto loop : mla.getLoops())
-    {
-        for (auto bb : loop->GetLoop()->GetBasicBlock())
-        {
-            loop_depth[bb] = std::max(loop->GetLoop()->GetDepth(), loop_depth[bb]);
-        }
-    }
+    MLoopAnalyzer mla(func);
+    mla.analyze();
+    std::map<MachineBlock *, int> loop_depth = mla.getLoopDepth();
     // for (auto bb : func->getBlocks())
     // {
     //     fprintf(stderr, "loop_depth of bb %d is %d\n", bb->getNo(), loop_depth[bb]);
@@ -520,9 +509,9 @@ void RegisterAllocation::pruneGraph()
             int deg = adjList[i].size();
             if (deg == 0)
                 continue;
-            if (webs[i]->spillCost / (deg * deg) < minSpillCost)
+            if (webs[i]->spillCost / (128 * deg) < minSpillCost)
             {
-                minSpillCost = webs[i]->spillCost / (deg * deg);
+                minSpillCost = webs[i]->spillCost / (128 * deg);
                 spillnode = i;
             }
         }

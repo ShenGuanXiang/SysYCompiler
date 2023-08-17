@@ -1,28 +1,33 @@
 #include "Unit.h"
 #include <stack>
 
-struct Induction{
-    Operand* base;
-    Operand* step;
+struct Induction
+{
+    Operand *base;
+    Operand *step;
     unsigned op;
-    Operand* modulo;
+    Operand *modulo;
 };
-struct SimpleLoop{
-    BasicBlock* body;
-    Operand* exit_var;
-    std::unordered_map<Operand*,Operand*>phi2induction;
-    std::set<Operand*> def_in_loop;
-    std::unordered_map<Operand*,Induction>inductions;
-    bool dfs(Instruction* i,std::stack<Operand*>& path);
+struct SimpleLoop
+{
+    BasicBlock *body;
+    Operand *exit_var;
+    std::unordered_map<Operand *, Operand *> phi2induction;
+    std::set<Operand *> def_in_loop;
+    std::unordered_map<Operand *, Induction> inductions;
+    bool dfs(Instruction *i, std::stack<Operand *> &path);
     void findInduction();
+
 public:
-    SimpleLoop(BasicBlock* bb,Operand* dst) : body(bb),exit_var(dst) {}
+    SimpleLoop(BasicBlock *bb, Operand *dst) : body(bb), exit_var(dst) {}
     void simplify();
 };
-class LoopSimplify{
-    Unit* unit;
-    Operand* checkForm(BasicBlock* bb);   
+class LoopSimplify
+{
+    Unit *unit;
+    Operand *checkForm(BasicBlock *bb);
+
 public:
-    LoopSimplify(Unit* u) : unit(u) {}
+    LoopSimplify(Unit *u) : unit(u) {}
     void pass();
 };
