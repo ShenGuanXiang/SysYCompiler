@@ -281,9 +281,9 @@ void SimpleLoop::simplify()
             if (!(inductions[ctrl_val].base->getEntry()->isConstant() &&
                   dynamic_cast<ConstantSymbolEntry *>(inductions[ctrl_val].base->getEntry())->getValue() == 0))
                 return; // 目前等处数列求和只考虑从0开始
-            extern std::string infile;
-            if (infile.find("integer-divide-optimization-3") != std::string::npos)
-                return;
+
+            // TODO：判断loopcount+mod-1是否超INT_MAX，if else
+
             // ctrl_val.step=1
             // 增量是一个等差数列
             // exit_var = (loop_time * (loop_time+1) / 2  + base) % mod

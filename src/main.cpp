@@ -35,7 +35,6 @@ extern void clearTypes();
 extern void clearMachineOperands();
 int yyparse();
 
-std::string infile = "a.in";
 char outfile[256] = "a.out";
 bool dump_tokens = false;
 bool dump_ast = false;
@@ -79,7 +78,6 @@ int main(int argc, char *argv[])
         fprintf(stderr, "no input file\n");
         exit(EXIT_FAILURE);
     }
-    infile = argv[optind];
     if (!(yyin = fopen(argv[optind], "r")))
     {
         fprintf(stderr, "%s: No such file or directory\nno input file\n", argv[optind]);
@@ -135,8 +133,8 @@ int main(int argc, char *argv[])
             // lur.pass(); // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
-            LoopSimplify ls(unit);
-            ls.pass(); // scalar evolution
+            // LoopSimplify ls(unit);
+            // ls.pass(); // scalar evolution
         }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)

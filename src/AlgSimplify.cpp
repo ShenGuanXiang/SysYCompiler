@@ -639,8 +639,7 @@ void AlgSimplify::pass(Function *func)
                                     {
                                     case BinaryInstruction::ADD:
                                     {
-                                        extern std::string infile;
-                                        if (infile.find("stencil") != std::string::npos)
+                                        // TODO：可能溢出
                                         {
                                             // (a11 + const12) * const2_
                                             if (std::get<2>(binary_expr[inst->getUses()[0]])->getType()->isConst())
@@ -661,8 +660,7 @@ void AlgSimplify::pass(Function *func)
                                     }
                                     case BinaryInstruction::SUB:
                                     {
-                                        extern std::string infile;
-                                        if (infile.find("stencil") != std::string::npos)
+                                        // TODO：可能溢出
                                         {
                                             // (a11 - const12) * const2_
                                             if (std::get<2>(binary_expr[inst->getUses()[0]])->getType()->isConst())

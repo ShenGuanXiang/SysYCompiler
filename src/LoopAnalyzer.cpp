@@ -1,26 +1,26 @@
 #include "LoopAnalyzer.h"
 
-std::set<BasicBlock *> LoopAnalyzer::computeNaturalLoop(BasicBlock *exit_bb, BasicBlock *header_bb)
+std::set<BasicBlock *> LoopAnalyzer::computeNaturalLoop(BasicBlock *exiting_bb, BasicBlock *header_bb)
 {
     std::set<BasicBlock *> loop_bbs;
     std::queue<BasicBlock *> q1, q2;
     std::set<BasicBlock *> from_header, from_exit;
 
-    assert(exit_bb != nullptr && header_bb != nullptr);
-    if (exit_bb == header_bb)
+    assert(exiting_bb != nullptr && header_bb != nullptr);
+    if (exiting_bb == header_bb)
     {
-        loop_bbs.insert(exit_bb);
+        loop_bbs.insert(exiting_bb);
         return loop_bbs;
     }
 
     q1.push(header_bb);
-    q2.push(exit_bb);
+    q2.push(exiting_bb);
     while (!q1.empty())
     {
         auto t = q1.front();
         q1.pop();
         for (auto b = t->succ_begin(); b != t->succ_end(); b++)
-            if (from_header.find(*b) == from_header.end() && (*b) != exit_bb)
+            if (from_header.find(*b) == from_header.end() && (*b) != exiting_bb)
             {
                 q1.push(*b);
                 from_header.insert(*b);
@@ -41,7 +41,7 @@ std::set<BasicBlock *> LoopAnalyzer::computeNaturalLoop(BasicBlock *exit_bb, Bas
     }
     std::set_intersection(from_header.begin(), from_header.end(), from_exit.begin(), from_exit.end(), std::inserter(loop_bbs, loop_bbs.end()));
     loop_bbs.insert(header_bb);
-    loop_bbs.insert(exit_bb);
+    loop_bbs.insert(exiting_bb);
 
     return loop_bbs;
 }
@@ -63,7 +63,7 @@ void LoopAnalyzer::getBackEdges()
             if (*b == t || sDoms.find(*b) != sDoms.end())
             {
                 backEdges.insert({t, *b});
-                // fprintf(stderr, "Back_Edge from %d to %d\n", t->getNo(), (*b)->getNo());
+                fprintf(stderr, "Back_Edge from %d to %d\n", t->getNo(), (*b)->getNo());
             }
             if (visited.find(*b) == visited.end())
                 q.push(*b), visited.insert(*b);
@@ -80,6 +80,64 @@ bool LoopAnalyzer::isSubset(std::set<BasicBlock *> t_son, std::set<BasicBlock *>
     return t_son.size() != t_fat.size();
 }
 
+std::set<BasicBlock *> LoopAnalyzer::getIntersection(std::set<BasicBlock *> loop1, std::set<BasicBlock *> loop2)
+{
+    std::set<BasicBlock *> res;
+    std::set_intersection(loop1.begin(), loop1.end(), loop2.begin(), loop2.end(), std::inserter(res, res.end()));
+    return res;
+}
+
+void LoopAnalyzer::computeInductionVars(Loop *loop)
+{
+    for (auto phi = loop->header_bb->begin(); phi != loop->header_bb->end() && phi->isPHI(); phi = phi->getNext())
+    {
+        std::vector<std::vector<Instruction *>> du_chains;
+        std::queue<std::pair<Instruction *, std::vector<Instruction *>>> q;
+        q.push({phi, {}});
+        while (!q.empty())
+        {
+            auto [inst, path] = q.front();
+            q.pop();
+            if (inst->hasNoDef())
+                continue;
+            path.push_back(inst);
+            for (auto next_inst : inst->getDef()->getUses())
+            {
+                if (next_inst == phi)
+                    du_chains.push_back(path);
+                if (find(path.begin(), path.end(), next_inst) == path.end() && loop->loop_bbs.count(next_inst->getParent()))
+                    q.push({next_inst, path});
+            }
+        }
+        if (!du_chains.empty())
+        {
+            loop->inductionVars.insert(new InductionVar(du_chains)); // TODO：路径中的phi（除了起点）有不确定的来源，那么归纳变量是不可计算的
+        }
+    }
+}
+
+bool LoopAnalyzer::multiOr(Loop *loop)
+{
+    return loop->header_bb == func->getEntry() || loop->header_bb->getNumOfPred() > 2; // 很不精确
+}
+
+bool LoopAnalyzer::hasBreak(Loop *loop)
+{
+    for (auto bb : loop->loop_bbs)
+    {
+        if (bb == loop->exiting_bb)
+            continue;
+        for (auto succ_it = bb->succ_begin(); succ_it != bb->succ_end(); succ_it++)
+        {
+            if (!loop->loop_bbs.count(*succ_it))
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void LoopAnalyzer::analyze()
 {
     backEdges.clear();
@@ -87,16 +145,50 @@ void LoopAnalyzer::analyze()
     loops.clear();
 
     getBackEdges();
+
+    // 先计算所有back edge产生的natural loop
+    std::set<Loop *> temp_loops; // 包含冗余loop
+    for (auto [exiting_bb, header_bb] : backEdges)
+    {
+        auto loop_bbs = computeNaturalLoop(exiting_bb, header_bb);
+        auto loop = new Loop(loop_bbs, header_bb, exiting_bb);
+        temp_loops.insert(loop);
+    }
+    // 排除冗余loop
+    std::set<Loop *> redundant_loops;
+    for (auto loop1 : temp_loops)
+    {
+        for (auto loop2 : temp_loops)
+        {
+            if (loop2 == loop1)
+                continue;
+            if (!getIntersection(loop1->loop_bbs, loop2->loop_bbs).empty() && !isSubset(loop2->loop_bbs, loop1->loop_bbs) &&
+                (!loop2->loop_bbs.count(loop1->header_bb) || loop1->header_bb == loop2->header_bb))
+            {
+                redundant_loops.insert(loop1);
+                break;
+            }
+        }
+        if (!redundant_loops.count(loop1))
+            loops.insert(loop1);
+    }
+
+    // 识别 || && 等条件块
+    // for (auto loop : loops)
+    //     computeLoopCond(loop);
+
+    // 验证
+    for (auto loop1 : loops)
+        for (auto loop2 : loops)
+            if (!getIntersection(loop1->loop_bbs, loop2->loop_bbs).empty())
+                assert(loop1 == loop2 || isSubset(loop2->loop_bbs, loop1->loop_bbs) || isSubset(loop1->loop_bbs, loop2->loop_bbs));
+
+    // 计算loop depth
     for (auto bb : func->getBlockList())
         loopDepthMap[bb] = 0;
-    for (auto [exit_bb, header_bb] : backEdges)
-    {
-        auto loop_bbs = computeNaturalLoop(exit_bb, header_bb);
-        auto loop = new Loop(loop_bbs, 0, true, true, header_bb, exit_bb);
-        loops.insert(loop);
-        for (auto &bb : loop_bbs)
+    for (auto loop : loops)
+        for (auto bb : loop->loop_bbs)
             loopDepthMap[bb]++;
-    }
     for (auto loop : loops)
     {
         loop->loop_depth = 0x3fffffff;
@@ -104,42 +196,44 @@ void LoopAnalyzer::analyze()
             loop->loop_depth = std::min(loopDepthMap[bb], loop->loop_depth);
     }
 
-    for (auto loop : getLoops())
-    {
-        loop->isInnerLoop = true;
-        loop->isOuterLoop = true;
-    }
+    // 识别归纳变量
+    for (auto loop : loops)
+        computeInductionVars(loop);
 
-    for (auto loop1 : getLoops())
-        for (auto loop2 : getLoops())
-            if (isSubset(loop1->loop_bbs, loop2->loop_bbs))
+    // 计算loop嵌套关系
+    for (auto loop1 : loops)
+        for (auto loop2 : loops)
+            if (isSubset(loop1->loop_bbs, loop2->loop_bbs) && loop1->loop_depth == loop2->loop_depth + 1)
             {
-                loop1->isOuterLoop = false;
-                loop2->isInnerLoop = false;
+                loop1->parentLoop = loop2;
+                loop2->subLoops.insert(loop1);
             }
+
+    for (auto loop : loops)
+        loop->printLoop();
 }
 
-std::set<MachineBlock *> MLoopAnalyzer::computeNaturalLoop(MachineBlock *exit_bb, MachineBlock *header_bb)
+std::set<MachineBlock *> MLoopAnalyzer::computeNaturalLoop(MachineBlock *exiting_bb, MachineBlock *header_bb)
 {
     std::set<MachineBlock *> loop_bbs;
     std::queue<MachineBlock *> q1, q2;
     std::set<MachineBlock *> from_header, from_exit;
 
-    assert(exit_bb != nullptr && header_bb != nullptr);
-    if (exit_bb == header_bb)
+    assert(exiting_bb != nullptr && header_bb != nullptr);
+    if (exiting_bb == header_bb)
     {
-        loop_bbs.insert(exit_bb);
+        loop_bbs.insert(exiting_bb);
         return loop_bbs;
     }
 
     q1.push(header_bb);
-    q2.push(exit_bb);
+    q2.push(exiting_bb);
     while (!q1.empty())
     {
         auto t = q1.front();
         q1.pop();
         for (auto b : t->getSuccs())
-            if (from_header.find(b) == from_header.end() && b != exit_bb)
+            if (from_header.find(b) == from_header.end() && b != exiting_bb)
             {
                 q1.push(b);
                 from_header.insert(b);
@@ -158,7 +252,7 @@ std::set<MachineBlock *> MLoopAnalyzer::computeNaturalLoop(MachineBlock *exit_bb
     }
     std::set_intersection(from_header.begin(), from_header.end(), from_exit.begin(), from_exit.end(), std::inserter(loop_bbs, loop_bbs.end()));
     loop_bbs.insert(header_bb);
-    loop_bbs.insert(exit_bb);
+    loop_bbs.insert(exiting_bb);
 
     return loop_bbs;
 }
@@ -188,6 +282,22 @@ void MLoopAnalyzer::getBackEdges()
     }
 }
 
+bool MLoopAnalyzer::isSubset(std::set<MachineBlock *> t_son, std::set<MachineBlock *> t_fat)
+{
+    for (auto s : t_son)
+        if (t_fat.find(s) == t_fat.end())
+            return false;
+
+    return t_son.size() != t_fat.size();
+}
+
+std::set<MachineBlock *> MLoopAnalyzer::getIntersection(std::set<MachineBlock *> loop1, std::set<MachineBlock *> loop2)
+{
+    std::set<MachineBlock *> res;
+    std::set_intersection(loop1.begin(), loop1.end(), loop2.begin(), loop2.end(), std::inserter(res, res.end()));
+    return res;
+}
+
 void MLoopAnalyzer::analyze()
 {
     backEdges.clear();
@@ -195,14 +305,40 @@ void MLoopAnalyzer::analyze()
     loops.clear();
 
     getBackEdges();
+    // 先计算所有back edge产生的natural loop
+    std::set<MLoop *> temp_loops; // 包含冗余loop
+    for (auto [exiting_bb, header_bb] : backEdges)
+    {
+        auto loop_bbs = computeNaturalLoop(exiting_bb, header_bb);
+        auto loop = new MLoop(loop_bbs, header_bb, exiting_bb);
+        temp_loops.insert(loop);
+    }
+    // 排除冗余loop
+    std::set<MLoop *> redundant_loops;
+    for (auto loop1 : temp_loops)
+    {
+        for (auto loop2 : temp_loops)
+        {
+            if (loop2 == loop1)
+                continue;
+            if (!getIntersection(loop1->loop_bbs, loop2->loop_bbs).empty() && !isSubset(loop2->loop_bbs, loop1->loop_bbs) &&
+                (!loop2->loop_bbs.count(loop1->header_bb) || loop1->header_bb == loop2->header_bb))
+            {
+                redundant_loops.insert(loop1);
+                break;
+            }
+        }
+        if (!redundant_loops.count(loop1))
+            loops.insert(loop1);
+    }
+    // 验证
+    for (auto loop1 : loops)
+        for (auto loop2 : loops)
+            if (!getIntersection(loop1->loop_bbs, loop2->loop_bbs).empty())
+                assert(loop1 == loop2 || isSubset(loop2->loop_bbs, loop1->loop_bbs) || isSubset(loop1->loop_bbs, loop2->loop_bbs));
     for (auto bb : func->getBlocks())
         loopDepthMap[bb] = 0;
-    for (auto [exit_bb, header_bb] : backEdges)
-    {
-        auto loop_bbs = computeNaturalLoop(exit_bb, header_bb);
-        auto loop = new MLoop(loop_bbs, header_bb, exit_bb);
-        loops.insert(loop);
-        for (auto &bb : loop_bbs)
+    for (auto loop : loops)
+        for (auto bb : loop->loop_bbs)
             loopDepthMap[bb]++;
-    }
 }

@@ -95,14 +95,14 @@ void LoopUnroll::Unroll(Loop *loopstruct)
     int begin = -1, end = -1, stride = -1;
     bool IsBeginCons, IsEndCons, IsStrideCons;
     IsBeginCons = IsEndCons = IsStrideCons = false;
-    BasicBlock *cond = loopstruct->exit_bb, *body = loopstruct->header_bb;
+    BasicBlock *cond = loopstruct->exiting_bb, *body = loopstruct->header_bb;
     CmpInstruction *cmp;
     Operand *endOp = nullptr, *beginOp = nullptr, *strideOp = nullptr;
 
     bool ifcmpInsMatch = true;
     CmpInstruction *condCmp = nullptr;
     CmpInstruction *bodyCmp = nullptr;
-    for (auto condinstr = loopstruct->exit_bb->begin(); condinstr != loopstruct->exit_bb->end(); condinstr = condinstr->getNext())
+    for (auto condinstr = loopstruct->exiting_bb->begin(); condinstr != loopstruct->exiting_bb->end(); condinstr = condinstr->getNext())
     {
         if (condinstr->isCmp())
         {
