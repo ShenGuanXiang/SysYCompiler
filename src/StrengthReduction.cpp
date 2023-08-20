@@ -36,6 +36,17 @@ union VAL
     float float_val;
 };
 
+bool hasTwoOnes(int num, int &x ,int &y) {
+
+    x = ctz(num);
+    num = num - (1 << x);
+    y = ctz(num);
+    if(num == (1<<y))
+        return 1;
+    return 0;
+}
+
+
 void StrengthReduction::pass()
 {
     for (auto func_iter = unit->begin(); func_iter != unit->end(); func_iter++)
@@ -450,6 +461,26 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                                 freeInsts.insert(inst); 
 
                             }
+                            else
+                            {
+                                // a * (2^s1 + 2^s2) = (a << s1) + (a << s2)
+
+                                // m = 2 ^ s1 + 2 ^ s2
+                                // a = use1
+                                int s1,s2;
+                                if(hasTwoOnes(m, s1, s2))
+                                {
+                                    auto dst = new MachineOperand(*inst->getDef()[0]);
+                                    auto mov_lsl = new MovMInstruction(bb, MovMInstruction::MOVLSL, dst, new MachineOperand(*inst->getUse()[1]), new MachineOperand(MachineOperand::IMM, s1));
+                                    bb->insertBefore(inst, mov_lsl);
+                                    auto add_lsl = new BinaryMInstruction(bb, BinaryMInstruction::ADDLSL, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(*inst->getUse()[1]), new MachineOperand(MachineOperand::IMM, s2));
+                                    bb->insertBefore(inst, add_lsl);
+
+                                    bb->removeInst(inst);
+                                    freeInsts.insert(inst); 
+                                }
+
+                            }
                         }
                     }
 
@@ -555,6 +586,27 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                             
                                 bb->removeInst(inst);
                                 freeInsts.insert(inst); 
+
+                            }
+                            else
+                            {
+                                // a * (2^s1 + 2^s2) = (a << s1) + (a << s2)
+
+                                // m = 2 ^ s1 + 2 ^ s2
+                                // a = use1
+                                int s1,s2;
+                                if(hasTwoOnes(m, s1, s2))
+                                {
+                                    auto dst = new MachineOperand(*inst->getDef()[0]);
+                                    auto mov_lsl = new MovMInstruction(bb, MovMInstruction::MOVLSL, dst, new MachineOperand(*inst->getUse()[0]), new MachineOperand(MachineOperand::IMM, s1));
+                                    bb->insertBefore(inst, mov_lsl);
+                                    auto add_lsl = new BinaryMInstruction(bb, BinaryMInstruction::ADDLSL, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(*inst->getUse()[0]), new MachineOperand(MachineOperand::IMM, s2));
+                                    bb->insertBefore(inst, add_lsl);
+
+                                    bb->removeInst(inst);
+                                    freeInsts.insert(inst); 
+                                    printf("in2\n");
+                                }
 
                             }
                         }
