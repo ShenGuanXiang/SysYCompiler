@@ -451,9 +451,6 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
 
                             }
                         }
-
-
-
                     }
 
                 }
@@ -495,6 +492,73 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                         freeInsts.insert(inst);
                     }
                     // TODO：非2的幂次
+                    else
+                    {
+                        s = ctz(m + 1);
+                        if(m + 1 == (int(1) << s))
+                        {
+                            auto dst = new MachineOperand(*inst->getDef()[0]);
+
+                            auto mov_lsl = new MovMInstruction(bb, MovMInstruction::MOVLSL, dst, new MachineOperand(*inst->getUse()[0]), new MachineOperand(MachineOperand::IMM, s));
+                            bb->insertBefore(inst, mov_lsl);
+                            auto sub_inst = new BinaryMInstruction(bb, BinaryMInstruction::SUB, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(*inst->getUse()[0]));
+                            bb->insertBefore(inst, sub_inst);
+                            
+                               
+                            bb->removeInst(inst);
+                            freeInsts.insert(inst); 
+                        }
+                        else if(m + 1 == -(int(1) << s))
+                        {
+
+                            auto dst = new MachineOperand(*inst->getDef()[0]);
+
+                            auto mov_lsl = new MovMInstruction(bb, MovMInstruction::MOVLSL, dst, new MachineOperand(*inst->getUse()[0]), new MachineOperand(MachineOperand::IMM, s));
+                            bb->insertBefore(inst, mov_lsl);
+                            auto add_inst = new BinaryMInstruction(bb, BinaryMInstruction::ADD, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(*inst->getUse()[0]));
+                            bb->insertBefore(inst, add_inst);
+        
+                            auto negInst = new BinaryMInstruction(bb, BinaryMInstruction::RSB, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(MachineOperand::IMM, 0));
+                            bb->insertBefore(inst, negInst);
+
+                            bb->removeInst(inst);
+                            freeInsts.insert(inst);   
+                        }
+
+                        else
+                        {
+                            s = ctz(m - 1);
+                            if(m - 1 == (int(1) << s))
+                            {
+                                auto dst = new MachineOperand(*inst->getDef()[0]);
+
+                                auto mov_lsl = new MovMInstruction(bb, MovMInstruction::MOVLSL, dst, new MachineOperand(*inst->getUse()[0]), new MachineOperand(MachineOperand::IMM, s));
+                                bb->insertBefore(inst, mov_lsl);
+                                auto add_inst = new BinaryMInstruction(bb, BinaryMInstruction::ADD, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(*inst->getUse()[0]));
+                                bb->insertBefore(inst, add_inst);
+           
+                                bb->removeInst(inst);
+                                freeInsts.insert(inst);   
+
+                            }
+                            else if (m - 1 == -(int(1) << s))
+                            {
+                                auto dst = new MachineOperand(*inst->getDef()[0]);
+
+                                auto mov_lsl = new MovMInstruction(bb, MovMInstruction::MOVLSL, dst, new MachineOperand(*inst->getUse()[0]), new MachineOperand(MachineOperand::IMM, s));
+                                bb->insertBefore(inst, mov_lsl);
+                                auto sub_inst = new BinaryMInstruction(bb, BinaryMInstruction::SUB, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(*inst->getUse()[0]));
+                                bb->insertBefore(inst, sub_inst);
+
+                                auto negInst = new BinaryMInstruction(bb, BinaryMInstruction::RSB, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(MachineOperand::IMM, 0));
+                                bb->insertBefore(inst, negInst);
+                            
+                                bb->removeInst(inst);
+                                freeInsts.insert(inst); 
+
+                            }
+                        }
+                    }
                 }
             }
         }
