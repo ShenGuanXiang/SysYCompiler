@@ -584,7 +584,7 @@ void LoopUnroll::Unroll(Loop *loopstruct)
     int begin = -1, end = -1, stride = -1;
     bool IsBeginCons, IsEndCons, IsStrideCons;
     IsBeginCons = IsEndCons = IsStrideCons = false;
-    BasicBlock *cond = loopstruct->header_bb, *body = loopstruct->header_bb;
+    BasicBlock *cond = loopstruct->exiting_bb, *body = loopstruct->header_bb;
     CmpInstruction *cmp;
     // 可以计算出基本归纳变量表存储信息 利用信息
 
@@ -598,41 +598,30 @@ void LoopUnroll::Unroll(Loop *loopstruct)
     bool ifcmpInsMatch = true;
     CmpInstruction *condCmp = nullptr;
     CmpInstruction *bodyCmp = nullptr;
-    for (auto condinstr = cond->begin(); condinstr != cond->end(); condinstr = condinstr->getNext())
+    assert(cond->rbegin()->getPrev()->isCmp());
+    condCmp = (CmpInstruction *)cond->rbegin()->getPrev();
+    int opcode = condCmp->getOpcode();
+    switch (opcode)
     {
-        if (condinstr->isCmp())
-        {
-            condCmp = (CmpInstruction *)condinstr;
-            int opcode = condCmp->getOpcode();
-            switch (opcode)
-            {
-            case CmpInstruction::G:
-                /* code */
+    case CmpInstruction::G:
+        /* code */
 
-                break;
-            case CmpInstruction::GE:
-                /* code */
+        break;
+    case CmpInstruction::GE:
+        /* code */
 
-                break;
-            case CmpInstruction::L:
-                /* code */
+        break;
+    case CmpInstruction::L:
+        /* code */
 
-                break;
-            case CmpInstruction::LE:
-                /* code */
-                break;
+        break;
+    case CmpInstruction::LE:
+        /* code */
+        break;
 
-            default:
-                ifcmpInsMatch = false;
-                break;
-            }
-        }
-    }
-
-    if (condCmp == nullptr)
-    {
-        std::cout << "condCmp is null" << std::endl;
-        return;
+    default:
+        ifcmpInsMatch = false;
+        break;
     }
 
     if (!ifcmpInsMatch)
