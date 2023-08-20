@@ -10,8 +10,8 @@ class LoopUnroll
 {
 private:
     Unit *unit;
-    const int MAX_UNROLLING_FACTOR = 4;
-    const int MIN_UNROLLING_FACTOR = 2;
+    int MAXUNROLLNUM=400;
+    int UNROLLNUM=4;
     int unrolling_factor;
     std::set<Loop *> Loops;
 
@@ -20,8 +20,10 @@ public:
     void pass();
     std::vector<Loop *> FindCandidateLoop();
     void Unroll(Loop *);
-    void InitLoopOp(Operand *begin, Operand *stride, Operand *end, Operand *op1, Operand *op2, BasicBlock *bb);
-    BasicBlock *LastBasicBlock(Operand *instr, BasicBlock *bb);
+    Operand* getBeginOp(BasicBlock* bb,Operand* strideOp,std::stack<Instruction*>& Insstack);
+    bool isRegionConst(Operand* i, Operand* c);
+    void specialCopyInstructions(BasicBlock* bb,int num,Operand* endOp,Operand* strideOp,bool ifall);
+    void normalCopyInstructions(BasicBlock* condbb,BasicBlock* bodybb,Operand* beginOp,Operand* endOp,Operand* strideOp);
 };
 
 #endif

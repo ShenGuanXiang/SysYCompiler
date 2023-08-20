@@ -81,7 +81,8 @@ public:
     std::set<BasicBlock *> getIntersection(std::set<BasicBlock *> loop1, std::set<BasicBlock *> loop2);
     void computeInductionVars(Loop *loop);
     bool multiOr(Loop *loop);
-    bool hasBreak(Loop *loop);
+    bool hasLeak(Loop *loop);
+    int getLoopCnt(Loop *loop);
     void analyze();
     std::map<BasicBlock *, int> &getLoopDepth() { return loopDepthMap; };
     std::set<Loop *> &getLoops() { return this->loops; };

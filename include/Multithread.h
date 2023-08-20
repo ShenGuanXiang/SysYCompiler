@@ -5,19 +5,19 @@
 
 struct LoopInfo
 {
-    Operand *indvar;
-    int cmpType;                                  // eg CmpInstruction::GE
+    Instruction *cmp, *phi;
     std::pair<Operand *, Operand *> indvar_range; // [first,second)
-    int stride;                                   // i = i + c
     std::set<BasicBlock *> loop_blocks;
     BasicBlock *loop_header;
     BasicBlock *loop_exiting_block;
 };
 class Multithread
 {
+    Unit *unit;
     int nr_threads = 4;
     LoopInfo loop;
-    void insert_opt_jump();
+    void insert_opt_jump(BasicBlock *new_header);
+    void compute_domtree();
 
 public:
     Multithread(); // auto find simple loop
@@ -26,7 +26,6 @@ public:
     void checkForm();
 };
 
-bool analyzeIndVar(LoopInfo &);
 std::vector<LoopInfo> findLoopInfo(Function *);
 
 #endif // __MULTITHREAD_H__

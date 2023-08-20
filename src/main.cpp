@@ -23,6 +23,7 @@
 #include "GlobalCodeMotion.h"
 #include "LoopSimplify.h"
 #include "Straighten.h"
+#include "LoopUnroll.h"
 
 Ast ast;
 Unit *unit = new Unit();
@@ -98,7 +99,7 @@ int main(int argc, char *argv[])
     // ast.typeCheck();
     ast.genCode(unit);
     fprintf(stderr, "ir generated\n");
-    // optimize = false;
+    optimize = false;
     // yyout = stderr;
     if (dump_ir && !optimize)
     {
@@ -133,8 +134,8 @@ int main(int argc, char *argv[])
             // lur.pass(); // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
-            // LoopSimplify ls(unit);
-            // ls.pass(); // scalar evolution
+            LoopSimplify ls(unit);
+            ls.pass(); // scalar evolution
         }
         fprintf(stderr, "opt ir generated\n");
         if (dump_ir)

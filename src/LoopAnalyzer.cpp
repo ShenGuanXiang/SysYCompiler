@@ -121,7 +121,7 @@ bool LoopAnalyzer::multiOr(Loop *loop)
     return loop->header_bb == func->getEntry() || loop->header_bb->getNumOfPred() > 2; // 很不精确
 }
 
-bool LoopAnalyzer::hasBreak(Loop *loop)
+bool LoopAnalyzer::hasLeak(Loop *loop)
 {
     for (auto bb : loop->loop_bbs)
     {
@@ -136,6 +136,14 @@ bool LoopAnalyzer::hasBreak(Loop *loop)
         }
     }
     return false;
+}
+
+int LoopAnalyzer::getLoopCnt(Loop *loop)
+{
+    int cnt = 1;
+    for (auto l : loop->subLoops)
+        cnt += getLoopCnt(l);
+    return cnt;
 }
 
 void LoopAnalyzer::analyze()
