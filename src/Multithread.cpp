@@ -471,6 +471,8 @@ std::vector<LoopInfo> findLoopInfo(Function *func)
         if (!range_first->getType()->isConst() && range_first->getDef() && loop_helper->loop_bbs.count(range_first->getDef()->getParent()))
             continue;
         loop.indvar_range = std::make_pair(range_first, range_second);
+        if (range_first->getType()->isFloat() || range_second->getType()->isFloat())
+            continue;
         // 判断数据依赖
 
         // TODO...

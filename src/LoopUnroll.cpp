@@ -136,6 +136,7 @@ void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp
     Operand *cmpOld = strideOp;
     std::vector<Operand *> finalOperands;
     std::map<Operand *, Operand *> begin_final_Map;
+    // Find all phis and insert instrs in preInstructionList
     for (auto bodyinstr = bb->begin(); bodyinstr != bb->end(); bodyinstr = bodyinstr->getNext())
     {
         if (bodyinstr->isPHI())
@@ -150,7 +151,9 @@ void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp
         preInstructionList.push_back(bodyinstr);
     }
     copyPhis.assign(phis.begin(), phis.end());
+    copyPhis.assign(phis.begin(), phis.end());
 
+    // Insert next_instr into nextInstructionList
     for (auto preIns : preInstructionList)
     {
         Instruction *ins = preIns->copy();
@@ -187,7 +190,7 @@ void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp
             }
             else
             {
-                // useOp->addUse(nextIns);
+                useOp->addUse(nextIns);
             }
         }
         // nextInstructionList.push_back(preIns->copy());
@@ -224,7 +227,7 @@ void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp
 
         for (auto nextIns : nextInstructionList)
         {
-            if (count(notReplaceOp.begin(), notReplaceOp.end(), nextIns->getDef()))
+            if (!nextIns->hasNoDef() && count(notReplaceOp.begin(), notReplaceOp.end(), nextIns->getDef()))
             {
                 continue;
             }
@@ -436,7 +439,8 @@ void LoopUnroll::normalCopyInstructions(BasicBlock *condbb, BasicBlock *bodybb, 
     std::vector<Instruction *> resBodyInstList;
     for (auto ins : InstList)
     {
-        resBodyInstList.push_back(ins->copy());
+        auto newIns = ins->copy();
+        resBodyInstList.push_back(newIns);
     }
     std::map<Operand *, Operand *> resBodyReplaceMap;
     for (auto resIns : resBodyInstList)

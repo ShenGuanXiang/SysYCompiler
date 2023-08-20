@@ -152,29 +152,29 @@ bool SimpleLoop::dfs(Instruction *i, std::stack<Operand *> &path)
     return false;
 }
 
-static long long exgcd(int a, int b, long long &x, long long &y)
-{
-    if (!b)
-    {
-        x = 1, y = 0;
-        return a;
-    }
-    long long res = exgcd(b, a % b, y, x);
-    y -= a / b * x;
-    return res;
-}
+// static long long exgcd(int a, int b, long long &x, long long &y)
+// {
+//     if (!b)
+//     {
+//         x = 1, y = 0;
+//         return a;
+//     }
+//     long long res = exgcd(b, a % b, y, x);
+//     y -= a / b * x;
+//     return res;
+// }
 
-static int inv2(int i, int mod)
-{
-    long long x, y;
-    exgcd(i, mod, x, y);
-    return (x % mod + mod) % mod;
-}
+// static int inv2(int i, int mod)
+// {
+//     long long x, y;
+//     exgcd(i, mod, x, y);
+//     return (x % mod + mod) % mod;
+// }
 
-static bool areCoprime(int a, int b)
-{
-    return std::gcd(a, b) == 1;
-}
+// static bool areCoprime(int a, int b)
+// {
+//     return std::gcd(a, b) == 1;
+// }
 
 void SimpleLoop::simplify()
 {
