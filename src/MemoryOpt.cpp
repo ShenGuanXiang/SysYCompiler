@@ -421,6 +421,10 @@ static std::pair<Info, bool> transfer(Info in, BasicBlock *bb, bool is_global, b
                     return std::pair<Info, bool>{out, false};
                 }
             }
+            else
+            {
+                return std::pair<Info, bool>{out, false};
+            }
             break;
         }
         case Instruction::LOAD:
