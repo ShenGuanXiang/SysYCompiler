@@ -28,6 +28,7 @@ public:
     void removeUse(Instruction *inst) { uses.erase(inst); };
     int usersNum() const { return uses.size(); };
     int defsNum() const { return defs.size(); };
+    std::set<Instruction *> FullDef() { return defs; };
     // bool operator==(const Operand &) const;
     // bool operator<(const Operand &) const;
 
@@ -35,7 +36,7 @@ public:
     use_iterator use_end() { return uses.end(); };
     Type *getType() { return se->getType(); };
     std::string toStr() const;
-    Instruction *getDef()
+    Instruction* getDef()
     {
         assert(defs.size() <= 1);
         return defs.size() == 1 ? *(defs.begin()) : nullptr;

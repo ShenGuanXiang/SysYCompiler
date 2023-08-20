@@ -25,6 +25,8 @@ private:
     BasicBlock *RiDom = nullptr;
     std::set<BasicBlock *> RDF;
 
+    bool unrolled;
+
 public:
     BasicBlock(Function *);
     ~BasicBlock();
@@ -65,6 +67,10 @@ public:
     std::set<BasicBlock *> &getRDF();
     void CleanSucc();
     int getNumofInstr();
+
+    bool Unrolled() { return unrolled; }
+    void ClearUnrolled() { unrolled = false; }
+    void SetUnrolled() { unrolled = true; }
 };
 
 #endif
