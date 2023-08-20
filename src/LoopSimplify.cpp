@@ -8,22 +8,19 @@ Operand *LoopSimplify::checkForm(BasicBlock *bb)
     bool self_loop = false;
     for (auto succ_it = bb->succ_begin(); succ_it != bb->succ_end(); succ_it++)
     {
-        std::cout << "LoopSimplify:" << (*succ_it)->getNo() << "\n";
         if (*succ_it == bb)
         {
-            std::cout << "SelfLoopSimplify:" << (*succ_it)->getNo() << "\n";
             self_loop = true;
             break;
         }
     }
-    
+
     if (!self_loop)
         return nullptr;
     // 2. 只有一个变量，定义在循环体内，在循环体外被使用，phi只有两个参数
     Operand *exit_var = nullptr;
     for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
     {
-        inst->output();
         if (inst->isCond() || inst->isUncond())
             continue;
         if (inst->hasNoDef())
@@ -36,16 +33,10 @@ Operand *LoopSimplify::checkForm(BasicBlock *bb)
             BasicBlock *use_bb = i->getParent();
             if (use_bb != bb)
             {
-                i->output();
-                fprintf(stderr,"%d\n",use_bb->getNo());
-                
                 if (!exit_var)
                     exit_var = def;
-                else if (exit_var != def){
-                    fprintf(stderr,"%s\n",exit_var->toStr().c_str());
-                    fprintf(stderr,"%s\n",def->toStr().c_str());
+                else if (exit_var != def)
                     return nullptr;
-                }
             }
             if (inst->isPHI() && dynamic_cast<PhiInstruction *>(inst)->getSrcs().size() != 2)
             {
