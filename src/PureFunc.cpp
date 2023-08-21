@@ -594,6 +594,79 @@ bool PureFunc::checkform(Function* f) {
 
 
 bool PureFunc::check(Function* f) {
-    auto entry = f->getEntry();
+    std::vector<RetInstruction* > res_list;
+    BasicBlock* Callbb = nullptr;
+    FuncCallInstruction* callinstr = nullptr;
+    auto func_se = (IdentifierSymbolEntry*)f->getSymPtr();
+    auto paramslist = func_se->getFunction()->getParamsOp();
+    if(paramslist.size() != 2)
+        return true;
+    for (auto bb = f->begin(); bb != f->end(); bb ++ )
+    {
+        for (auto instr = (*bb)->begin(); instr != (*bb)->end(); instr = instr->getNext()) {
+            if (instr->isRet())
+            {
+                auto func_type = (FunctionType*)func_se->getType();
+                if (func_type->getRetType()->isVoid())
+                    return true;
+                res_list.push_back((RetInstruction*)instr);
+            }
+            if (instr->isCall()) {
+                auto se = ((FuncCallInstruction*)instr)->getFuncSe();
+                if (se->getName() == func_se->getName()) {
+                    if (Callbb != nullptr) return true;
+                    else {
+                        Callbb = *bb;
+                        callinstr = (FuncCallInstruction*)instr;
+                        if(callinstr->getUses()[0]!=paramslist[0])
+                            return true;
+                        if(!callinstr->getUses()[1]->getDef() || !callinstr->getUses()[1]->getDef()->isBinary())
+                            return true;
+                        auto div_inst = callinstr->getUses()[1]->getDef();
+                        if(div_inst->getOpcode()!=BinaryInstruction::DIV || div_inst->getUses()[1]->getEntry()->getValue() !=2)
+                            return true;
+                    }
+                }
+            }
+        }
+    }
+    if (callinstr == nullptr || callinstr->hasNoDef()) return true;
+    auto call_res = callinstr->getDef();
+    if (call_res == nullptr) return true;
+    auto Uses = call_res->getUses();
+    if (Uses.size() != 1) return true;
+    auto binstr = (*Uses.begin());
+    if (!binstr->isBinary() || ((BinaryInstruction*)binstr)->getOpcode() != BinaryInstruction::MUL) return true;
+    for (auto ops : binstr->getUses())
+        if (ops != call_res) {
+            if (!ops->getType()->isConst())
+                return true;
+            else
+            {
+                auto val = ops->getEntry()->getValue();
+                if (val != 2) return true;
+            }
+        }
+    auto bin_res = binstr->getDef();
+    if (bin_res->getUses().size() != 1) return true;
+    auto mod_instr = (*bin_res->getUses().begin());
+    if (!mod_instr->isBinary()) return true;
+    if (((BinaryInstruction*)mod_instr)->getOpcode() != BinaryInstruction::MOD) return true;
+    auto modop = mod_instr->getUses()[1];
+    if (!modop->getType()->isConst()) return true;
     
+    auto bblist = f->getBlockList();
+    std::vector<BasicBlock*> cp;
+    cp.assign(bblist.begin(), bblist.end());
+    for (auto c : cp) {
+        delete c;
+    }
+    BasicBlock* newBB = new BasicBlock(f);
+    f->setEntry(newBB);
+    auto mulmod_type = new FunctionType(TypeSystem::intType, std::vector<Type *>{TypeSystem::intType, TypeSystem::intType, TypeSystem::intType});
+    Operand *dst = new Operand(new TemporarySymbolEntry(TypeSystem::intType, SymbolTable::getLabel()));
+    new FuncCallInstruction(dst, std::vector<Operand *>{paramslist[0], paramslist[1], modop},
+                                    new IdentifierSymbolEntry(mulmod_type, "__mulmod", 0), newBB);
+    new RetInstruction(dst, newBB);
+    return true;
 }
