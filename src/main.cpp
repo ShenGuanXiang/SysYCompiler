@@ -130,8 +130,8 @@ int main(int argc, char *argv[])
             gvnpre.pass(); // 部分冗余消除&循环不变外提
             GlobalCodeMotion gcm(unit);
             gcm.pass(); // 全局代码移动
-            LoopUnroll lur(unit);
-            lur.pass(); // 循环展开
+            // LoopUnroll lur(unit);
+            // lur.pass(); // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
             LoopSimplify ls(unit);
@@ -143,7 +143,6 @@ int main(int argc, char *argv[])
             unit->output();
             fprintf(stderr, "opt ir output ok\n");
         }
-        // 多线程
         ElimPHI ep(unit);
         ep.pass();
     }
