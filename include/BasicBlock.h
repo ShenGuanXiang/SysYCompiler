@@ -68,6 +68,7 @@ public:
     void CleanSucc();
     int getNumofInstr();
 
+    // LoopUnroll
     bool Unrolled() { return unrolled; }
     void ClearUnrolled() { unrolled = false; }
     void SetUnrolled() { unrolled = true; }

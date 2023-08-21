@@ -63,7 +63,7 @@ void LoopAnalyzer::getBackEdges()
             if (*b == t || sDoms.find(*b) != sDoms.end())
             {
                 backEdges.insert({t, *b});
-                fprintf(stderr, "Back_Edge from %d to %d\n", t->getNo(), (*b)->getNo());
+                // fprintf(stderr, "Back_Edge from %d to %d\n", t->getNo(), (*b)->getNo());
             }
             if (visited.find(*b) == visited.end())
                 q.push(*b), visited.insert(*b);
@@ -219,8 +219,8 @@ void LoopAnalyzer::analyze()
                 loop2->subLoops.insert(loop1);
             }
 
-    for (auto loop : loops)
-        loop->printLoop();
+    // for (auto loop : loops)
+    //     loop->printLoop();
 }
 
 std::set<MachineBlock *> MLoopAnalyzer::computeNaturalLoop(MachineBlock *exiting_bb, MachineBlock *header_bb)

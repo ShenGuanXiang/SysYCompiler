@@ -13,9 +13,11 @@ static Operand *copyOperand(Operand *ope)
 
 void LoopUnroll::pass()
 {
-    while (true) {
+    while (true)
+    {
         auto cand = FindCandidateLoop();
-        if (cand == nullptr) break;
+        if (cand == nullptr)
+            break;
         fprintf(stderr, "loop be unrolled\n");
         Unroll(cand);
         fprintf(stderr, "loop unrolled finish\n");
@@ -25,7 +27,7 @@ void LoopUnroll::pass()
 /*
     Find Candidate Loop, don't consider instrs that have FuncCall temporarily;
 */
-Loop * LoopUnroll::FindCandidateLoop()
+Loop *LoopUnroll::FindCandidateLoop()
 {
     for (auto f : unit->getFuncList())
     {
@@ -33,74 +35,31 @@ Loop * LoopUnroll::FindCandidateLoop()
         analyzer.analyze();
         for (auto loop : analyzer.getLoops())
         {
-            if (loop->subLoops.size() != 0) continue;
-            if (loop->header_bb != loop->exiting_bb) continue;
-            LoopInfo loopinfo;
-            loopinfo.loop_blocks = loop->loop_bbs;
-            loopinfo.loop_header = loop->header_bb;
-            loopinfo.loop_exiting_block = loop->exiting_bb;
-
+            if (loop->subLoops.size() != 0)
+                continue;
+            if (loop->header_bb != loop->exiting_bb) // TODO
+                continue;
             if (analyzer.multiOr(loop))
                 continue;
-
             // 排除break/while(a and b)
             if (analyzer.hasLeak(loop))
                 continue;
-
-            // 判断归纳变量是否唯一、变化形式并记录
-            bool flag = true;
-            // for (auto ind : loop->inductionVars)
-            // {
-            //     if (ind->du_chains.size() != 1)
-            //     {
-            //         flag = false;
-            //         break;
-            //     }
-            //     auto du_chain = ind->du_chains[0];
-            //     if (du_chain.size() != 2)
-            //     {
-            //         flag = false;
-            //         break;
-            //     }
-            //     assert(du_chain[0]->isPHI());
-            //     if (!du_chain[1]->isBinary())
-            //     {
-            //         flag = false;
-            //         break;
-            //     }
-            //     for (auto inst : du_chain)
-            //     {
-            //         for (auto use : inst->getDef()->getUses())
-            //         {
-            //             if (!loop->loop_bbs.count(use->getParent()))
-            //             {
-            //                 flag = false;
-            //                 break;
-            //             }
-            //         }
-            //     }
-            // }
-            if (!flag)
-                continue;
-
-            // if (loop->inductionVars.size() != analyzer.getLoopCnt(loop))
-            //     continue;
-
-            assert(loopinfo.loop_exiting_block->rbegin()->isCond());
-            assert(loopinfo.loop_exiting_block->rbegin()->getUses()[0]->getDef() && loopinfo.loop_exiting_block->rbegin()->getUses()[0]->getDef()->isCmp());
-            loopinfo.cmp = loopinfo.loop_exiting_block->rbegin()->getUses()[0]->getDef();
+            assert(loop->exiting_bb->rbegin()->isCond());
+            assert(loop->exiting_bb->rbegin()->getUses()[0]->getDef() && loop->exiting_bb->rbegin()->getUses()[0]->getDef()->isCmp());
+            auto cmp = loop->exiting_bb->rbegin()->getUses()[0]->getDef();
 
             InductionVar *ind_var = nullptr;
             for (auto ind : loop->inductionVars)
             {
                 auto du_chain = ind->du_chains[0];
-                if (loopinfo.cmp->getUses()[0] == du_chain[1]->getDef() || loopinfo.cmp->getUses()[1] == du_chain[1]->getDef())
+                if (cmp->getUses()[0] == du_chain[1]->getDef() || cmp->getUses()[1] == du_chain[1]->getDef())
                 {
                     ind_var = ind;
                     break;
                 }
             }
-            if (ind_var == nullptr) continue;
+            if (ind_var == nullptr)
+                continue;
             if (ind_var->du_chains.size() != 1)
             {
                 continue;
@@ -115,28 +74,27 @@ Loop * LoopUnroll::FindCandidateLoop()
             {
                 continue;
             }
+            if (du_chain[1]->getInstType() != BinaryInstruction::ADD && du_chain[1]->getInstType() != BinaryInstruction::MUL)
+                continue;
 
-            auto range_second = loopinfo.cmp->getUses()[0] == du_chain[1]->getDef() ? loopinfo.cmp->getUses()[1] : loopinfo.cmp->getUses()[0];
+            auto range_second = cmp->getUses()[0] == du_chain[1]->getDef() ? cmp->getUses()[1] : cmp->getUses()[0];
             if (!range_second->getType()->isConst() && range_second->getDef() && loop->loop_bbs.count(range_second->getDef()->getParent()))
                 continue;
-            assert(du_chain[0]->isPHI());
-            assert(du_chain[1]->isBinary());
             auto stride = du_chain[1]->getUses()[0] == du_chain[0]->getDef() ? du_chain[1]->getUses()[1] : du_chain[1]->getUses()[0];
             if (!stride->getType()->isConst() && stride->getDef() && loop->loop_bbs.count(stride->getDef()->getParent()))
                 continue;
-            loopinfo.phi = du_chain[0];
-            auto phi_srcs = dynamic_cast<PhiInstruction *>(loopinfo.phi)->getSrcs();
+            auto phi = du_chain[0];
+            auto phi_srcs = dynamic_cast<PhiInstruction *>(phi)->getSrcs();
             assert(phi_srcs.size() == 2);
-            assert(phi_srcs.count(loopinfo.loop_exiting_block));
-            auto range_first = loopinfo.phi->getUses()[0] == phi_srcs[loopinfo.loop_exiting_block] ? loopinfo.phi->getUses()[1] : loopinfo.phi->getUses()[0];
+            assert(phi_srcs.count(loop->exiting_bb));
+            auto range_first = phi->getUses()[0] == phi_srcs[loop->exiting_bb] ? phi->getUses()[1] : phi->getUses()[0];
             if (!range_first->getType()->isConst() && range_first->getDef() && loop->loop_bbs.count(range_first->getDef()->getParent()))
                 continue;
-            loopinfo.indvar_range = std::make_pair(range_first, range_second);
             if (range_first->getType()->isFloat() || range_second->getType()->isFloat())
                 continue;
-            if (loop->header_bb->Unrolled()) 
+            if (loop->header_bb->Unrolled())
                 continue;
-            else 
+            else
                 loop->header_bb->SetUnrolled();
             return loop;
         }
@@ -152,202 +110,121 @@ void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp
      * Special:  pred -> cond -> body -> cond -> Exitbb      ==>     pred -> newbody -> Exitbb
      *                     ↓                       ↑
      *                     -------------------------
-    */
-    std::vector<Instruction *> preInstructionList;
-    std::vector<Instruction *> nextInstructionList;
-    std::vector<Instruction *> phis;
-    CmpInstruction *cmp = (CmpInstruction*)bb->rbegin()->getPrev();
-    std::vector<Operand *> finalOperands;
-    std::map<Operand *, Operand *> begin_final_Map;
-    // Find all phis and insert instrs in preInstructionList
-    assert(cmp->isCmp());
-    for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
-    {
-        if (instr->isPHI())
-            phis.push_back(instr);
-        if (instr->isCond() || instr->isUncond()) 
-            continue;
-        preInstructionList.push_back(instr);
-    }
+     */
 
-    // Insert next_instr into nextInstructionList
-    for (auto preIns : preInstructionList)
+    std::vector<Instruction *> freeInsts;
+    std::map<Instruction *, Operand *> to_replace;
+    std::vector<Instruction *> prevInsts, nextInsts;
+    std::map<Operand *, Operand *> outer_bridge, reverse_outer_bridge;
+    for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
     {
-        Instruction *ins = preIns->copy();
-        if (!preIns->isStore())
-        {
-            Operand *newDef = copyOperand(preIns->getDef());
-            newDef->setDef(preIns->getDef()->getDef());
-            begin_final_Map[preIns->getDef()] = newDef;
-            finalOperands.push_back(preIns->getDef());
-            ins->setDef(newDef);
-            preIns->setDef(newDef); // PROBLEM1
-        }
-        nextInstructionList.push_back(ins);
+        nextInsts.push_back(inst);
     }
-
-    for (int i = 0; i < preInstructionList.size(); i++)
-    {
-        Instruction *preIns = preInstructionList[i];
-        for (auto useOp : preIns->getUses())
-            if (begin_final_Map.find(useOp) != begin_final_Map.end())
-                preIns->replaceUsesWith(useOp, begin_final_Map[useOp]); // PROBLEM2
-    }
-
-    for (auto nextIns : nextInstructionList)
-    {
-        for (auto useOp : nextIns->getUses())
-        {
-            if (begin_final_Map.find(useOp) != begin_final_Map.end())
-                nextIns->replaceUsesWith(useOp, begin_final_Map[useOp]);
-            else
-                useOp->addUse(nextIns);
-        }
-        // nextInstructionList.push_back(preIns->copy());
-    }
-
-    std::map<Operand *, Operand *> replaceMap;
     for (int k = 0; k < num - 1; k++)
     {
-        std::vector<Operand *> notReplaceOp;
-        int calculatePhi = 0;
-        for (int i = 0; i < nextInstructionList.size(); i++)
-        {
-            Instruction *preIns = preInstructionList[i];
-            Instruction *nextIns = nextInstructionList[i];
+        freeInsts.push_back(bb->rbegin());
 
-            if (!preIns->isStore())
+        prevInsts.clear();
+        for (auto inst : nextInsts)
+        {
+            prevInsts.push_back(inst);
+        }
+        nextInsts.clear();
+        for (auto inst : prevInsts)
+        {
+            nextInsts.push_back(inst->copy());
+        }
+        std::map<Operand *, Operand *> bridge;
+        for (auto inst : nextInsts)
+        {
+            if (!inst->hasNoDef())
             {
-                Operand *newDef = copyOperand(preIns->getDef());
-                replaceMap[preIns->getDef()] = newDef;
-                if (preIns->isPHI())
+                auto new_def = copyOperand(inst->getDef());
+                bridge[inst->getDef()] = new_def;
+                Operand *from = inst->getDef(), *to = new_def;
+                if (reverse_outer_bridge.count(inst->getDef()))
+                    from = reverse_outer_bridge[inst->getDef()];
+                outer_bridge[from] = to;
+                reverse_outer_bridge[to] = from;
+                inst->setDef(new_def);
+            }
+        }
+
+        size_t PhiInstructionCnt = 0;
+        for (; PhiInstructionCnt < nextInsts.size(); PhiInstructionCnt++)
+        {
+            if (!nextInsts[PhiInstructionCnt]->isPHI())
+                break;
+        }
+        for (size_t i = PhiInstructionCnt; i < nextInsts.size(); i++)
+        {
+            auto inst = nextInsts[i];
+            for (auto use : inst->getUses())
+            {
+                if (bridge.count(use))
                 {
-                    PhiInstruction *phi = (PhiInstruction *)phis[calculatePhi];
-                    if (phi->getSrcs().count(bb)) {
-                        nextInstructionList[i] = (Instruction *)(new BinaryInstruction(BinaryInstruction::ADD, newDef, phi->getSrcs()[bb], new Operand(new ConstantSymbolEntry(preIns->getDef()->getType(), 0)), nullptr));
-                        notReplaceOp.push_back(newDef);
-                        calculatePhi++;
-                    }
-                }
-                else
-                {
-                    nextIns->setDef(newDef);
+                    inst->replaceUsesWith(use, bridge[use]);
                 }
             }
         }
 
-        for (auto nextIns : nextInstructionList)
+        for (auto inst : nextInsts)
         {
-            if (!nextIns->hasNoDef() && count(notReplaceOp.begin(), notReplaceOp.end(), nextIns->getDef()))
-            {
-                continue;
-            }
-            for (auto useOp : nextIns->getUses())
-            {
-                if (replaceMap.find(useOp) != replaceMap.end())
-                {
-                    nextIns->replaceUsesWith(useOp, replaceMap[useOp]);
-                }
-                else
-                {
-                    useOp->addUse(nextIns);
-                }
-            }
+            bb->insertBack(inst);
         }
 
-        for (auto ins : phis)
+        // bb->output();
+
+        for (size_t i = 0; i < PhiInstructionCnt; i++)
         {
-            PhiInstruction *phi = (PhiInstruction *)ins;
-            Operand *old = phi->getSrcs()[bb];
-            Operand *_new = replaceMap[old];
-            phi->replaceUsesWith(old, _new);
+            auto phi = dynamic_cast<PhiInstruction *>(nextInsts[i]);
+            assert(phi->getSrcs().size() == 2 && phi->getSrcs().count(bb));
+            to_replace[phi] = phi->getSrcs()[bb];
+            freeInsts.push_back(phi);
         }
 
-        // 最后一次才会换 否则不换
-        if (k == num - 2)
+        for (size_t i = 0; i < PhiInstructionCnt; i++)
         {
-            // 构建新的map然后再次替换
-            std::map<Operand *, Operand *> newMap;
-            int i = 0;
-            for (auto nextIns : nextInstructionList)
+            auto inst = nextInsts[i];
+            for (auto use : inst->getUses())
             {
-                if (!nextIns->isStore())
+                if (bridge.count(use))
                 {
-                    newMap[nextIns->getDef()] = finalOperands[i];
-                    nextIns->setDef(finalOperands[i]);
-                    i++;
+                    inst->replaceUsesWith(use, bridge[use]);
                 }
             }
-            for (auto nextIns : nextInstructionList)
-            {
-                for (auto useOp : nextIns->getUses())
-                {
-                    if (newMap.find(useOp) != newMap.end())
-                    {
-                        nextIns->replaceUsesWith(useOp, newMap[useOp]);
-                    }
-                }
-                bb->insertBefore(nextIns, cmp);
-            }
-            for (auto ins : phis)
-            {
-                PhiInstruction *phi = (PhiInstruction *)ins;
-                Operand *old = phi->getSrcs()[bb];
-                Operand *_new = newMap[old];
-                phi->replaceUsesWith(old, _new);
-            }
-        }
-        else
-        {
-            for (auto nextIns : nextInstructionList)
-            {
-                bb->insertBefore(nextIns, cmp);
-            }
-        }
-
-        // 清空原来的
-        preInstructionList.clear();
-        // 复制新的到pre
-        preInstructionList.assign(nextInstructionList.begin(), nextInstructionList.end());
-        // 清空next
-        nextInstructionList.clear();
-        for (auto preIns : preInstructionList)
-        {
-            nextInstructionList.push_back(preIns->copy());
         }
     }
-    // 如果是完全张开的话
+    for (auto [phi, op] : to_replace)
+        phi->replaceAllUsesWith(op);
+
+    for (auto [old_op, new_op] : outer_bridge)
+    {
+        for (auto user : old_op->getUses())
+        {
+            if (user->getParent() != bb)
+                user->replaceUsesWith(old_op, new_op);
+        }
+    }
+
     if (ifall)
     {
-        // 去除块中的比较跳转指令，并且修改phi即可
-        for (auto phi : phis)
-        {
-            PhiInstruction *p = (PhiInstruction *)phi;
-            Operand *phiOp;
-            for (auto item : p->getSrcs())
-            {
-                if (item.first != bb)
-                {
-                    phiOp = item.second;
-                }
-            }
-            BinaryInstruction *newDefBin = new BinaryInstruction(BinaryInstruction::ADD, phi->getDef(), phiOp, new Operand(new ConstantSymbolEntry(phiOp->getEntry()->getType(), 0)), nullptr);
-            Instruction *phiNext = phi->getNext();
-            bb->remove(phi);
-            bb->insertBefore(newDefBin, phiNext);
-            delete phi;
-        }
-
-        CondBrInstruction *cond = (CondBrInstruction *)(cmp->getNext());
-        UncondBrInstruction *newUnCond = new UncondBrInstruction(cond->getFalseBranch(), nullptr);
-        delete cmp;
-        delete cond;
-        // bb->remove(cmp);
-        // bb->remove(cond);
-        bb->insertBack(newUnCond);
         bb->removePred(bb);
         bb->removeSucc(bb);
+
+        for (auto inst = bb->begin(); inst != bb->end() && inst->isPHI(); inst = inst->getNext())
+        {
+            auto phi = dynamic_cast<PhiInstruction *>(inst);
+            assert(bb->getNumOfPred() == 1);
+            phi->replaceAllUsesWith(phi->getSrcs()[*bb->pred_begin()]);
+            freeInsts.push_back(phi);
+        }
+        freeInsts.push_back(bb->rbegin());
+        assert(bb->getNumOfSucc() == 1);
+        new UncondBrInstruction((*bb->succ_begin()), bb);
     }
+    for (auto inst : freeInsts)
+        delete inst;
 
     std::cout << "SpeacialUnroll Finished!\n";
 }
@@ -362,7 +239,7 @@ void LoopUnroll::normalCopyInstructions(BasicBlock *condbb, BasicBlock *bodybb, 
      *                     ↓             ↑                             ↓                  ↑   ↓              ↑
      *                     ---------------                             --------------------   ----------------
      *
-    */
+     */
     BasicBlock *newCondBB = new BasicBlock(condbb->getParent());
     BasicBlock *resBodyBB = new BasicBlock(condbb->getParent());
     BasicBlock *resOutCond = new BasicBlock(condbb->getParent());
@@ -453,7 +330,7 @@ void LoopUnroll::normalCopyInstructions(BasicBlock *condbb, BasicBlock *bodybb, 
     std::map<Operand *, Operand *> resBodyReplaceMap;
     for (auto resIns : resBodyInstList)
     {
-        if (!resIns->isStore())
+        if (!resIns->hasNoDef())
         {
             if (resIns->isPHI())
             {
@@ -552,11 +429,7 @@ void LoopUnroll::normalCopyInstructions(BasicBlock *condbb, BasicBlock *bodybb, 
 
 void LoopUnroll::Unroll(Loop *loop)
 {
-    // for (auto bodyinstr = loop->header_bb->begin(); bodyinstr != loop->header_bb->end(); bodyinstr = bodyinstr->getNext())
-    //     if (bodyinstr->isCall()) 
-    //         return;
-
-    CmpInstruction* LoopCmp = (CmpInstruction*)(loop->exiting_bb->rbegin()->getUses()[0]->getDef());
+    CmpInstruction *LoopCmp = (CmpInstruction *)(loop->exiting_bb->rbegin()->getUses()[0]->getDef());
     auto InductionV = loop->inductionVars;
     InductionVar *ind_var = nullptr;
     for (auto ind : loop->inductionVars)
@@ -570,7 +443,7 @@ void LoopUnroll::Unroll(Loop *loop)
     }
     assert(ind_var != nullptr);
     auto Instr_path = ind_var->du_chains[0];
-    std::set<Instruction*> Instr_Set;
+    std::set<Instruction *> Instr_Set;
     for (auto ip : Instr_path)
         Instr_Set.insert(ip);
     int begin = -1, end = -1, stride = -1;
@@ -578,7 +451,7 @@ void LoopUnroll::Unroll(Loop *loop)
     IsBeginCons = IsEndCons = IsStrideCons = false;
     Operand *endOp = nullptr, *beginOp = nullptr, *strideOp = nullptr;
     BasicBlock *cond = loop->exiting_bb, *body = loop->header_bb;
-    CmpInstruction *condCmp = (CmpInstruction*)cond->rbegin()->getPrev();
+    CmpInstruction *condCmp = (CmpInstruction *)cond->rbegin()->getUses()[0]->getDef();
     assert(condCmp->isCmp());
     int cmpCode = condCmp->getOpcode();
     if (condCmp == nullptr || cmpCode == CmpInstruction::E || cmpCode == CmpInstruction::NE)
@@ -587,51 +460,59 @@ void LoopUnroll::Unroll(Loop *loop)
         return;
     }
     auto uses_cmp = condCmp->getUses();
-    Operand* Useop1 = uses_cmp[0], *Useop2 = uses_cmp[1];
+    Operand *Useop1 = uses_cmp[0], *Useop2 = uses_cmp[1];
     auto Add_Instr1 = Useop1->getDef(), Add_Instr2 = Useop2->getDef();
     bool needReverse = false;
     assert(Useop1 != nullptr && Useop2 != nullptr);
-    if (Instr_Set.count(Add_Instr1)) {
+    if (Instr_Set.count(Add_Instr1))
+    {
         strideOp = Useop1;
         endOp = Useop2;
-        if (cmpCode == CmpInstruction::G || cmpCode == CmpInstruction::GE) 
+        if (cmpCode == CmpInstruction::G || cmpCode == CmpInstruction::GE)
             needReverse = true;
     }
-    else if (Instr_Set.count(Add_Instr2)) {
+    else if (Instr_Set.count(Add_Instr2))
+    {
         strideOp = Useop2;
         endOp = Useop1;
-        if (cmpCode == CmpInstruction::L || cmpCode == CmpInstruction::LE) 
+        if (cmpCode == CmpInstruction::L || cmpCode == CmpInstruction::LE)
             needReverse = true;
     }
-     
+
     assert(strideOp != nullptr);
-    PhiInstruction* head_phi = (PhiInstruction*)ind_var->du_chains[0][0];
-    if (head_phi->getSrcs().size() > 2) {
-        std::cout << "Complicated sample, do nothing\n" << std::endl;
+    PhiInstruction *head_phi = (PhiInstruction *)ind_var->du_chains[0][0];
+    if (head_phi->getSrcs().size() > 2)
+    {
+        std::cout << "Complicated sample, do nothing\n"
+                  << std::endl;
         return;
     }
     for (auto srcs : head_phi->getSrcs())
         if (srcs.first != loop->exiting_bb)
             beginOp = srcs.second;
-    
+
     if (needReverse)
         std::swap(beginOp, endOp);
     assert(beginOp != nullptr);
     std::cout << "BeginOp is " << beginOp->toStr() << " , EndOp is " << endOp->toStr() << "\n";
-    Operand* step = nullptr;
-    Instruction* binary_instr = ind_var->du_chains[0][1];
+    Operand *step = nullptr;
+    Instruction *binary_instr = ind_var->du_chains[0][1];
     if (!binary_instr->isBinary())
     {
         std::cout << "The Induction Change is not east to process";
         return;
     }
     int ivOpcode = binary_instr->getOpcode();
+    if (ivOpcode == BinaryInstruction::SUB || ivOpcode == BinaryInstruction::DIV || ivOpcode == BinaryInstruction::MOD)
+    {
+        std::cout << "BinaryInstruction Type is SUB, DIV or MOD, do nothing" << std::endl;
+        return;
+    }
     for (auto useOp : binary_instr->getUses())
     {
-        auto se = (IdentifierSymbolEntry *)useOp->getEntry();
-        if (se->isConstant() || se->isParam())
+        if (useOp->getDef() == nullptr || useOp->getType()->isConst())
             step = useOp;
-        else if (useOp->getDef()->getParent() != body)
+        else if (!loop->loop_bbs.count(useOp->getDef()->getParent()))
             step = useOp;
     }
     if (step == nullptr)
@@ -640,31 +521,22 @@ void LoopUnroll::Unroll(Loop *loop)
         return;
     }
 
-    if (beginOp->getEntry()->isConstant())
+    if (beginOp->getType()->isConst())
     {
         IsBeginCons = true;
-        ConstantSymbolEntry *se = (ConstantSymbolEntry *)(beginOp->getEntry());
-        begin = se->getValue();
+        begin = beginOp->getEntry()->getValue();
     }
 
-    if (endOp->getEntry()->isConstant())
+    if (endOp->getType()->isConst())
     {
         IsEndCons = true;
-        ConstantSymbolEntry *se = (ConstantSymbolEntry *)(endOp->getEntry());
-        end = se->getValue();
+        end = endOp->getEntry()->getValue();
     }
 
-    if (step->getEntry()->isConstant())
+    if (step->getType()->isConst())
     {
         IsStrideCons = true;
-        ConstantSymbolEntry *se = (ConstantSymbolEntry *)(step->getEntry());
-        stride = se->getValue();
-    }
-
-    if (ivOpcode == BinaryInstruction::SUB || ivOpcode == BinaryInstruction::DIV || ivOpcode == BinaryInstruction::MOD) 
-    {
-        std::cout << "BinaryInstruction Type is SUB, DIV or MOD, do nothing" << std::endl;
-        return;
+        stride = step->getEntry()->getValue();
     }
 
     if (IsBeginCons && IsEndCons && IsStrideCons)
@@ -676,13 +548,13 @@ void LoopUnroll::Unroll(Loop *loop)
             {
             case CmpInstruction::LE:
             case CmpInstruction::GE:
-                for (int i = begin; i <= end; i += stride )
-                    count ++;
+                for (int i = begin; i <= end; i += stride)
+                    count++;
                 break;
             case CmpInstruction::L:
             case CmpInstruction::G:
                 for (int i = begin; i < end; i += stride)
-                    count ++;
+                    count++;
                 break;
             default:
                 std::cout << "Wrong CmpInstrucion Type!\n";
@@ -690,7 +562,7 @@ void LoopUnroll::Unroll(Loop *loop)
             }
             if (count < MAXUNROLLNUM)
                 specialCopyInstructions(body, count, endOp, strideOp, true);
-            else 
+            else
             {
                 std::cout << "Too much InstrNum, don't unroll\n";
                 return;
@@ -703,13 +575,13 @@ void LoopUnroll::Unroll(Loop *loop)
             {
             case CmpInstruction::LE:
             case CmpInstruction::GE:
-                for (int i = begin; i <= end; i *= stride )
-                    count ++;
+                for (int i = begin; i <= end; i *= stride)
+                    count++;
                 break;
             case CmpInstruction::L:
             case CmpInstruction::G:
                 for (int i = begin; i < end; i *= stride)
-                    count ++;
+                    count++;
                 break;
             default:
                 std::cout << "Wrong CmpInstrucion Type!\n";
@@ -717,7 +589,7 @@ void LoopUnroll::Unroll(Loop *loop)
             }
             if (count < MAXUNROLLNUM)
                 specialCopyInstructions(body, count, endOp, strideOp, true);
-            else 
+            else
             {
                 std::cout << "Too much InstrNum, don't unroll\n";
                 return;

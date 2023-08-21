@@ -110,7 +110,7 @@ class Exprset
     // most set is value canonical (i.e. each value has only one expr), we can
     // further speed it up
     std::set<Expr> exprs;
-    std::unordered_map<ValueNr,std::set<Expr>> val2exprs;
+    std::unordered_map<ValueNr, std::set<Expr>> val2exprs;
     std::vector<Expr> topological_seq;
     bool changed = true; // if changed after compute topological_seq last time
 public:
@@ -135,7 +135,7 @@ public:
         assert(htable.count(expr));
         exprs.erase(expr);
         val2exprs[htable[expr]].erase(expr);
-        if(val2exprs[htable[expr]].empty())
+        if (val2exprs[htable[expr]].empty())
             val2exprs.erase(htable[expr]);
         changed = true;
     }
@@ -175,8 +175,9 @@ public:
 
         if (!val || val2exprs.count(val) == 0)
             return nullptr;
-        assert(val2exprs.count(val)<=1);
-        if(val2exprs.count(val)){
+        assert(val2exprs.count(val) <= 1);
+        if (val2exprs.count(val))
+        {
             auto e = *val2exprs[val].begin();
             // assert(e.getOpcode()==ExprOp::TEMP);
             return e.getOperands()[0];
@@ -200,16 +201,17 @@ public:
     }
     std::vector<Expr> topological_sort();
     std::set<Expr> &getExprs() { return exprs; }
-    std::unordered_map<ValueNr,std::set<Expr>> &getValnrs() { return val2exprs; }
+    std::unordered_map<ValueNr, std::set<Expr>> &getValnrs() { return val2exprs; }
 };
 
 // #define DEBUG_GVNPRE
 
+class GVNPRE
+{
+    Unit *unit;
 
-class GVNPRE{
-    Unit* unit;
 public:
-    GVNPRE(Unit* unit):unit(unit){}
+    GVNPRE(Unit *unit) : unit(unit) {}
     void pass();
 };
 
@@ -247,7 +249,7 @@ class GVNPRE_FUNC
     void elminate(Function *func);
 
 public:
-    GVNPRE_FUNC(Function* f) : func(f) {expr_cnt = phi_cnt = erase_cnt = 0;}
+    GVNPRE_FUNC(Function *f) : func(f) { expr_cnt = phi_cnt = erase_cnt = 0; }
     void pass();
 };
 
