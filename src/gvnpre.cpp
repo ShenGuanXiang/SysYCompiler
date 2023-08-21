@@ -503,6 +503,7 @@ void GVNPRE_FUNC::buildAntic(Function *func)
     {
         changed = false;
         iter++;
+        // std::cout << "[gvn]iter:" << iter << "\n";
         // TODO : traverse postdominator tree
         std::queue<BasicBlock *> q;
         std::set<BasicBlock *> visited;
