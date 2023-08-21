@@ -115,7 +115,7 @@ Exprset GVNPRE_FUNC::phi_trans(Exprset set, BasicBlock *from, BasicBlock *to)
     const std::vector<Expr> &toplist = set.topological_sort();
     Exprset newset;
     // translate each expression in order
-    fprintf(stderr, "pre-compute\n");
+    // fprintf(stderr, "pre-compute\n");
 
     std::unordered_map<ValueNr, ValueNr> &cur_cache = trans_cache[{from->getNo(), to->getNo()}];
     for (size_t i = 0; i < toplist.size(); i++)
@@ -176,7 +176,7 @@ Expr GVNPRE_FUNC::phi_trans(Expr expr, BasicBlock *from, BasicBlock *to)
 {
     std::unordered_map<ValueNr, ValueNr> &cur_cache = trans_cache[{from->getNo(), to->getNo()}];
     // add tag to further speedup
-    fprintf(stderr, "%d-%d", from->getNo(), to->getNo());
+    // fprintf(stderr, "%d-%d", from->getNo(), to->getNo());
     if (cur_cache.empty())
         phi_trans(antic_in[to], from, to);
 
@@ -459,10 +459,10 @@ void GVNPRE_FUNC::buildSets(Function *func)
                 {
                     if (htable.find(temp) == htable.end())
                     {
-                        const auto &symentry = temp->getEntry();
+                        // const auto &symentry = temp->getEntry();
                         // global, parameter, constant is available anywhere instinctly
-                        fprintf(stderr, "%s\n", symentry->toStr().c_str());
-                        assert(symentry->isConstant() || symentry->isVariable());
+                        // fprintf(stderr, "%s\n", symentry->toStr().c_str());
+                        // assert(symentry->isConstant() || symentry->isVariable());
                         // add a new value number
                         htable[temp] = temp;
                     }

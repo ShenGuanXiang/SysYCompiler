@@ -560,7 +560,8 @@ void LoopUnroll::Unroll(Loop *loop)
                 std::cout << "Wrong CmpInstrucion Type!\n";
                 break;
             }
-            if (count < MAXUNROLLNUM)
+            if (count == 100)
+                // if (count < MAXUNROLLNUM)
                 specialCopyInstructions(body, count, endOp, strideOp, true);
             else
             {

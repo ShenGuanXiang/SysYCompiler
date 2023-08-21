@@ -26,7 +26,6 @@
 #include "LoopUnroll.h"
 #include "InstructionScheduling.h"
 
-
 Ast ast;
 Unit *unit = new Unit();
 MachineUnit *mUnit = new MachineUnit();
@@ -165,6 +164,9 @@ int main(int argc, char *argv[])
             PeepholeOptimization ph(mUnit);
             ph.pass(); // 窥孔优化
 
+            InstructionScheduling is(mUnit); // 指令调度
+            is.pass();
+
             MachineDeadCodeElim mdce(mUnit);
             mdce.pass(true); // 死代码消除
         }
@@ -189,8 +191,6 @@ int main(int argc, char *argv[])
             mdce.pass(true); // 死代码消除
             Straighten st(mUnit);
             st.pass(); // 控制流优化 straighten
-            // InstructionScheduling is(mUnit); // 指令调度
-            // is.pass();
         }
         fprintf(stderr, "asm generated\n");
         mUnit->output();
