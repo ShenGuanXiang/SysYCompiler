@@ -31,6 +31,7 @@ private:
 
 public:
     Function(Unit *, SymbolEntry *);
+    Function(Function *);
     ~Function();
     void insertBlock(BasicBlock *bb) { block_list.push_back(bb); };
     BasicBlock *getEntry() { return entry; };

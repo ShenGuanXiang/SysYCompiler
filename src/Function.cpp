@@ -17,6 +17,16 @@ Function::Function(Unit *u, SymbolEntry *s)
     callees = std::set<Function *>();
 }
 
+Function::Function(Function *old_func)
+{
+    sym_ptr = old_func->getSymPtr();
+    entry = nullptr;
+    parent = old_func->getParent();
+    param_list = old_func->getParamsList();
+    callers = std::set<Function *>();
+    callees = std::set<Function *>();
+}
+
 Function::~Function()
 {
     auto delete_list = block_list;

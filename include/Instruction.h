@@ -32,7 +32,7 @@ public:
     void setPrev(Instruction *);
     Instruction *getNext();
     Instruction *getPrev();
-    Instruction* replaceWith(Instruction *new_inst);
+    Instruction *replaceWith(Instruction *new_inst);
     virtual void output() const = 0;
     MachineOperand *genMachineOperand(Operand *);
     MachineOperand *genMachineReg(int reg, Type *valType = TypeSystem::intType);
@@ -231,6 +231,9 @@ public:
     RetInstruction(Operand *src, BasicBlock *insert_bb = nullptr);
     void output() const;
     void genMachineCode(AsmBuilder *);
+
+    // Autoinline
+    Instruction *copy() { return new RetInstruction(*this); };
 };
 
 class ZextInstruction : public Instruction
@@ -270,7 +273,7 @@ private:
     IdentifierSymbolEntry *func_se;
 
 public:
-    FuncCallInstruction(Operand *dst, std::vector<Operand *> params, IdentifierSymbolEntry *funcse, BasicBlock *insert_bb=nullptr);
+    FuncCallInstruction(Operand *dst, std::vector<Operand *> params, IdentifierSymbolEntry *funcse, BasicBlock *insert_bb = nullptr);
     void output() const;
     IdentifierSymbolEntry *getFuncSe() { return func_se; };
     void genMachineCode(AsmBuilder *);

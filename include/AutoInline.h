@@ -17,13 +17,16 @@ private:
 
 public:
     AutoInliner(Unit *unit) : unit(unit){};
-    void pass();
-    void pass(Instruction *instr);
+    void pass(bool recur_line = true);
+    void pass(Instruction *instr, Function *func = nullptr);
     void RecurDetect();
     void UpdateRecur(Function *, std::set<Function *> &);
     bool ShouldBeinlined(Function *f);
     void InitDegree();
     void Print_Funcinline(std::queue<Function *> &);
+    void RecurInline(Function *);
+    Function *deepCopy(Function *);
+    void ReplSingleUseWith(Instruction *inst, int i, Operand *new_op);
 };
 
 #endif

@@ -221,6 +221,7 @@ void ComSubExprElim::pass1(BasicBlock *bb)
             htable[dst->toStr()] = args.begin()->second;
             torm.push_back(cur_inst);
             cur_inst->replaceAllUsesWith(args.begin()->second);
+            fprintf(stderr, "[GVN]:meanless phi\n");
         }
         else if (instString.substr(0, 3) == "PHI" &&
                  htable.count(instString) &&
@@ -230,6 +231,7 @@ void ComSubExprElim::pass1(BasicBlock *bb)
             htable[dst->toStr()] = htable[instString];
             torm.push_back(cur_inst);
             cur_inst->replaceAllUsesWith(htable[instString]);
+            fprintf(stderr, "[GVN]:redundant phi\n");
         }
         else
         {
@@ -242,7 +244,7 @@ void ComSubExprElim::pass1(BasicBlock *bb)
                 torm.push_back(cur_inst);
                 htable[dst->toStr()] = src;
                 cur_inst->replaceAllUsesWith(src);
-                // fprintf(stderr, "[GVN]:%s->%s\n", dst->toStr().c_str(), src->toStr().c_str());
+                fprintf(stderr, "[GVN]:%s->%s\n", dst->toStr().c_str(), src->toStr().c_str());
             }
             else
             {
@@ -255,6 +257,8 @@ void ComSubExprElim::pass1(BasicBlock *bb)
             }
         }
     }
+    if (torm.size())
+        fprintf(stderr, "[GVN]: %d\n", torm.size());
     for (auto i : torm)
     {
         bb->remove(i);

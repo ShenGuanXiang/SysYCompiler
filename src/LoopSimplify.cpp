@@ -89,9 +89,10 @@ void SimpleLoop::findInduction()
         path.pop();
         if (last_phi != phi)
             continue;
-        if (path.size() > 2)
+        if (path.size() > 2 || path.empty())
             continue;
 
+        assert(!path.empty());
         Instruction *stepi = path.top()->getDef();
         path.pop();
         unsigned step_op = stepi->getOpcode();
@@ -193,6 +194,8 @@ void SimpleLoop::simplify()
         }
     }
     if (!cond)
+        return;
+    if (cond->getOpcode() != CmpInstruction::L)
         return;
     Operand *ctrl_val = nullptr;
     Operand *bound = nullptr;

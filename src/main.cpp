@@ -117,8 +117,8 @@ int main(int argc, char *argv[])
             PureFunc pf(unit);
             pf.pass(); // 纯函数清理
             AutoInliner autoinliner(unit);
-            autoinliner.pass(); // 函数自动内联
-            // // TODO:其它中间代码优化
+            autoinliner.pass(false); // 函数自动内联
+            // TODO:其它中间代码优化
             AlgSimplify alsim(unit);
             alsim.pass(); // 代数化简
             SparseCondConstProp sccp(unit);
