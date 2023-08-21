@@ -88,6 +88,7 @@ protected:
     std::vector<MachineOperand *> use_list;
     // print execution code after printing opcode
     void printCond();
+    int latency;
 
 public:
     enum instType
@@ -145,6 +146,8 @@ public:
 
     virtual MachineInstruction *deepCopy() = 0;
 
+    int getLatency() { return latency; }
+
     bool isDummy() const { return type == DUMMY; };
     bool isAdd() const;
     bool isAddShift() const;
@@ -168,7 +171,10 @@ public:
     bool isBL() const;
     bool isZext() const { return type == ZEXT; };
     bool isCondMov() const;
+    bool isCmp() const { return type == CMP; };
+    bool isVmrs() const { return type == VMRS; };
     // bool isSmull() const;
+    bool isBigReg() const;
 };
 
 // 放在函数开头和结尾，分别假装定义函数参数对应的物理寄存器和使用函数返回值r0/s0，从而便于生存期等处理，防止被误判为死代码消除

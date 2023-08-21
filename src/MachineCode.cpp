@@ -606,6 +606,21 @@ bool MachineInstruction::isVPop() const
     return type == STACK && op == StackMInstruction::POP && use_list[0]->getValType()->isFloat();
 };
 
+bool MachineInstruction::isBigReg() const 
+{
+    for (auto& ope : def_list) {
+        if (ope->isReg() && ope->getReg() >= 11 && ope->getReg() <= 15) {
+            return true;
+        }
+    }
+    for (auto& ope : use_list) {
+        if (ope->isReg() && ope->getReg() >= 11 && ope->getReg() <= 15) {
+            return true;
+        }
+    }
+    return false;
+}
+
 DummyMInstruction::DummyMInstruction(
     MachineBlock *p,
     std::vector<MachineOperand *> defs, std::vector<MachineOperand *> uses,
@@ -625,6 +640,7 @@ DummyMInstruction::DummyMInstruction(
         this->use_list.push_back(use);
         use->setParent(this);
     }
+    latency = 0;
 }
 
 // 调试用，后面可以删了
@@ -676,6 +692,64 @@ BinaryMInstruction::BinaryMInstruction(
         assert(shifter->isImm() && shifter->getValType()->isInt());
         this->use_list.push_back(shifter);
         shifter->setParent(this);
+    }
+
+    switch (this->op) {
+        case BinaryMInstruction::ADD:
+            if(def_list[0]->getValType()->isFloat())
+                latency = 4;
+            else
+                latency = 1;
+            break;
+
+        case BinaryMInstruction::SUB:
+            if(def_list[0]->getValType()->isFloat())
+                latency = 4;
+            else
+                latency = 1;
+            break;
+
+        case BinaryMInstruction::MUL:
+            if(def_list[0]->getValType()->isFloat())
+                latency = 4;
+            else
+                latency = 3;
+            break;
+
+        case BinaryMInstruction::DIV:
+            if(def_list[0]->getValType()->isFloat())
+                latency = 6;
+            else
+                latency = 4;
+            break;
+                
+        case BinaryMInstruction::AND:
+            latency = 1;
+            break;
+
+        case BinaryMInstruction::RSB:
+            if(def_list[0]->getValType()->isFloat())
+                latency = 3;
+            else
+                latency = 1;
+            break;
+
+        case BinaryMInstruction::ADDLSL:
+        case BinaryMInstruction::SUBLSL:
+        case BinaryMInstruction::RSBLSL:
+
+        case BinaryMInstruction::ADDLSR:
+        case BinaryMInstruction::SUBLSR:
+        case BinaryMInstruction::RSBLSR:
+
+        case BinaryMInstruction::ADDASR:
+        case BinaryMInstruction::SUBASR:
+        case BinaryMInstruction::RSBASR:
+            latency = 2;
+            break;
+
+        default:
+            latency = 4;
     }
 }
 
@@ -834,6 +908,71 @@ LoadMInstruction::LoadMInstruction(MachineBlock *p,
         this->use_list.push_back(shifter);
         shifter->setParent(this);
     }
+
+
+
+    if ((this->use_list.size() == 1) && this->use_list[0]->isImm())
+    {
+        if (this->def_list[0]->getValType()->isInt())
+        {
+            unsigned temp;
+            if (this->use_list[0]->getValType()->isInt())
+            {
+                VAL val;
+                val.signed_val = (int)this->use_list[0]->getVal();
+                temp = val.unsigned_val;
+            }
+            else
+            {
+                assert(this->use_list[0]->getValType()->isFloat());
+                VAL val;
+                val.float_val = (float)this->use_list[0]->getVal();
+                temp = val.unsigned_val;
+            }
+            if (isShifterOperandVal(temp))
+            {
+                latency = 1;
+                return;
+            }
+            else if ((this->use_list[0]->getValType()->isInt() && isShifterOperandVal(~temp)))
+            {
+                latency = 1;
+                return;
+            }
+            else
+            {
+                unsigned high = (temp & 0xFFFF0000) >> 16;
+                unsigned low = temp & 0x0000FFFF;
+                if (isShifterOperandVal(high) && isShifterOperandVal(low))
+                {
+                    latency = 0;
+                    if (low)
+                    {
+                        latency = 1;
+                    }
+
+                    if (high)
+                    {
+                        latency++;
+                    }
+                    return;
+                }
+            }
+        }
+        else
+        {
+            assert(this->def_list[0]->getValType()->isFloat());
+            assert(this->use_list[0]->getValType()->isFloat());
+        }
+    }
+
+    if (this->use_list.size() == 3)
+    {
+        latency = 5;
+        return;
+    }
+    latency = 4;
+
 }
 
 void LoadMInstruction::output()
@@ -1004,6 +1143,9 @@ StoreMInstruction::StoreMInstruction(MachineBlock *p,
         this->use_list.push_back(shifter);
         shifter->setParent(this);
     }
+    latency = 1;
+    if(op == STOREASR || op == STORELSL || op == STORELSR)
+        latency = 2;
 }
 
 void StoreMInstruction::output()
@@ -1089,6 +1231,23 @@ MovMInstruction::MovMInstruction(MachineBlock *p, int op,
             this->use_list.push_back(shifter);
             shifter->setParent(this);
         }
+    }
+
+    switch (this->op) {
+        case MOV:
+            latency = 1;
+            break;
+        case VMOV:
+            latency = 5;
+            break;
+        case MOVASR:
+        case MOVLSL:
+        case MOVLSR:
+            latency = 1;
+            break;
+        default:
+            latency = 1;
+            break;
     }
 }
 
@@ -1202,6 +1361,7 @@ BranchMInstruction::BranchMInstruction(MachineBlock *p, int op,
     this->cond = cond;
     this->def_list.push_back(dst);
     dst->setParent(this);
+    latency = 1;
 }
 
 void BranchMInstruction::output()
@@ -1260,6 +1420,10 @@ CmpMInstruction::CmpMInstruction(MachineBlock *p,
     this->use_list.push_back(src2);
     src1->setParent(this);
     src2->setParent(this);
+    if(use_list[0]->getValType()->isFloat())
+        latency = 3;
+    else 
+        latency = 1;
 }
 
 void CmpMInstruction::output()
@@ -1286,6 +1450,25 @@ StackMInstruction::StackMInstruction(MachineBlock *p, int op,
     this->cond = cond;
     this->use_list.push_back(src);
     src->setParent(this);
+
+
+    int temp_size = 0;
+    if(!use_list.empty())
+    {   
+        temp_size = this->use_list.size();
+    }
+
+    if (this->op == StackMInstruction::PUSH) 
+        latency = temp_size;
+
+    else if (this->op == StackMInstruction::POP)
+    {
+        if(use_list[0]->getValType()->isFloat())
+            latency = 4 + temp_size;  // VPOP
+        else 
+            latency = 3 + temp_size; // POP
+    }     
+
 }
 
 StackMInstruction::StackMInstruction(MachineBlock *p, int op,
@@ -1301,6 +1484,24 @@ StackMInstruction::StackMInstruction(MachineBlock *p, int op,
     {
         mope->setParent(this);
     }
+
+
+    if(use_list.empty())
+    {   
+        latency = 0;
+        return;
+    }
+    if (this->op == StackMInstruction::PUSH) 
+        latency = this->use_list.size();
+
+    else if (this->op == StackMInstruction::POP)
+    {
+        if(use_list[0]->getValType()->isFloat())
+            latency = 4 + this->use_list.size();  // VPOP
+        else 
+            latency = 3 + this->use_list.size(); // POP
+    }      
+
 }
 
 void StackMInstruction::output()
@@ -1393,6 +1594,7 @@ ZextMInstruction::ZextMInstruction(MachineBlock *p, MachineOperand *dst, Machine
     this->use_list.push_back(src);
     dst->setParent(this);
     src->setParent(this);
+    latency = 1;
 }
 
 void ZextMInstruction::output()
@@ -1420,6 +1622,7 @@ VcvtMInstruction::VcvtMInstruction(MachineBlock *p,
     this->use_list.push_back(src);
     dst->setParent(this);
     src->setParent(this);
+    latency = 3;
 }
 
 void VcvtMInstruction::output()
@@ -1447,6 +1650,7 @@ VmrsMInstruction::VmrsMInstruction(MachineBlock *p)
 {
     this->parent = p;
     this->type = MachineInstruction::VMRS;
+    latency = 1;
 }
 
 void VmrsMInstruction::output()
@@ -1507,6 +1711,7 @@ MLASMInstruction::MLASMInstruction(MachineBlock *p,
     src1->setParent(this);
     src2->setParent(this);
     src3->setParent(this);
+    latency = 3;
 }
 
 void MLASMInstruction::output()

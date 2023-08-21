@@ -24,6 +24,8 @@
 #include "LoopSimplify.h"
 #include "Straighten.h"
 #include "LoopUnroll.h"
+#include "InstructionScheduling.h"
+
 
 Ast ast;
 Unit *unit = new Unit();
@@ -41,7 +43,7 @@ bool dump_tokens = false;
 bool dump_ast = false;
 bool dump_ir = false;
 bool dump_asm = false;
-bool optimize = false;
+bool optimize = 1;
 
 int main(int argc, char *argv[])
 {
@@ -165,7 +167,6 @@ int main(int argc, char *argv[])
 
             MachineDeadCodeElim mdce(mUnit);
             mdce.pass(true); // 死代码消除
-            // 指令调度
         }
         if (optimize)
         {
@@ -188,6 +189,8 @@ int main(int argc, char *argv[])
             mdce.pass(true); // 死代码消除
             Straighten st(mUnit);
             st.pass(); // 控制流优化 straighten
+            // InstructionScheduling is(mUnit); // 指令调度
+            // is.pass();
         }
         fprintf(stderr, "asm generated\n");
         mUnit->output();
