@@ -483,8 +483,6 @@ void LoopUnroll::Unroll(Loop *loop)
     PhiInstruction *head_phi = (PhiInstruction *)ind_var->du_chains[0][0];
     if (head_phi->getSrcs().size() > 2)
     {
-        std::cout << "Complicated sample, do nothing\n"
-                  << std::endl;
         return;
     }
     for (auto srcs : head_phi->getSrcs())

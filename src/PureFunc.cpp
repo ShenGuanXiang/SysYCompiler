@@ -596,4 +596,5 @@ bool PureFunc::checkform(Function* f) {
 bool PureFunc::check(Function* f) {
     auto entry = f->getEntry();
     
+    return true;
 }
