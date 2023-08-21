@@ -258,7 +258,7 @@ void ComSubExprElim::pass1(BasicBlock *bb)
         }
     }
     if (torm.size())
-        fprintf(stderr, "[GVN]: %d\n", torm.size());
+        fprintf(stderr, "[GVN]: %zu\n", torm.size());
     for (auto i : torm)
     {
         bb->remove(i);

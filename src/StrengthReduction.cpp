@@ -12,8 +12,6 @@ const int N = 32;
 inline int clz(int x) { return __builtin_clz(x); }
 inline int ctz(int x) { return __builtin_ctz(x); }
 
-
-
 struct Multiplier
 {
     long long m;
@@ -36,16 +34,15 @@ union VAL
     float float_val;
 };
 
-bool hasTwoOnes(int num, int &x ,int &y) {
-
+bool hasTwoOnes(int num, int &x, int &y)
+{
     x = ctz(num);
     num = num - (1 << x);
     y = ctz(num);
-    if(num == (1<<y))
+    if (num == (1 << y))
         return 1;
     return 0;
 }
-
 
 void StrengthReduction::pass()
 {
@@ -379,10 +376,10 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                     {
                         // 2^s - 1
                         s = ctz(m + 1);
-                        if(m + 1 == (int(1) << s))
+                        if (m + 1 == (int(1) << s))
                         {
-                            
-                            // r2 = r1*31                            
+
+                            // r2 = r1*31
                             // lsl r2, r1, #5
                             // sub r2, r2, r1
                             auto dst = new MachineOperand(*inst->getDef()[0]);
@@ -391,14 +388,13 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                             bb->insertBefore(inst, mov_lsl);
                             auto sub_inst = new BinaryMInstruction(bb, BinaryMInstruction::SUB, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(*inst->getUse()[1]));
                             bb->insertBefore(inst, sub_inst);
-                            
-                               
+
                             bb->removeInst(inst);
-                            freeInsts.insert(inst); 
+                            freeInsts.insert(inst);
                         }
-                        else if(m + 1 == -(int(1) << s))
+                        else if (m + 1 == -(int(1) << s))
                         {
-                            // r2 = r1 * -33                     
+                            // r2 = r1 * -33
                             // lsl r2, r1, #5
                             // add r2, r2, r1
                             // neg r2, r2
@@ -409,23 +405,21 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                             bb->insertBefore(inst, mov_lsl);
                             auto add_inst = new BinaryMInstruction(bb, BinaryMInstruction::ADD, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(*inst->getUse()[1]));
                             bb->insertBefore(inst, add_inst);
-        
+
                             auto negInst = new BinaryMInstruction(bb, BinaryMInstruction::RSB, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(MachineOperand::IMM, 0));
                             bb->insertBefore(inst, negInst);
 
                             bb->removeInst(inst);
-                            freeInsts.insert(inst);   
-
-
+                            freeInsts.insert(inst);
                         }
 
                         else
                         {
                             s = ctz(m - 1);
-                            if(m - 1 == (int(1) << s))
+                            if (m - 1 == (int(1) << s))
                             {
 
-                                // r2 = r1*33                            
+                                // r2 = r1*33
                                 // lsl r2, r1, #5
                                 // add r2, r2, r1
 
@@ -435,14 +429,13 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                                 bb->insertBefore(inst, mov_lsl);
                                 auto add_inst = new BinaryMInstruction(bb, BinaryMInstruction::ADD, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(*inst->getUse()[1]));
                                 bb->insertBefore(inst, add_inst);
-           
+
                                 bb->removeInst(inst);
-                                freeInsts.insert(inst);   
-                     
+                                freeInsts.insert(inst);
                             }
                             else if (m - 1 == -(int(1) << s))
                             {
-                                // r2 = r1 * -31                           
+                                // r2 = r1 * -31
                                 // lsl r2, r1, #5
                                 // sub r2, r2, r1
                                 // neg r2, r2
@@ -456,10 +449,9 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
 
                                 auto negInst = new BinaryMInstruction(bb, BinaryMInstruction::RSB, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(MachineOperand::IMM, 0));
                                 bb->insertBefore(inst, negInst);
-                            
-                                bb->removeInst(inst);
-                                freeInsts.insert(inst); 
 
+                                bb->removeInst(inst);
+                                freeInsts.insert(inst);
                             }
                             else
                             {
@@ -467,8 +459,8 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
 
                                 // m = 2 ^ s1 + 2 ^ s2
                                 // a = use1
-                                int s1,s2;
-                                if(hasTwoOnes(m, s1, s2))
+                                int s1, s2;
+                                if (hasTwoOnes(m, s1, s2))
                                 {
                                     auto dst = new MachineOperand(*inst->getDef()[0]);
                                     auto mov_lsl = new MovMInstruction(bb, MovMInstruction::MOVLSL, dst, new MachineOperand(*inst->getUse()[1]), new MachineOperand(MachineOperand::IMM, s1));
@@ -477,13 +469,11 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                                     bb->insertBefore(inst, add_lsl);
 
                                     bb->removeInst(inst);
-                                    freeInsts.insert(inst); 
+                                    freeInsts.insert(inst);
                                 }
-
                             }
                         }
                     }
-
                 }
             }
             else if (op2val.count(*inst->getUse()[1]))
@@ -526,7 +516,7 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                     else
                     {
                         s = ctz(m + 1);
-                        if(m + 1 == (int(1) << s))
+                        if (m + 1 == (int(1) << s))
                         {
                             auto dst = new MachineOperand(*inst->getDef()[0]);
 
@@ -534,12 +524,11 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                             bb->insertBefore(inst, mov_lsl);
                             auto sub_inst = new BinaryMInstruction(bb, BinaryMInstruction::SUB, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(*inst->getUse()[0]));
                             bb->insertBefore(inst, sub_inst);
-                            
-                               
+
                             bb->removeInst(inst);
-                            freeInsts.insert(inst); 
+                            freeInsts.insert(inst);
                         }
-                        else if(m + 1 == -(int(1) << s))
+                        else if (m + 1 == -(int(1) << s))
                         {
 
                             auto dst = new MachineOperand(*inst->getDef()[0]);
@@ -548,18 +537,18 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                             bb->insertBefore(inst, mov_lsl);
                             auto add_inst = new BinaryMInstruction(bb, BinaryMInstruction::ADD, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(*inst->getUse()[0]));
                             bb->insertBefore(inst, add_inst);
-        
+
                             auto negInst = new BinaryMInstruction(bb, BinaryMInstruction::RSB, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(MachineOperand::IMM, 0));
                             bb->insertBefore(inst, negInst);
 
                             bb->removeInst(inst);
-                            freeInsts.insert(inst);   
+                            freeInsts.insert(inst);
                         }
 
                         else
                         {
                             s = ctz(m - 1);
-                            if(m - 1 == (int(1) << s))
+                            if (m - 1 == (int(1) << s))
                             {
                                 auto dst = new MachineOperand(*inst->getDef()[0]);
 
@@ -567,10 +556,9 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                                 bb->insertBefore(inst, mov_lsl);
                                 auto add_inst = new BinaryMInstruction(bb, BinaryMInstruction::ADD, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(*inst->getUse()[0]));
                                 bb->insertBefore(inst, add_inst);
-           
-                                bb->removeInst(inst);
-                                freeInsts.insert(inst);   
 
+                                bb->removeInst(inst);
+                                freeInsts.insert(inst);
                             }
                             else if (m - 1 == -(int(1) << s))
                             {
@@ -583,10 +571,9 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
 
                                 auto negInst = new BinaryMInstruction(bb, BinaryMInstruction::RSB, new MachineOperand(*dst), new MachineOperand(*dst), new MachineOperand(MachineOperand::IMM, 0));
                                 bb->insertBefore(inst, negInst);
-                            
-                                bb->removeInst(inst);
-                                freeInsts.insert(inst); 
 
+                                bb->removeInst(inst);
+                                freeInsts.insert(inst);
                             }
                             else
                             {
@@ -594,8 +581,8 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
 
                                 // m = 2 ^ s1 + 2 ^ s2
                                 // a = use1
-                                int s1,s2;
-                                if(hasTwoOnes(m, s1, s2))
+                                int s1, s2;
+                                if (hasTwoOnes(m, s1, s2))
                                 {
                                     auto dst = new MachineOperand(*inst->getDef()[0]);
                                     auto mov_lsl = new MovMInstruction(bb, MovMInstruction::MOVLSL, dst, new MachineOperand(*inst->getUse()[0]), new MachineOperand(MachineOperand::IMM, s1));
@@ -604,10 +591,9 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                                     bb->insertBefore(inst, add_lsl);
 
                                     bb->removeInst(inst);
-                                    freeInsts.insert(inst); 
-                                    // printf("in2\n");
+                                    freeInsts.insert(inst);
+                                    fprintf(stderr, "in2\n");
                                 }
-
                             }
                         }
                     }
@@ -629,16 +615,6 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                 freeInsts.insert(inst);
             }
 
-
-
-
-
-
-
-
-
-
-
             // 取模会翻译为div、mul、sub
             bool isMod = false;
             MachineInstruction *nxt = bb->getNext(inst), *nxt_nxt = nullptr;
@@ -654,20 +630,6 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
             {
                 ; // TODO：mod2and
             }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
             else if (op2val.count(*inst->getUse()[1]))
             {

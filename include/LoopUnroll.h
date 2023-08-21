@@ -7,7 +7,6 @@
 #include <stack>
 #include "SimplifyCFG.h"
 
-
 struct LoopInfo
 {
     Instruction *cmp, *phi;
@@ -21,17 +20,17 @@ class LoopUnroll
 {
 private:
     Unit *unit;
-    const int MAXUNROLLNUM=100000;
-    const int UNROLLNUM=4;
+    const int MAXUNROLLNUM = 400;
+    const int UNROLLNUM = 4;
     std::set<Loop *> Loops;
 
 public:
-    LoopUnroll(Unit *u) : unit(u) {};
+    LoopUnroll(Unit *u) : unit(u){};
     void pass();
-    Loop * FindCandidateLoop();
+    Loop *FindCandidateLoop();
     void Unroll(Loop *);
-    void specialCopyInstructions(BasicBlock* bb,int num,Operand* endOp,Operand* strideOp,bool ifall);
-    void normalCopyInstructions(BasicBlock* condbb,BasicBlock* bodybb,Operand* beginOp,Operand* endOp,Operand* strideOp);
+    void specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp, Operand *strideOp, bool ifall);
+    void normalCopyInstructions(BasicBlock *condbb, BasicBlock *bodybb, Operand *beginOp, Operand *endOp, Operand *strideOp);
 };
 
 #endif

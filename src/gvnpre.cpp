@@ -115,6 +115,7 @@ Exprset GVNPRE_FUNC::phi_trans(Exprset set, BasicBlock *from, BasicBlock *to)
     const std::vector<Expr> &toplist = set.topological_sort();
     Exprset newset;
     // translate each expression in order
+    fprintf(stderr, "pre-compute\n");
 
     std::unordered_map<ValueNr, ValueNr> &cur_cache = trans_cache[{from->getNo(), to->getNo()}];
     for (size_t i = 0; i < toplist.size(); i++)
@@ -175,6 +176,7 @@ Expr GVNPRE_FUNC::phi_trans(Expr expr, BasicBlock *from, BasicBlock *to)
 {
     std::unordered_map<ValueNr, ValueNr> &cur_cache = trans_cache[{from->getNo(), to->getNo()}];
     // add tag to further speedup
+    fprintf(stderr, "%d-%d", from->getNo(), to->getNo());
     if (cur_cache.empty())
         phi_trans(antic_in[to], from, to);
 
@@ -816,16 +818,16 @@ void GVNPRE_FUNC::pass()
     buildDomTree(func);
     buildSets(func);
     buildAntic(func);
-    for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
-    {
-        BasicBlock *bb = *it_bb;
-        logf("bb%d:\n", bb->getNo());
-        logf("avail_out:\n");
-        printset(avail_out[bb]);
-        logf("antic_in:\n");
-        printset(antic_in[bb]);
-        logf("\n");
-    }
+    // for (auto it_bb = func->begin(); it_bb != func->end(); it_bb++)
+    // {
+    //     BasicBlock *bb = *it_bb;
+    //     logf("bb%d:\n", bb->getNo());
+    //     logf("avail_out:\n");
+    //     printset(avail_out[bb]);
+    //     logf("antic_in:\n");
+    //     printset(antic_in[bb]);
+    //     logf("\n");
+    // }
     logf("perform insertion\n");
 
     insert(func);
@@ -919,5 +921,6 @@ void GVNPRE::pass()
         // causing some function use local value number of other functions
     }
     SimplifyCFG scfg(unit);
+
     scfg.pass();
 }
