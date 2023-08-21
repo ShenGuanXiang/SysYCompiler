@@ -26,7 +26,6 @@
 #include "LoopUnroll.h"
 #include "InstructionScheduling.h"
 
-
 Ast ast;
 Unit *unit = new Unit();
 MachineUnit *mUnit = new MachineUnit();
@@ -131,8 +130,8 @@ int main(int argc, char *argv[])
             gvnpre.pass(); // 部分冗余消除&循环不变外提
             GlobalCodeMotion gcm(unit);
             gcm.pass(); // 全局代码移动
-            // LoopUnroll lur(unit);
-            // lur.pass(); // 循环展开
+            LoopUnroll lur(unit);
+            lur.pass(); // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
             LoopSimplify ls(unit);
@@ -144,7 +143,6 @@ int main(int argc, char *argv[])
             unit->output();
             fprintf(stderr, "opt ir output ok\n");
         }
-        // 多线程
         ElimPHI ep(unit);
         ep.pass();
     }
@@ -164,6 +162,9 @@ int main(int argc, char *argv[])
 
             PeepholeOptimization ph(mUnit);
             ph.pass(); // 窥孔优化
+
+            InstructionScheduling is(mUnit); // 指令调度
+            is.pass();
 
             MachineDeadCodeElim mdce(mUnit);
             mdce.pass(true); // 死代码消除
@@ -189,8 +190,6 @@ int main(int argc, char *argv[])
             mdce.pass(true); // 死代码消除
             Straighten st(mUnit);
             st.pass(); // 控制流优化 straighten
-            // InstructionScheduling is(mUnit); // 指令调度
-            // is.pass();
         }
         fprintf(stderr, "asm generated\n");
         mUnit->output();
