@@ -144,7 +144,6 @@ int main(int argc, char *argv[])
             unit->output();
             fprintf(stderr, "opt ir output ok\n");
         }
-        // 多线程
         ElimPHI ep(unit);
         ep.pass();
     }
