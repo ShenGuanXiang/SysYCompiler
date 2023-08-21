@@ -15,6 +15,7 @@ public:
     PureFunc(Unit *unit) : unit(unit){};
     void pass();
     bool checkform(Function* f);
+    bool check(Function* f);
 };
 
 #endif

@@ -468,6 +468,7 @@ void PureFunc::pass()
     unknownbb2dirty.clear();
     for (auto func : unit->getFuncList())
     {
+        assert(check(func));
         assert(checkform(func));
         analyzeFunc(func);
     }
@@ -589,4 +590,10 @@ bool PureFunc::checkform(Function* f) {
     newbb[1]->insertBack(new CmpInstruction(CmpInstruction::E, newcmp2, newmod, new Operand(new ConstantSymbolEntry(TypeSystem::intType, 0))));
     newbb[1]->insertBack(new CondBrInstruction(newbb[4], newbb[3], newcmp2));
     return true;
+}
+
+
+bool PureFunc::check(Function* f) {
+    auto entry = f->getEntry();
+    
 }
