@@ -40,6 +40,7 @@ public:
     void remove(Instruction *);
     bool empty() const { return head->getNext() == head; }
     void output() const;
+    int SuccSize() const { return succ.size(); };
     bool succEmpty() const { return succ.empty(); };
     bool predEmpty() const { return pred.empty(); };
     void addSucc(BasicBlock *);

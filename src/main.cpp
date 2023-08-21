@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     }
     if (optimize)
     {
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i < 4; i++)
         {
             Mem2Reg m2r(unit);
             m2r.pass();
@@ -129,8 +129,8 @@ int main(int argc, char *argv[])
             gvnpre.pass(); // 部分冗余消除&循环不变外提
             GlobalCodeMotion gcm(unit);
             gcm.pass(); // 全局代码移动
-            LoopUnroll lur(unit);
-            lur.pass(); // 循环展开
+            // LoopUnroll lur(unit);
+            // lur.pass(); // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
             LoopSimplify ls(unit);

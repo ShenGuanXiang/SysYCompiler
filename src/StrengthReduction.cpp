@@ -605,7 +605,7 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
 
                                     bb->removeInst(inst);
                                     freeInsts.insert(inst); 
-                                    printf("in2\n");
+                                    // printf("in2\n");
                                 }
 
                             }

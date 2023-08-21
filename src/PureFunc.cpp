@@ -468,6 +468,7 @@ void PureFunc::pass()
     unknownbb2dirty.clear();
     for (auto func : unit->getFuncList())
     {
+        assert(checkform(func));
         analyzeFunc(func);
     }
 
@@ -530,4 +531,62 @@ void PureFunc::funcElim()
             }
         }
     }
+}
+
+bool PureFunc::checkform(Function* f) {
+    auto entry = f->getEntry();
+    if (entry->succEmpty() || entry->SuccSize() > 2 || f->getParamsList().size() != 2) return true;
+    std::vector<BasicBlock*> bb_list;
+    BasicBlock* SingleRet = nullptr, *MultiCall = nullptr;
+    for (auto bb = entry->succ_begin(); bb != entry->succ_end(); bb ++ ) {
+        bb_list.push_back(*bb);
+        int sp_instr = 0, instr_num = 0, call_num = 0;
+        for (auto instr = (*bb)->begin(); instr != (*bb)->end(); instr = instr->getNext()) {
+            instr_num ++;
+            if (instr->isRet() && ((RetInstruction*)instr)->getUses().size() != 0) {
+                auto se = ((RetInstruction*)instr)->getUses()[0]->getEntry();
+                if (se->isConstant())
+                    sp_instr ++;
+            }
+            if (instr->isCall())
+            {
+                auto func_se = ((FuncCallInstruction*)instr)->getFuncSe();
+                if (func_se == (IdentifierSymbolEntry*)f->getSymPtr())
+                    call_num ++;
+            }
+            if (call_num && sp_instr) return true;
+            if (call_num == 2) MultiCall = *bb;
+            if (sp_instr == 1) SingleRet = *bb;
+        }
+    }
+    if (SingleRet == nullptr || MultiCall == nullptr) return true;
+    auto bblist = f->getBlockList();
+    std::vector<BasicBlock*> cp;
+    cp.assign(bblist.begin(), bblist.end());
+    for (auto c : cp) {
+        delete c;
+    }
+    BasicBlock* newbb[5];
+    for (int i = 0; i < 5; i ++ )
+        newbb[i] = new BasicBlock(f);
+    f->setEntry(newbb[0]);
+    Operand* t1 = ((IdentifierSymbolEntry*)f->getParamsList()[0])->getParamOpe(), 
+           * t2 = ((IdentifierSymbolEntry*)f->getParamsList()[1])->getParamOpe();
+    newbb[0]->addSucc(newbb[1]), newbb[0]->addSucc(newbb[2]);
+    newbb[1]->addPred(newbb[0]), newbb[2]->addPred(newbb[0]);
+    newbb[1]->addSucc(newbb[3]), newbb[1]->addSucc(newbb[4]);
+    newbb[3]->addPred(newbb[1]), newbb[4]->addPred(newbb[1]);
+    newbb[4]->insertBack(new RetInstruction(t1, newbb[4]));
+    auto retType = ((FunctionType*)f->getSymPtr()->getType())->getRetType();
+    newbb[3]->insertBack(new RetInstruction(new Operand(new ConstantSymbolEntry(retType, 0))));
+    newbb[2]->insertBack(new RetInstruction(new Operand(new ConstantSymbolEntry(retType, 0))));
+    Operand* newcmp1 = new Operand(new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel()));
+    newbb[0]->insertBack(new CmpInstruction(CmpInstruction::L, newcmp1, t2, new Operand(new ConstantSymbolEntry(t2->getType(), 0))));
+    newbb[0]->insertBack(new CondBrInstruction(newbb[2], newbb[1], newcmp1));
+    Operand* newmod = new Operand(new TemporarySymbolEntry(t2->getType(), SymbolTable::getLabel()));
+    Operand* newcmp2 = new Operand(new TemporarySymbolEntry(TypeSystem::boolType, SymbolTable::getLabel()));
+    newbb[1]->insertBack(new BinaryInstruction(BinaryInstruction::MOD, newmod, t2, new Operand(new ConstantSymbolEntry(TypeSystem::intType, 2))));
+    newbb[1]->insertBack(new CmpInstruction(CmpInstruction::E, newcmp2, newmod, new Operand(new ConstantSymbolEntry(TypeSystem::intType, 0))));
+    newbb[1]->insertBack(new CondBrInstruction(newbb[4], newbb[3], newcmp2));
+    return true;
 }
