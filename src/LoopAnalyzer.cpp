@@ -111,7 +111,9 @@ void LoopAnalyzer::computeInductionVars(Loop *loop)
         }
         if (!du_chains.empty())
         {
-            loop->inductionVars.insert(new InductionVar(du_chains)); // TODO：路径中的phi（除了起点）有不确定的来源，那么归纳变量是不可计算的
+            auto ind_var = new InductionVar(du_chains);
+            loop->inductionVars.insert(ind_var); // TODO：路径中的phi（除了起点）有不确定的来源，那么归纳变量是不可计算的
+            // ind_var->printInductionVar();
         }
     }
 }

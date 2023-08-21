@@ -452,7 +452,8 @@ std::vector<LoopInfo> findLoopInfo(Function *func)
                 break;
             }
         }
-        assert(ind_var != nullptr);
+        if (ind_var == nullptr)
+            continue;
 
         auto du_chain = ind_var->du_chains[0];
         auto range_second = loop.cmp->getUses()[0] == du_chain[1]->getDef() ? loop.cmp->getUses()[1] : loop.cmp->getUses()[0];

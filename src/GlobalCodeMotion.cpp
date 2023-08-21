@@ -365,6 +365,7 @@ void Helper::compute_info(Function *func)
         q.pop();
         for (auto child : dom_tree[bb])
         {
+            assert(dom_depth.count(bb));
             dom_depth[child] = dom_depth[bb] + 1;
             q.push(child);
         }

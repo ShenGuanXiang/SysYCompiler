@@ -1,6 +1,15 @@
 #include "AutoInline.h"
 #include <unordered_map>
 
+static const int maxInlineIter = 1, maxRecurCall = 10;
+
+void AutoInliner::ReplSingleUseWith(Instruction *inst, int i, Operand *new_op)
+{
+    inst->getUses()[i]->removeUse(inst);
+    inst->getUses()[i] = new_op;
+    new_op->addUse(inst);
+}
+
 void AutoInliner::Print_Funcinline(std::queue<Function *> &func_inline)
 {
     fprintf(stderr, "Now Func_inline queue Has ");
@@ -73,7 +82,7 @@ bool AutoInliner::ShouldBeinlined(Function *f)
 {
     return !is_recur[f];
 }
-void AutoInliner::pass()
+void AutoInliner::pass(bool recur_inline)
 {
     SimplifyCFG sc(unit);
     sc.pass();
@@ -111,13 +120,9 @@ void AutoInliner::pass()
             need_pass.push_back(itr);
             auto Func = itr->getParent()->getParent();
             f_vec.insert(Func);
-            if (Func->getCallees().count(f))
-            {
-                Func->getCallees().erase(f);
-                degree[Func]--;
-                if (!degree[Func])
-                    func_inline.push(Func);
-            }
+            degree[Func]--;
+            if (!degree[Func])
+                func_inline.push(Func);
         }
         for (auto instr : need_pass)
             pass(instr);
@@ -136,14 +141,22 @@ void AutoInliner::pass()
         entry->insertFront(instr);
     }
 
+    if (recur_inline)
+    {
+        for (auto func : unit->getFuncList())
+            RecurInline(func);
+    }
+
+    sc.pass();
+
     DeadCodeElim dce(unit);
     dce.deleteUselessFunc();
 }
 
-void AutoInliner::pass(Instruction *instr)
+void AutoInliner::pass(Instruction *instr, Function *deepcopy_func)
 {
     auto func_se = ((FuncCallInstruction *)instr)->getFuncSe();
-    auto func = func_se->getFunction(), Func = instr->getParent()->getParent();
+    auto func = deepcopy_func == nullptr ? func_se->getFunction() : deepcopy_func, Func = instr->getParent()->getParent();
     if (func_se->isLibFunc() || func == nullptr)
         return;
     auto instr_bb = instr->getParent(), exit_bb = new BasicBlock(Func);
@@ -241,7 +254,6 @@ void AutoInliner::pass(Instruction *instr)
                 case Instruction::PHI:
                 {
                     phis.insert({new_in, in1});
-                    break;
                 }
                 case Instruction::UNCOND:
                 case Instruction::COND:
@@ -265,6 +277,7 @@ void AutoInliner::pass(Instruction *instr)
                         new_in->setDef(dst);
                     }
                     auto uses = in1->getUses();
+                    int use_idx = 0;
                     for (auto use : uses)
                     {
                         Operand *src;
@@ -275,7 +288,8 @@ void AutoInliner::pass(Instruction *instr)
                             src = copyOperand(use);
                             ope2ope[use] = src;
                         }
-                        new_in->replaceUsesWith(use, src);
+                        ReplSingleUseWith(new_in, use_idx, ope2ope[use]);
+                        use_idx++;
                     }
                 }
                 }
@@ -317,60 +331,13 @@ void AutoInliner::pass(Instruction *instr)
     {
         auto oldPhi = (PhiInstruction *)(it.second);
         auto newPhi = (PhiInstruction *)(it.first);
-        for (auto itt : oldPhi->getSrcs())
+
+        auto old_srcs = oldPhi->getSrcs();
+        for (auto [old_bb, old_op] : old_srcs)
         {
-            auto edge = itt.first;
-            newPhi->removeEdge(edge);
+            newPhi->getSrcs().erase(old_bb);
+            newPhi->getSrcs()[block2block[old_bb]] = ope2ope[old_op];
         }
-        for (auto itt : oldPhi->getSrcs())
-        {
-            auto use = itt.second;
-            Operand *src;
-            if (use->getEntry()->isVariable())
-            {
-                if (((IdentifierSymbolEntry *)use->getEntry())->isParam())
-                {
-                    int no = ((IdentifierSymbolEntry *)use->getEntry())->getParamNo();
-                    src = params[no];
-                }
-                else if (((IdentifierSymbolEntry *)use->getEntry())->isGlobal())
-                {
-                    src = use;
-                }
-                else
-                {
-                    if (ope2ope.find(use) != ope2ope.end())
-                        src = ope2ope[use];
-                    else
-                    {
-                        src = copyOperand(use);
-                        ope2ope[use] = src;
-                    }
-                }
-            }
-            else
-            {
-                if (ope2ope.find(use) != ope2ope.end())
-                    src = ope2ope[use];
-                else
-                {
-                    src = copyOperand(use);
-                    ope2ope[use] = src;
-                }
-            }
-            // newP
-            newPhi->addEdge(block2block[itt.first], src);
-        }
-        auto def = oldPhi->getDef();
-        Operand *dst;
-        if (ope2ope.count(def))
-            dst = ope2ope[def];
-        else
-        {
-            dst = copyOperand(def);
-            ope2ope[def] = dst;
-        }
-        newPhi->setDef(dst);
     }
 
     for (auto block : retBlocks)
@@ -394,6 +361,157 @@ void AutoInliner::pass(Instruction *instr)
         exit_bb->insertFront(newIn);
     }
     delete instr;
+}
+
+void AutoInliner::RecurInline(Function *func)
+{
+    for (int iter_time = 0; iter_time < maxInlineIter; iter_time++)
+    {
+        std::vector<Instruction *> need_pass;
+        auto copy_func = deepCopy(func);
+        for (auto bb : func->getBlockList())
+        {
+            for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
+            {
+                if (inst->isCall() && dynamic_cast<FuncCallInstruction *>(inst)->getFuncSe()->getFunction() == func)
+                {
+                    need_pass.push_back(inst);
+                }
+            }
+        }
+        if (need_pass.size() < maxRecurCall)
+        {
+            for (auto inst : need_pass)
+            {
+                pass(inst, copy_func);
+            }
+        }
+        delete copy_func;
+    }
+}
+
+Function *AutoInliner::deepCopy(Function *old_func)
+{
+    std::map<Operand *, Operand *> ope2ope;
+    for (auto fparam : old_func->getParamsOp())
+    {
+        ope2ope[fparam] = fparam;
+    }
+    for (auto id_se : unit->getDeclList())
+    {
+        if (id_se->getType()->isARRAY() || id_se->getType()->isInt() || id_se->getType()->isFloat())
+        {
+            ope2ope[id_se->getAddr()] = id_se->getAddr();
+        }
+    }
+
+    std::map<BasicBlock *, BasicBlock *> bb2bb;
+    std::map<PhiInstruction *, PhiInstruction *> phi2oldphi;
+    Function *new_func = new Function(old_func);
+    for (auto old_bb : old_func->getBlockList())
+    {
+        auto new_bb = new BasicBlock(new_func);
+        bb2bb[old_bb] = new_bb;
+        for (auto old_inst = old_bb->begin(); old_inst != old_bb->end(); old_inst = old_inst->getNext())
+        {
+            auto new_inst = old_inst->copy();
+            new_inst->setParent(new_bb);
+            new_bb->insertBack(new_inst);
+
+            if (!new_inst->hasNoDef())
+            {
+                auto def = new_inst->getDef();
+                Operand *new_def;
+                if (ope2ope.count(def))
+                {
+                    new_def = ope2ope[def];
+                }
+                else
+                {
+                    new_def = copyOperand(def);
+                    ope2ope[def] = new_def;
+                }
+                new_inst->setDef(new_def);
+            }
+            auto uses = new_inst->getUses();
+            int use_idx = 0;
+            for (auto use : uses)
+            {
+                Operand *new_use;
+                if (ope2ope.count(use))
+                {
+                    new_use = ope2ope[use];
+                }
+                else
+                {
+                    new_use = copyOperand(use);
+                    ope2ope[use] = new_use;
+                }
+                ReplSingleUseWith(new_inst, use_idx, ope2ope[use]);
+                use_idx++;
+            }
+
+            if (new_inst->isPHI())
+            {
+                phi2oldphi[dynamic_cast<PhiInstruction *>(new_inst)] = dynamic_cast<PhiInstruction *>(old_inst);
+            }
+        }
+    }
+
+    new_func->setEntry(bb2bb[old_func->getEntry()]);
+    for (auto bb : old_func->getBlockList())
+    {
+        auto newBlock = bb2bb[bb];
+        for (auto it = bb->pred_begin(); it != bb->pred_end(); it++)
+        {
+            assert(bb2bb.count(*it));
+            newBlock->addPred(bb2bb[*it]);
+        }
+        for (auto it = bb->succ_begin(); it != bb->succ_end(); it++)
+        {
+            assert(bb2bb.count(*it));
+            newBlock->addSucc(bb2bb[*it]);
+        }
+    }
+
+    for (auto bb : new_func->getBlockList())
+    {
+        for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
+        {
+            switch (inst->getInstType())
+            {
+            case Instruction::PHI:
+            {
+                auto new_phi = dynamic_cast<PhiInstruction *>(inst);
+                assert(phi2oldphi.count(new_phi));
+                auto old_srcs = phi2oldphi[new_phi]->getSrcs();
+                for (auto [old_bb, old_op] : old_srcs)
+                {
+                    new_phi->getSrcs().erase(old_bb);
+                    new_phi->getSrcs()[bb2bb[old_bb]] = ope2ope[old_op];
+                }
+                break;
+            }
+            case Instruction::COND:
+            {
+                auto cond = dynamic_cast<CondBrInstruction *>(inst);
+                cond->setTrueBranch(bb2bb[cond->getTrueBranch()]);
+                cond->setFalseBranch(bb2bb[cond->getFalseBranch()]);
+                break;
+            }
+            case Instruction::UNCOND:
+            {
+                auto uncond = dynamic_cast<UncondBrInstruction *>(inst);
+                uncond->setBranch(bb2bb[uncond->getBranch()]);
+                break;
+            }
+            default:
+                break;
+            }
+        }
+    }
+
+    return new_func;
 }
 
 void AutoInliner::RecurDetect()

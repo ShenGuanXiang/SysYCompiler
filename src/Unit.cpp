@@ -12,7 +12,8 @@ void Unit::insertDecl(IdentifierSymbolEntry *se)
 
 void Unit::removeFunc(Function *func)
 {
-    func_list.erase(std::find(func_list.begin(), func_list.end(), func));
+    if (std::find(func_list.begin(), func_list.end(), func) != func_list.end())
+        func_list.erase(std::find(func_list.begin(), func_list.end(), func));
     func->setParent(nullptr);
 }
 
@@ -44,8 +45,7 @@ void Unit::genMachineCode(MachineUnit *munit)
             if (!decl->getType()->isConst() || decl->getType()->isARRAY())
                 munit->insertGlobalVar(decl);
         }
-        else if (decl->isLibFunc() && (decl->getName() == "__mulmod" 
-        || decl->getName() == "__create_threads" || decl->getName() == "__join_threads" || decl->getName() == "__bind_core" || decl->getName() == "__lock" || decl->getName() == "__unlock" || decl->getName() == "__barrier"))
+        else if (decl->isLibFunc() && (decl->getName() == "__mulmod" || decl->getName() == "__create_threads" || decl->getName() == "__join_threads" || decl->getName() == "__bind_core" || decl->getName() == "__lock" || decl->getName() == "__unlock" || decl->getName() == "__barrier"))
         {
             munit->insertGlobalVar(decl);
         }
