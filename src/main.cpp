@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     }
     if (optimize)
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 1; i++)
         {
             Mem2Reg m2r(unit);
             m2r.pass();
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
             GlobalCodeMotion gcm(unit);
             gcm.pass(); // 全局代码移动
             LoopUnroll lur(unit);
-            // lur.pass(); // 循环展开
+            lur.pass(); // 循环展开
             DeadCodeElim dce(unit);
             dce.pass(); // 死代码删除
             LoopSimplify ls(unit);

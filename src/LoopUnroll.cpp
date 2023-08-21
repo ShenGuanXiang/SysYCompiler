@@ -147,32 +147,28 @@ Loop * LoopUnroll::FindCandidateLoop()
 void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp, Operand *strideOp, bool ifall)
 {
     /*
-     *                     --------
-     *                     ↓      ↑
-     * Special:  pred -> cond -> body  Exitbb      ==>     pred -> newbody -> Exitbb
-     *                     ↓             ↑
-     *                     ---------------
+     *                            --------
+     *                            ↓      ↑
+     * Special:  pred -> cond -> body -> cond -> Exitbb      ==>     pred -> newbody -> Exitbb
+     *                     ↓                       ↑
+     *                     -------------------------
     */
     std::vector<Instruction *> preInstructionList;
     std::vector<Instruction *> nextInstructionList;
     std::vector<Instruction *> phis;
-    std::vector<Instruction *> copyPhis;
-    CmpInstruction *cmp;
+    CmpInstruction *cmp = (CmpInstruction*)bb->rbegin()->getPrev();
     std::vector<Operand *> finalOperands;
     std::map<Operand *, Operand *> begin_final_Map;
     // Find all phis and insert instrs in preInstructionList
+    assert(cmp->isCmp());
     for (auto instr = bb->begin(); instr != bb->end(); instr = instr->getNext())
     {
         if (instr->isPHI())
             phis.push_back(instr);
-        else if (instr->isCmp())
-        {
-            cmp = (CmpInstruction *)instr;
-            break;
-        }
+        if (instr->isCond() || instr->isUncond()) 
+            continue;
         preInstructionList.push_back(instr);
     }
-    copyPhis.assign(phis.begin(), phis.end());
 
     // Insert next_instr into nextInstructionList
     for (auto preIns : preInstructionList)
@@ -181,11 +177,11 @@ void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp
         if (!preIns->isStore())
         {
             Operand *newDef = copyOperand(preIns->getDef());
-            // newDef->setDef(preIns->getDef()->getDef());
+            newDef->setDef(preIns->getDef()->getDef());
             begin_final_Map[preIns->getDef()] = newDef;
             finalOperands.push_back(preIns->getDef());
             ins->setDef(newDef);
-            preIns->setDef(newDef);
+            preIns->setDef(newDef); // PROBLEM1
         }
         nextInstructionList.push_back(ins);
     }
@@ -195,7 +191,7 @@ void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp
         Instruction *preIns = preInstructionList[i];
         for (auto useOp : preIns->getUses())
             if (begin_final_Map.find(useOp) != begin_final_Map.end())
-                preIns->replaceUsesWith(useOp, begin_final_Map[useOp]);
+                preIns->replaceUsesWith(useOp, begin_final_Map[useOp]); // PROBLEM2
     }
 
     for (auto nextIns : nextInstructionList)
@@ -224,14 +220,13 @@ void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp
             {
                 Operand *newDef = copyOperand(preIns->getDef());
                 replaceMap[preIns->getDef()] = newDef;
-                if (count(copyPhis.begin(), copyPhis.end(), preIns))
+                if (preIns->isPHI())
                 {
                     PhiInstruction *phi = (PhiInstruction *)phis[calculatePhi];
-                    if (phi->getSrcs()[bb] != nullptr) {
+                    if (phi->getSrcs().count(bb)) {
                         nextInstructionList[i] = (Instruction *)(new BinaryInstruction(BinaryInstruction::ADD, newDef, phi->getSrcs()[bb], new Operand(new ConstantSymbolEntry(preIns->getDef()->getType(), 0)), nullptr));
                         notReplaceOp.push_back(newDef);
                         calculatePhi++;
-                        copyPhis.push_back(nextInstructionList[i]);
                     }
                 }
                 else
@@ -345,8 +340,10 @@ void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp
 
         CondBrInstruction *cond = (CondBrInstruction *)(cmp->getNext());
         UncondBrInstruction *newUnCond = new UncondBrInstruction(cond->getFalseBranch(), nullptr);
-        bb->remove(cmp);
-        bb->remove(cond);
+        delete cmp;
+        delete cond;
+        // bb->remove(cmp);
+        // bb->remove(cond);
         bb->insertBack(newUnCond);
         bb->removePred(bb);
         bb->removeSucc(bb);
