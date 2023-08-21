@@ -1,6 +1,7 @@
 .vscode
 build
 output
+test_unroll
 lexer.cpp
 parser.cpp
 parser.h

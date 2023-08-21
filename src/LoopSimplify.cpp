@@ -14,6 +14,7 @@ Operand *LoopSimplify::checkForm(BasicBlock *bb)
             break;
         }
     }
+
     if (!self_loop)
         return nullptr;
     // 2. 只有一个变量，定义在循环体内，在循环体外被使用，phi只有两个参数

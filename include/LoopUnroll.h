@@ -5,23 +5,31 @@
 #include "LoopAnalyzer.h"
 #include <queue>
 #include <stack>
+#include "SimplifyCFG.h"
+
+
+struct LoopInfo
+{
+    Instruction *cmp, *phi;
+    std::pair<Operand *, Operand *> indvar_range; // [first,second)
+    std::set<BasicBlock *> loop_blocks;
+    BasicBlock *loop_header;
+    BasicBlock *loop_exiting_block;
+};
 
 class LoopUnroll
 {
 private:
     Unit *unit;
-    int MAXUNROLLNUM=400;
-    int UNROLLNUM=4;
-    int unrolling_factor;
+    const int MAXUNROLLNUM=100000;
+    const int UNROLLNUM=4;
     std::set<Loop *> Loops;
 
 public:
-    LoopUnroll(Unit *u) : unit(u){};
+    LoopUnroll(Unit *u) : unit(u) {};
     void pass();
-    std::vector<Loop *> FindCandidateLoop();
+    Loop * FindCandidateLoop();
     void Unroll(Loop *);
-    Operand* getBeginOp(BasicBlock* bb,Operand* strideOp,std::stack<Instruction*>& Insstack);
-    bool isRegionConst(Operand* i, Operand* c);
     void specialCopyInstructions(BasicBlock* bb,int num,Operand* endOp,Operand* strideOp,bool ifall);
     void normalCopyInstructions(BasicBlock* condbb,BasicBlock* bodybb,Operand* beginOp,Operand* endOp,Operand* strideOp);
 };
