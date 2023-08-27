@@ -617,11 +617,11 @@ void PhiInstruction::removeEdge(BasicBlock *bb)
 {
     if (srcs.count(bb))
     {
+        if (std::count(use_list.begin(), use_list.end(), srcs[bb]) == 1)
+            srcs[bb]->removeUse(this);
         auto iter = std::find(use_list.begin(), use_list.end(), srcs[bb]);
         assert(iter != use_list.end());
         use_list.erase(iter);
-        if (std::count(use_list.begin(), use_list.end(), srcs[bb]) == 0)
-            srcs[bb]->removeUse(this);
         srcs.erase(bb);
     }
 }

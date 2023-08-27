@@ -14,13 +14,13 @@ static bool debug1 = 0;
 
 static std::set<MachineInstruction *> freeInsts; // def not use & coalesced mov insts
 
-bool RegisterAllocation::isRightType(MachineOperand *op)
+bool GraphColor::isRightType(MachineOperand *op)
 {
     return ((op->getValType()->isInt() && !is_float) || (op->getValType()->isFloat() && is_float));
 }
 
 // real reg -> 0 ~ nreg
-int RegisterAllocation::Reg2WebIdx(int Reg)
+int GraphColor::Reg2WebIdx(int Reg)
 {
     if (is_float)
     {
@@ -31,7 +31,7 @@ int RegisterAllocation::Reg2WebIdx(int Reg)
 }
 
 // 0 ~ nreg -> real reg
-int RegisterAllocation::WebIdx2Reg(int Idx)
+int GraphColor::WebIdx2Reg(int Idx)
 {
     if (is_float)
     {
@@ -40,12 +40,12 @@ int RegisterAllocation::WebIdx2Reg(int Idx)
     return Idx == 13 ? 14 : Idx;
 }
 
-bool RegisterAllocation::isInterestingReg(MachineOperand *op)
+bool GraphColor::isInterestingReg(MachineOperand *op)
 {
     return op->isReg() && isRightType(op) && Reg2WebIdx(op->getReg()) != -1;
 }
 
-bool RegisterAllocation::isImmWeb(Web *web)
+bool GraphColor::isImmWeb(Web *web)
 {
     if (web->defs.size() != 1 || web->uses.size() == 1)
         return false;
@@ -53,14 +53,14 @@ bool RegisterAllocation::isImmWeb(Web *web)
     return (minst->isMov() || minst->isLoad()) && minst->getUse().size() == 1 && minst->getUse()[0]->isImm() && minst->getUse()[0]->getValType()->isInt() && !func->getAdditionalArgsOffset().count(minst->getUse()[0]);
 }
 
-RegisterAllocation::RegisterAllocation(MachineUnit *unit)
+GraphColor::GraphColor(MachineUnit *unit)
 {
     this->unit = unit;
     nregs = 28;
     is_float = true;
 }
 
-void RegisterAllocation::pass()
+void GraphColor::pass()
 {
     for (auto &f : unit->getFuncs())
     {
@@ -142,7 +142,7 @@ void RegisterAllocation::pass()
     webs.clear();
 }
 
-void RegisterAllocation::makeDuChains()
+void GraphColor::makeDuChains()
 {
     bool change;
     do
@@ -203,7 +203,7 @@ void RegisterAllocation::makeDuChains()
                     {
                         if (du_chains.count(*inst_use))
                         {
-                            std::vector<RegisterAllocation::DU> v;
+                            std::vector<GraphColor::DU> v;
                             v.assign(du_chains[*inst_use].begin(), du_chains[*inst_use].end());
                             du_chains[*inst_use].clear();
                             for (auto affected_du_iter = v.begin(); affected_du_iter != v.end(); affected_du_iter++)
@@ -232,7 +232,7 @@ void RegisterAllocation::makeDuChains()
         do
         {
             change = false;
-            std::vector<RegisterAllocation::DU> v;
+            std::vector<GraphColor::DU> v;
             v.assign(du_chain.second.begin(), du_chain.second.end());
             du_chain.second.clear();
             for (size_t i = 0; i != v.size(); i++)
@@ -263,7 +263,7 @@ void RegisterAllocation::makeDuChains()
     }
 }
 
-void RegisterAllocation::makeWebs()
+void GraphColor::makeWebs()
 {
     makeDuChains();
     for (auto web : webs)
@@ -306,7 +306,7 @@ void RegisterAllocation::makeWebs()
 }
 
 // build the adjacency matrix representation of the interference graph
-void RegisterAllocation::buildAdjMatrix()
+void GraphColor::buildAdjMatrix()
 {
     func->AnalyzeLiveVariable();
 
@@ -382,7 +382,7 @@ void RegisterAllocation::buildAdjMatrix()
 }
 
 // build the adjacency list representation of the inteference graph
-void RegisterAllocation::buildAdjLists()
+void GraphColor::buildAdjLists()
 {
     adjList.clear();
     adjList.resize(adjMtx.size(), std::set<int>());
@@ -399,7 +399,7 @@ void RegisterAllocation::buildAdjLists()
     rmvList = adjList;
 }
 
-void RegisterAllocation::computeSpillCosts()
+void GraphColor::computeSpillCosts()
 {
     MLoopAnalyzer mla(func);
     mla.analyze();
@@ -469,7 +469,7 @@ void RegisterAllocation::computeSpillCosts()
     }
 }
 
-void RegisterAllocation::adjustIG(int i)
+void GraphColor::adjustIG(int i)
 {
     for (auto v : adjList[i])
     {
@@ -480,7 +480,7 @@ void RegisterAllocation::adjustIG(int i)
     adjList[i].clear();
 }
 
-void RegisterAllocation::pruneGraph()
+void GraphColor::pruneGraph()
 {
     pruneStack.clear();
     for (size_t i = nregs; i < adjList.size(); i++)
@@ -521,7 +521,7 @@ void RegisterAllocation::pruneGraph()
     }
 }
 
-bool RegisterAllocation::regCoalesce()
+bool GraphColor::regCoalesce()
 {
     bool flag = false;
     std::vector<MachineInstruction *> del_list;
@@ -605,7 +605,7 @@ bool RegisterAllocation::regCoalesce()
     return flag;
 }
 
-bool RegisterAllocation::assignRegs()
+bool GraphColor::assignRegs()
 {
     bool success;
     success = true;
@@ -630,7 +630,7 @@ bool RegisterAllocation::assignRegs()
     return success;
 }
 
-void RegisterAllocation::modifyCode()
+void GraphColor::modifyCode()
 {
     for (int i = nregs; i < (int)webs.size(); i++)
     {
@@ -672,7 +672,7 @@ void RegisterAllocation::modifyCode()
     }
 }
 
-void RegisterAllocation::genSpillCode()
+void GraphColor::genSpillCode()
 {
     for (auto &web : webs)
     {
@@ -751,7 +751,7 @@ void RegisterAllocation::genSpillCode()
     }
 }
 
-int RegisterAllocation::minColor(int u)
+int GraphColor::minColor(int u)
 {
     std::vector<bool> bitv(nregs, 0);
     for (auto &v : rmvList[u])

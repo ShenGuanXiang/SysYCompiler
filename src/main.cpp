@@ -99,14 +99,8 @@ int main(int argc, char *argv[])
     }
     // ast.typeCheck();
     ast.genCode(unit);
-    fprintf(stderr, "ir generated\n");
     // optimize = false;
     // yyout = stderr;
-    if (dump_ir && !optimize)
-    {
-        unit->output();
-        fprintf(stderr, "ir output ok\n");
-    }
     if (optimize)
     {
         for (int i = 0; i < 4; i++)
@@ -118,7 +112,7 @@ int main(int argc, char *argv[])
             PureFunc pf(unit);
             pf.pass(); // 纯函数清理
             AutoInliner autoinliner(unit);
-            autoinliner.pass(false); // 函数自动内联
+            autoinliner.pass(i == 1); // 函数自动内联
             // TODO:其它中间代码优化
             AlgSimplify alsim(unit);
             alsim.pass(); // 代数化简
@@ -146,6 +140,17 @@ int main(int argc, char *argv[])
         ElimPHI ep(unit);
         ep.pass();
     }
+    else
+    {
+        DeadCodeElim dce(unit);
+        dce.pass();
+        fprintf(stderr, "ir generated\n");
+        if (dump_ir)
+        {
+            unit->output();
+            fprintf(stderr, "ir output ok\n");
+        }
+    }
     if (dump_asm)
     {
         unit->genMachineCode(mUnit);
@@ -171,8 +176,8 @@ int main(int argc, char *argv[])
         }
         if (optimize)
         {
-            RegisterAllocation registerAllocation(mUnit);
-            registerAllocation.pass();
+            GraphColor graphColor(mUnit);
+            graphColor.pass();
         }
         else
         {

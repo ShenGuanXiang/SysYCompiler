@@ -423,5 +423,5 @@ ba_inst->getParent()->getParent()->getParent()->insertDecl(_barrier);
 
 https://oi-wiki.org/lang/optimizations/
 
-https://gitlab.eduxiji.net/202318123201313/compiler2023 性能样例
+https://gitlab.eduxiji.net/nscscc/compiler2023/ 性能样例
 

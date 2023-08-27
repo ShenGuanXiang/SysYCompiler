@@ -105,11 +105,11 @@ Loop *LoopUnroll::FindCandidateLoop()
 void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp, Operand *strideOp, bool ifall)
 {
     /*
-     *                            --------
-     *                            ↓      ↑
-     * Special:  pred -> cond -> body -> cond -> Exitbb      ==>     pred -> newbody -> Exitbb
-     *                     ↓                       ↑
-     *                     -------------------------
+     *                   ----
+     *                   ↓  ↑
+     * Special:  pred -> body -> Exitbb      ==>     pred -> newbody -> Exitbb
+     *
+     *
      */
 
     std::vector<Instruction *> freeInsts;
@@ -117,9 +117,9 @@ void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp
     std::vector<Instruction *> prevInsts, nextInsts;
     std::map<Operand *, Operand *> outer_bridge, reverse_outer_bridge;
     for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
-    {
         nextInsts.push_back(inst);
-    }
+    if (nextInsts.size() > MAXUNROLLNUM)
+        return;
     for (int k = 0; k < num - 1; k++)
     {
         freeInsts.push_back(bb->rbegin());
@@ -132,7 +132,10 @@ void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp
         nextInsts.clear();
         for (auto inst : prevInsts)
         {
-            nextInsts.push_back(inst->copy());
+            auto copyInst = inst->copy();
+            for (auto use : copyInst->getUses())
+                use->addUse(copyInst);
+            nextInsts.push_back(copyInst);
         }
         std::map<Operand *, Operand *> bridge;
         for (auto inst : nextInsts)
@@ -226,7 +229,7 @@ void LoopUnroll::specialCopyInstructions(BasicBlock *bb, int num, Operand *endOp
     for (auto inst : freeInsts)
         delete inst;
 
-    std::cout << "SpeacialUnroll Finished!\n";
+    std::cout << "SpecialUnroll Finished!\n";
 }
 
 // 只考虑+1的情况先 不管浮点？
@@ -560,8 +563,7 @@ void LoopUnroll::Unroll(Loop *loop)
                 std::cout << "Wrong CmpInstrucion Type!\n";
                 break;
             }
-            if (count == 100)
-                // if (count < MAXUNROLLNUM)
+            if (count < MAXUNROLLNUM)
                 specialCopyInstructions(body, count, endOp, strideOp, true);
             else
             {

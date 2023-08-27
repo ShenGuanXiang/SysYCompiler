@@ -20,7 +20,7 @@ class LoopUnroll
 {
 private:
     Unit *unit;
-    const int MAXUNROLLNUM = 10000;
+    const int MAXUNROLLNUM = 2000;
     const int UNROLLNUM = 4;
     std::set<Loop *> Loops;
 

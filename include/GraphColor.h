@@ -33,7 +33,7 @@ struct Web
     }
 };
 
-class RegisterAllocation
+class GraphColor
 {
 public:
     struct DU
@@ -79,7 +79,7 @@ private:
     bool isImmWeb(Web *);
 
 public:
-    RegisterAllocation(MachineUnit *);
+    GraphColor(MachineUnit *);
     void pass();
 };
 

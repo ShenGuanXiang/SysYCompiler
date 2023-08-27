@@ -1,11 +1,10 @@
 #include "AutoInline.h"
 #include <unordered_map>
 
-static const int maxInlineIter = 1, maxRecurCall = 10;
-
 void AutoInliner::ReplSingleUseWith(Instruction *inst, int i, Operand *new_op)
 {
-    inst->getUses()[i]->removeUse(inst);
+    if (std::count(inst->getUses().begin(), inst->getUses().end(), inst->getUses()[i]) == 1)
+        inst->getUses()[i]->removeUse(inst);
     inst->getUses()[i] = new_op;
     new_op->addUse(inst);
 }
@@ -147,6 +146,8 @@ void AutoInliner::pass(bool recur_inline)
             RecurInline(func);
     }
 
+    ClearRedundantParams();
+
     sc.pass();
 
     DeadCodeElim dce(unit);
@@ -266,28 +267,16 @@ void AutoInliner::pass(Instruction *instr, Function *deepcopy_func)
                     if (!in1->hasNoDef())
                     {
                         def = in1->getDef();
-                        Operand *dst;
-                        if (ope2ope.find(def) != ope2ope.end())
-                            dst = ope2ope[def];
-                        else
-                        {
-                            dst = copyOperand(def);
-                            ope2ope[def] = dst;
-                        }
-                        new_in->setDef(dst);
+                        if (ope2ope.find(def) == ope2ope.end())
+                            ope2ope[def] = copyOperand(def);
+                        new_in->setDef(ope2ope[def]);
                     }
                     auto uses = in1->getUses();
                     int use_idx = 0;
                     for (auto use : uses)
                     {
-                        Operand *src;
-                        if (ope2ope.find(use) != ope2ope.end())
-                            src = ope2ope[use];
-                        else
-                        {
-                            src = copyOperand(use);
-                            ope2ope[use] = src;
-                        }
+                        if (ope2ope.find(use) == ope2ope.end())
+                            ope2ope[use] = copyOperand(use);
                         ReplSingleUseWith(new_in, use_idx, ope2ope[use]);
                         use_idx++;
                     }
@@ -365,10 +354,9 @@ void AutoInliner::pass(Instruction *instr, Function *deepcopy_func)
 
 void AutoInliner::RecurInline(Function *func)
 {
-    for (int iter_time = 0; iter_time < maxInlineIter; iter_time++)
+    for (int iter_time = 0; iter_time < MAXINLINEITER; iter_time++)
     {
         std::vector<Instruction *> need_pass;
-        auto copy_func = deepCopy(func);
         for (auto bb : func->getBlockList())
         {
             for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
@@ -379,14 +367,16 @@ void AutoInliner::RecurInline(Function *func)
                 }
             }
         }
-        if (need_pass.size() < maxRecurCall)
+        if (!need_pass.empty() && need_pass.size() < MAXRECURCALL)
         {
+            // fprintf(stderr, "recur_inline:%s\n", dynamic_cast<IdentifierSymbolEntry *>(func->getSymPtr())->getName().c_str());
+            auto copy_func = deepCopy(func);
             for (auto inst : need_pass)
             {
                 pass(inst, copy_func);
             }
+            delete copy_func;
         }
-        delete copy_func;
     }
 }
 
@@ -421,32 +411,16 @@ Function *AutoInliner::deepCopy(Function *old_func)
             if (!new_inst->hasNoDef())
             {
                 auto def = new_inst->getDef();
-                Operand *new_def;
-                if (ope2ope.count(def))
-                {
-                    new_def = ope2ope[def];
-                }
-                else
-                {
-                    new_def = copyOperand(def);
-                    ope2ope[def] = new_def;
-                }
-                new_inst->setDef(new_def);
+                if (!ope2ope.count(def))
+                    ope2ope[def] = copyOperand(def);
+                new_inst->setDef(ope2ope[def]);
             }
             auto uses = new_inst->getUses();
             int use_idx = 0;
             for (auto use : uses)
             {
-                Operand *new_use;
-                if (ope2ope.count(use))
-                {
-                    new_use = ope2ope[use];
-                }
-                else
-                {
-                    new_use = copyOperand(use);
-                    ope2ope[use] = new_use;
-                }
+                if (!ope2ope.count(use))
+                    ope2ope[use] = copyOperand(use);
                 ReplSingleUseWith(new_inst, use_idx, ope2ope[use]);
                 use_idx++;
             }
@@ -542,4 +516,24 @@ void AutoInliner::UpdateRecur(Function *f, std::set<Function *> &Path)
             UpdateRecur(f_nxt, Path);
             Path.erase(f_nxt);
         }
+}
+
+void AutoInliner::ClearRedundantParams()
+{
+    // TODO
+    unit->getCallGraph();
+    std::vector<Operand *> redundantparams;
+    for (auto func : unit->getFuncList())
+    {
+        for (auto param : func->getParamsOp())
+        {
+            auto param_no = dynamic_cast<IdentifierSymbolEntry *>(param->getEntry())->getParamNo();
+            for (auto caller_inst : func->getCallersInsts())
+            {
+            }
+        }
+    }
+    for (auto redundant_op : redundantparams)
+    {
+    }
 }

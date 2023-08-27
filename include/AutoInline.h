@@ -14,6 +14,7 @@ private:
     Unit *unit;
     std::map<Function *, bool> is_recur;
     std::map<Function *, int> degree;
+    const int MAXINLINEITER = 2, MAXRECURCALL = 10;
 
 public:
     AutoInliner(Unit *unit) : unit(unit){};
@@ -27,6 +28,7 @@ public:
     void RecurInline(Function *);
     Function *deepCopy(Function *);
     void ReplSingleUseWith(Instruction *inst, int i, Operand *new_op);
+    void ClearRedundantParams();
 };
 
 #endif

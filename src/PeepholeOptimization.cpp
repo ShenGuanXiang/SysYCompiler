@@ -39,7 +39,7 @@ void PeepholeOptimization::op1()
     {
         auto func = *func_iter;
 
-        RegisterAllocation ra_helper(unit);
+        GraphColor ra_helper(unit);
         ra_helper.func = func;
         ra_helper.is_float = false;
         ra_helper.makeDuChains();

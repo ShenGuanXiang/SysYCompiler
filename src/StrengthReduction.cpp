@@ -592,7 +592,6 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
 
                                     bb->removeInst(inst);
                                     freeInsts.insert(inst);
-                                    fprintf(stderr, "in2\n");
                                 }
                             }
                         }
@@ -615,21 +614,21 @@ void StrengthReduction::dfs(MachineBlock *bb, std::map<MachineOperand, int> op2v
                 freeInsts.insert(inst);
             }
 
-            // 取模会翻译为div、mul、sub
-            bool isMod = false;
-            MachineInstruction *nxt = bb->getNext(inst), *nxt_nxt = nullptr;
-            if (nxt != nullptr && nxt->isMul() && *inst->getDef()[0] == *nxt->getUse()[0] && *inst->getUse()[1] == *nxt->getUse()[1])
-            {
-                nxt_nxt = bb->getNext(nxt);
-                if (nxt_nxt != nullptr && nxt_nxt->isSub() && *inst->getUse()[0] == *nxt_nxt->getUse()[0] && *nxt->getDef()[0] == *nxt_nxt->getUse()[1])
-                {
-                    isMod = true;
-                }
-            }
-            if (isMod && op2val.count(*inst->getUse()[1]))
-            {
-                ; // TODO：mod2and
-            }
+            // // 取模会翻译为div、mul、sub
+            // bool isMod = false;
+            // MachineInstruction *nxt = bb->getNext(inst), *nxt_nxt = nullptr;
+            // if (nxt != nullptr && nxt->isMul() && *inst->getDef()[0] == *nxt->getUse()[0] && *inst->getUse()[1] == *nxt->getUse()[1])
+            // {
+            //     nxt_nxt = bb->getNext(nxt);
+            //     if (nxt_nxt != nullptr && nxt_nxt->isSub() && *inst->getUse()[0] == *nxt_nxt->getUse()[0] && *nxt->getDef()[0] == *nxt_nxt->getUse()[1])
+            //     {
+            //         isMod = true;
+            //     }
+            // }
+            // if (isMod && op2val.count(*inst->getUse()[1]))
+            // {
+            //     ; // TODO：mod2and
+            // }
 
             else if (op2val.count(*inst->getUse()[1]))
             {
