@@ -46,7 +46,6 @@ public:
         return def_list[0];
     };
     bool hasNoDef() { return def_list.empty(); };
-    bool hasNoUse() { return use_list.empty(); };
     virtual std::vector<Operand *> &getUses() { return use_list; };
     void replaceAllUsesWith(Operand *);                                                   // replace all uses of the def
     void replaceUsesWith(Operand *old_op, Operand *new_op, BasicBlock *pre_bb = nullptr); // replace uses of this instruction

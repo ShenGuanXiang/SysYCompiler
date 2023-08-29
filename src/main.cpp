@@ -42,7 +42,7 @@ bool dump_tokens = false;
 bool dump_ast = false;
 bool dump_ir = false;
 bool dump_asm = false;
-bool optimize = 1;
+bool optimize = false;
 
 int main(int argc, char *argv[])
 {
@@ -113,7 +113,6 @@ int main(int argc, char *argv[])
             pf.pass(); // 纯函数清理
             AutoInliner autoinliner(unit);
             autoinliner.pass(i == 1); // 函数自动内联
-            // TODO:其它中间代码优化
             AlgSimplify alsim(unit);
             alsim.pass(); // 代数化简
             SparseCondConstProp sccp(unit);
@@ -156,7 +155,6 @@ int main(int argc, char *argv[])
         unit->genMachineCode(mUnit);
         if (optimize)
         {
-            // TODO: 汇编代码优化
             ComSubExprElimASM cseasm(mUnit);
             cseasm.pass(); // 后端cse
 

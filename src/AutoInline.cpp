@@ -152,6 +152,8 @@ void AutoInliner::pass(bool recur_inline)
 
     DeadCodeElim dce(unit);
     dce.deleteUselessFunc();
+
+    unit->check(); // TODO：?
 }
 
 void AutoInliner::pass(Instruction *instr, Function *deepcopy_func)
@@ -520,20 +522,21 @@ void AutoInliner::UpdateRecur(Function *f, std::set<Function *> &Path)
 
 void AutoInliner::ClearRedundantParams()
 {
-    // TODO
-    unit->getCallGraph();
-    std::vector<Operand *> redundantparams;
-    for (auto func : unit->getFuncList())
-    {
-        for (auto param : func->getParamsOp())
-        {
-            auto param_no = dynamic_cast<IdentifierSymbolEntry *>(param->getEntry())->getParamNo();
-            for (auto caller_inst : func->getCallersInsts())
-            {
-            }
-        }
-    }
-    for (auto redundant_op : redundantparams)
-    {
-    }
+    // // TODO
+    // unit->getCallGraph();
+    // std::vector<Operand *> redundantparams;
+    // for (auto func : unit->getFuncList())
+    // {
+    //     for (auto param : func->getParamsOp())
+    //     {
+    //         auto param_no = dynamic_cast<IdentifierSymbolEntry *>(param->getEntry())->getParamNo();
+    //         for (auto caller_inst : func->getCallersInsts())
+    //         {
+    //         }
+    //     }
+    // }
+    // for (auto redundant_op : redundantparams)
+    // {
+    // }
+    return;
 }

@@ -70,6 +70,27 @@ Function *Unit::getMainFunc()
     assert(0 && "no main func?");
 }
 
+void Unit::check()
+{
+    for (auto func : func_list)
+    {
+        for (auto bb : func->getBlockList())
+        {
+            for (auto inst = bb->begin(); inst != bb->end(); inst = inst->getNext())
+            {
+                if (!inst->hasNoDef())
+                {
+                    assert(inst->getDef()->getDef() == inst);
+                }
+                for (auto use : inst->getUses())
+                {
+                    assert(use->getUses().count(inst));
+                }
+            }
+        }
+    }
+}
+
 Unit::~Unit()
 {
     auto delete_list = func_list;

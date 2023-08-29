@@ -32,6 +32,7 @@ public:
 
     std::unordered_set<IdentifierSymbolEntry *> getDeclList() { return decl_list; };
     Function *getMainFunc();
+    void check();
     // DCE
     std::vector<Function *> getFuncList() { return func_list; };
 
